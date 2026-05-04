@@ -1,0 +1,37 @@
+package com.google.android.exoplayer2.source;
+
+import android.net.Uri;
+import com.google.android.exoplayer2.upstream.DataSpec;
+import java.util.Collections;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
+
+/* JADX INFO: loaded from: classes4.dex */
+public final class LoadEventInfo {
+    private static final AtomicLong idSource = new AtomicLong();
+    public final long bytesLoaded;
+    public final DataSpec dataSpec;
+    public final long elapsedRealtimeMs;
+    public final long loadDurationMs;
+    public final long loadTaskId;
+    public final Map responseHeaders;
+    public final Uri uri;
+
+    public static long getNewId() {
+        return idSource.getAndIncrement();
+    }
+
+    public LoadEventInfo(long j, DataSpec dataSpec, long j2) {
+        this(j, dataSpec, dataSpec.uri, Collections.EMPTY_MAP, j2, 0L, 0L);
+    }
+
+    public LoadEventInfo(long j, DataSpec dataSpec, Uri uri, Map map, long j2, long j3, long j4) {
+        this.loadTaskId = j;
+        this.dataSpec = dataSpec;
+        this.uri = uri;
+        this.responseHeaders = map;
+        this.elapsedRealtimeMs = j2;
+        this.loadDurationMs = j3;
+        this.bytesLoaded = j4;
+    }
+}

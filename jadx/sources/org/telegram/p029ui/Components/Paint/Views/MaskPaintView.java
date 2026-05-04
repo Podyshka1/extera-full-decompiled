@@ -1,0 +1,443 @@
+package org.telegram.p029ui.Components.Paint.Views;
+
+import android.animation.ValueAnimator;
+import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.Rect;
+import android.graphics.RectF;
+import android.os.Build;
+import android.os.Looper;
+import android.view.MotionEvent;
+import android.view.View;
+import android.view.ViewPropertyAnimator;
+import android.widget.FrameLayout;
+import android.widget.TextView;
+import java.util.ArrayList;
+import org.mvel2.asm.Opcodes;
+import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.C2888R;
+import org.telegram.messenger.DispatchQueue;
+import org.telegram.messenger.LocaleController;
+import org.telegram.messenger.MediaController;
+import org.telegram.p029ui.ActionBar.ActionBar;
+import org.telegram.p029ui.ActionBar.Theme;
+import org.telegram.p029ui.BubbleActivity;
+import org.telegram.p029ui.Components.CubicBezierInterpolator;
+import org.telegram.p029ui.Components.LayoutHelper;
+import org.telegram.p029ui.Components.Paint.Brush;
+import org.telegram.p029ui.Components.Paint.Painting;
+import org.telegram.p029ui.Components.Paint.PersistColorPalette;
+import org.telegram.p029ui.Components.Paint.RenderView;
+import org.telegram.p029ui.Components.Paint.UndoStore;
+import org.telegram.p029ui.Components.Paint.Views.PaintWeightChooserView;
+import org.telegram.p029ui.Components.Size;
+import org.telegram.tgnet.TLObject;
+
+/* JADX INFO: loaded from: classes7.dex */
+public abstract class MaskPaintView extends FrameLayout {
+    private float baseScale;
+    private Bitmap bitmapToEdit;
+    public final FrameLayout buttonsLayout;
+    public final TextView cancelButton;
+    private int currentAccount;
+    private MediaController.CropState currentCropState;
+    public final TextView doneButton;
+    private boolean eraser;
+    private Rect exclusionRect;
+    private ArrayList exclusionRects;
+    private boolean ignoreLayout;
+    private float imageHeight;
+    private float imageWidth;
+    private boolean inBubbleMode;
+    private float inputTransformX;
+    private float inputTransformY;
+    private int orientation;
+    private Size paintingSize;
+    private float panTranslationY;
+    private DispatchQueue queue;
+    private final RenderView renderView;
+    private float scale;
+    private float transformX;
+    private float transformY;
+    private UndoStore undoStore;
+    public PaintWeightChooserView weightChooserView;
+    private PaintWeightChooserView.ValueOverride weightDefaultValueOverride;
+
+    public int getAdditionalBottom() {
+        return 0;
+    }
+
+    public int getAdditionalTop() {
+        return 0;
+    }
+
+    protected abstract void onDrawn();
+
+    protected void onRenderViewAlphaUpdate(ValueAnimator valueAnimator) {
+    }
+
+    public MaskPaintView(Context context, int i, Bitmap bitmap, Bitmap bitmap2, int i2, MediaController.CropState cropState) {
+        super(context);
+        this.weightDefaultValueOverride = new PaintWeightChooserView.ValueOverride() { // from class: org.telegram.ui.Components.Paint.Views.MaskPaintView.1
+            @Override // org.telegram.ui.Components.Paint.Views.PaintWeightChooserView.ValueOverride
+            public float get() {
+                Brush currentBrush = MaskPaintView.this.renderView.getCurrentBrush();
+                if (currentBrush == null) {
+                    return PersistColorPalette.getInstance(MaskPaintView.this.currentAccount).getCurrentWeight();
+                }
+                return PersistColorPalette.getInstance(MaskPaintView.this.currentAccount).getWeight("-1", currentBrush.getDefaultWeight());
+            }
+
+            @Override // org.telegram.ui.Components.Paint.Views.PaintWeightChooserView.ValueOverride
+            public void set(float f) {
+                PersistColorPalette.getInstance(MaskPaintView.this.currentAccount).setWeight("-1", f);
+                MaskPaintView.this.renderView.setBrushSize(f);
+            }
+        };
+        this.exclusionRects = new ArrayList();
+        this.exclusionRect = new Rect();
+        this.currentAccount = i;
+        this.inBubbleMode = context instanceof BubbleActivity;
+        UndoStore undoStore = new UndoStore();
+        this.undoStore = undoStore;
+        undoStore.setDelegate(new UndoStore.UndoStoreDelegate() { // from class: org.telegram.ui.Components.Paint.Views.MaskPaintView.2
+            @Override // org.telegram.ui.Components.Paint.UndoStore.UndoStoreDelegate
+            public void historyChanged() {
+            }
+        });
+        this.queue = new DispatchQueue("MaskPaint");
+        this.currentCropState = cropState;
+        this.bitmapToEdit = bitmap;
+        this.orientation = i2;
+        RenderView renderView = new RenderView(context, new Painting(getPaintingSize(), bitmap2, i2, null).asMask(), bitmap, null, null);
+        this.renderView = renderView;
+        renderView.setAlpha(0.0f);
+        renderView.setDelegate(new RenderView.RenderViewDelegate() { // from class: org.telegram.ui.Components.Paint.Views.MaskPaintView.3
+            @Override // org.telegram.ui.Components.Paint.RenderView.RenderViewDelegate
+            public /* synthetic */ void invalidateInputView() {
+                RenderView.RenderViewDelegate.CC.$default$invalidateInputView(this);
+            }
+
+            @Override // org.telegram.ui.Components.Paint.RenderView.RenderViewDelegate
+            public void resetBrush() {
+            }
+
+            @Override // org.telegram.ui.Components.Paint.RenderView.RenderViewDelegate
+            public boolean shouldDraw() {
+                return true;
+            }
+
+            @Override // org.telegram.ui.Components.Paint.RenderView.RenderViewDelegate
+            public void onBeganDrawing() {
+                MaskPaintView.this.weightChooserView.setViewHidden(true);
+            }
+
+            @Override // org.telegram.ui.Components.Paint.RenderView.RenderViewDelegate
+            public void onFinishedDrawing(boolean z) {
+                MaskPaintView.this.undoStore.getDelegate().historyChanged();
+                MaskPaintView.this.weightChooserView.setViewHidden(false);
+                MaskPaintView.this.onDrawn();
+            }
+
+            @Override // org.telegram.ui.Components.Paint.RenderView.RenderViewDelegate
+            public void onFirstDraw() {
+                ViewPropertyAnimator duration = MaskPaintView.this.renderView.animate().alpha(1.0f).setDuration(320L);
+                final MaskPaintView maskPaintView = MaskPaintView.this;
+                duration.setUpdateListener(new ValueAnimator.AnimatorUpdateListener() { // from class: org.telegram.ui.Components.Paint.Views.MaskPaintView$3$$ExternalSyntheticLambda0
+                    @Override // android.animation.ValueAnimator.AnimatorUpdateListener
+                    public final void onAnimationUpdate(ValueAnimator valueAnimator) {
+                        maskPaintView.onRenderViewAlphaUpdate(valueAnimator);
+                    }
+                }).setInterpolator(CubicBezierInterpolator.EASE_OUT_QUINT);
+            }
+        });
+        renderView.setUndoStore(this.undoStore);
+        renderView.setQueue(this.queue);
+        renderView.setVisibility(4);
+        renderView.setBrush(new Brush.Radial());
+        renderView.setBrushSize(this.weightDefaultValueOverride.get());
+        renderView.setColor(Opcodes.V_PREVIEW);
+        addView(renderView, LayoutHelper.createFrame(-1, -1, 51));
+        PaintWeightChooserView paintWeightChooserView = new PaintWeightChooserView(context);
+        this.weightChooserView = paintWeightChooserView;
+        paintWeightChooserView.setMinMax(0.05f, 1.0f);
+        this.weightChooserView.setBrushWeight(this.weightDefaultValueOverride.get());
+        this.weightChooserView.setRenderView(renderView);
+        this.weightChooserView.setValueOverride(this.weightDefaultValueOverride);
+        this.weightChooserView.setTranslationX(-AndroidUtilities.m1124dp(18.0f));
+        this.weightChooserView.setAlpha(0.0f);
+        addView(this.weightChooserView, LayoutHelper.createFrame(-1, -1.0f));
+        FrameLayout frameLayout = new FrameLayout(context);
+        this.buttonsLayout = frameLayout;
+        frameLayout.setAlpha(0.0f);
+        frameLayout.setVisibility(8);
+        addView(frameLayout, LayoutHelper.createFrame(-1, 44, 80));
+        TextView textView = new TextView(context);
+        this.cancelButton = textView;
+        textView.setTextSize(1, 15.0f);
+        textView.setTypeface(AndroidUtilities.bold());
+        textView.setBackground(Theme.createSelectorDrawable(Theme.multAlpha(-1, 0.15f), 3));
+        textView.setPadding(AndroidUtilities.m1124dp(28.0f), 0, AndroidUtilities.m1124dp(28.0f), 0);
+        textView.setText(LocaleController.getString(C2888R.string.Cancel).toUpperCase());
+        textView.setTextColor(-1);
+        textView.setGravity(17);
+        frameLayout.addView(textView, LayoutHelper.createFrame(-2, 44.0f, 3, -8.0f, 0.0f, 0.0f, 0.0f));
+        TextView textView2 = new TextView(context);
+        this.doneButton = textView2;
+        textView2.setTextSize(1, 15.0f);
+        textView2.setTypeface(AndroidUtilities.bold());
+        int i3 = Theme.key_chat_editMediaButton;
+        textView2.setBackground(Theme.createSelectorDrawable(Theme.multAlpha(Theme.getColor(i3), 0.15f), 3));
+        textView2.setPadding(AndroidUtilities.m1124dp(28.0f), 0, AndroidUtilities.m1124dp(28.0f), 0);
+        textView2.setText(LocaleController.getString(C2888R.string.Save).toUpperCase());
+        textView2.setTextColor(Theme.getColor(i3));
+        textView2.setGravity(17);
+        frameLayout.addView(textView2, LayoutHelper.createFrame(-2, 44.0f, 5, 0.0f, 0.0f, -8.0f, 0.0f));
+    }
+
+    public boolean canUndo() {
+        return this.undoStore.canUndo();
+    }
+
+    public boolean undo() {
+        if (!this.undoStore.canUndo()) {
+            return false;
+        }
+        this.undoStore.undo();
+        return true;
+    }
+
+    private Size getPaintingSize() {
+        Size size = this.paintingSize;
+        if (size != null) {
+            return size;
+        }
+        Size size2 = new Size(this.bitmapToEdit.getWidth(), this.bitmapToEdit.getHeight());
+        float f = 1280;
+        size2.width = f;
+        float fFloor = (float) Math.floor((f * r1) / r0);
+        size2.height = fFloor;
+        if (fFloor > f) {
+            size2.height = f;
+            size2.width = (float) Math.floor((f * r0) / r1);
+        }
+        this.paintingSize = size2;
+        return size2;
+    }
+
+    public void setEraser(boolean z) {
+        if (this.eraser == z) {
+            return;
+        }
+        this.eraser = z;
+        this.renderView.setBrush(z ? new Brush.Eraser() : new Brush.Radial());
+    }
+
+    public void setTransform(float f, float f2, float f3, float f4, float f5, float f6) {
+        float f7;
+        this.scale = f;
+        this.imageWidth = f5;
+        this.imageHeight = f6;
+        this.inputTransformX = f2;
+        this.inputTransformY = f3;
+        this.transformX = f2;
+        float f8 = f3 + this.panTranslationY;
+        this.transformY = f8;
+        RenderView renderView = this.renderView;
+        MediaController.CropState cropState = this.currentCropState;
+        if (cropState != null) {
+            float f9 = cropState.cropScale * 1.0f;
+            int measuredWidth = renderView.getMeasuredWidth();
+            int measuredHeight = renderView.getMeasuredHeight();
+            if (measuredWidth == 0 || measuredHeight == 0) {
+                return;
+            }
+            int i = this.currentCropState.transformRotation;
+            if (i == 90 || i == 270) {
+                measuredHeight = measuredWidth;
+                measuredWidth = measuredHeight;
+            }
+            float fMax = Math.max(f5 / ((int) (r5.cropPw * r3)), f6 / ((int) (r5.cropPh * r4)));
+            f7 = f9 * fMax;
+            MediaController.CropState cropState2 = this.currentCropState;
+            float f10 = cropState2.cropPx * measuredWidth * f * fMax;
+            float f11 = cropState2.cropScale;
+            f2 += f10 * f11;
+            f8 += cropState2.cropPy * measuredHeight * f * fMax * f11;
+            f4 += cropState2.cropRotate + i;
+        } else {
+            f7 = this.baseScale * 1.0f;
+        }
+        float f12 = f * f7;
+        float f13 = Float.isNaN(f12) ? 1.0f : f12;
+        renderView.setScaleX(f13);
+        renderView.setScaleY(f13);
+        renderView.setTranslationX(f2);
+        renderView.setTranslationY(f8);
+        renderView.setRotation(f4);
+        renderView.invalidate();
+        invalidate();
+    }
+
+    public void init() {
+        this.renderView.setVisibility(0);
+        this.buttonsLayout.setVisibility(0);
+        this.buttonsLayout.setTranslationY(AndroidUtilities.m1124dp(18.0f));
+        ViewPropertyAnimator viewPropertyAnimatorTranslationY = this.buttonsLayout.animate().alpha(1.0f).translationY(0.0f);
+        CubicBezierInterpolator cubicBezierInterpolator = CubicBezierInterpolator.EASE_OUT_QUINT;
+        viewPropertyAnimatorTranslationY.setInterpolator(cubicBezierInterpolator).setDuration(320L).start();
+        this.weightChooserView.animate().alpha(1.0f).translationX(0.0f).setInterpolator(cubicBezierInterpolator).setDuration(320L).start();
+    }
+
+    @Override // android.widget.FrameLayout, android.view.View
+    protected void onMeasure(int i, int i2) {
+        float height;
+        float width;
+        this.ignoreLayout = true;
+        int size = View.MeasureSpec.getSize(i);
+        int size2 = View.MeasureSpec.getSize(i2);
+        setMeasuredDimension(size, size2);
+        int i3 = AndroidUtilities.displaySize.y;
+        Bitmap bitmap = this.bitmapToEdit;
+        if (bitmap != null) {
+            width = bitmap.getWidth();
+            height = this.bitmapToEdit.getHeight();
+        } else {
+            height = size2;
+            width = size;
+        }
+        float fFloor = size;
+        float fFloor2 = (float) Math.floor((fFloor * height) / width);
+        float f = i3;
+        if (fFloor2 > f) {
+            fFloor = (float) Math.floor((width * f) / height);
+            fFloor2 = f;
+        }
+        this.renderView.measure(View.MeasureSpec.makeMeasureSpec((int) fFloor, TLObject.FLAG_30), View.MeasureSpec.makeMeasureSpec((int) fFloor2, TLObject.FLAG_30));
+        this.baseScale = 1.0f;
+        measureChild(this.weightChooserView, i, i2);
+        measureChild(this.buttonsLayout, i, i2);
+        this.ignoreLayout = false;
+        if (Build.VERSION.SDK_INT >= 29) {
+            this.exclusionRects.clear();
+            this.exclusionRects.add(this.exclusionRect);
+            int measuredHeight = (int) (getMeasuredHeight() * 0.3f);
+            this.exclusionRect.set(0, (getMeasuredHeight() - measuredHeight) / 2, AndroidUtilities.m1124dp(20.0f), (getMeasuredHeight() + measuredHeight) / 2);
+            setSystemGestureExclusionRects(this.exclusionRects);
+        }
+    }
+
+    @Override // android.widget.FrameLayout, android.view.ViewGroup, android.view.View
+    protected void onLayout(boolean z, int i, int i2, int i3, int i4) {
+        super.onLayout(z, i, i2, i3, i4);
+        int i5 = i3 - i;
+        int i6 = i4 - i2;
+        if (!this.inBubbleMode) {
+            int i7 = AndroidUtilities.LIGHT_STATUS_BAR_OVERLAY;
+        }
+        int iCeil = (int) Math.ceil((i5 - this.renderView.getMeasuredWidth()) / 2.0f);
+        int measuredHeight = (i6 - this.renderView.getMeasuredHeight()) / 2;
+        RenderView renderView = this.renderView;
+        renderView.layout(iCeil, measuredHeight, renderView.getMeasuredWidth() + iCeil, this.renderView.getMeasuredHeight() + measuredHeight);
+        FrameLayout frameLayout = this.buttonsLayout;
+        frameLayout.layout(0, i6 - frameLayout.getMeasuredHeight(), this.buttonsLayout.getMeasuredWidth(), i6);
+    }
+
+    @Override // android.view.View, android.view.ViewParent
+    public void requestLayout() {
+        if (this.ignoreLayout) {
+            return;
+        }
+        super.requestLayout();
+    }
+
+    @Override // android.view.ViewGroup
+    protected boolean drawChild(Canvas canvas, View view, long j) {
+        if (view == this.renderView && this.currentCropState != null) {
+            canvas.save();
+            i = this.inBubbleMode ? 0 : AndroidUtilities.statusBarHeight;
+            int currentActionBarHeight = ActionBar.getCurrentActionBarHeight() + i;
+            int measuredWidth = view.getMeasuredWidth();
+            int measuredHeight = view.getMeasuredHeight();
+            MediaController.CropState cropState = this.currentCropState;
+            int i = cropState.transformRotation;
+            if (i == 90 || i == 270) {
+                measuredHeight = measuredWidth;
+                measuredWidth = measuredHeight;
+            }
+            float scaleX = measuredWidth * cropState.cropPw * view.getScaleX();
+            MediaController.CropState cropState2 = this.currentCropState;
+            int i2 = (int) (scaleX / cropState2.cropScale);
+            int scaleY = (int) (((measuredHeight * cropState2.cropPh) * view.getScaleY()) / this.currentCropState.cropScale);
+            float fCeil = ((float) Math.ceil((getMeasuredWidth() - i2) / 2.0f)) + this.transformX;
+            float measuredHeight2 = (((((getMeasuredHeight() - currentActionBarHeight) - AndroidUtilities.m1124dp(48.0f)) + getAdditionalBottom()) - scaleY) / 2.0f) + AndroidUtilities.m1124dp(8.0f) + i + this.transformY;
+            canvas.clipRect(Math.max(0.0f, fCeil), Math.max(0.0f, measuredHeight2), Math.min(fCeil + i2, getMeasuredWidth()), Math.min(getMeasuredHeight(), measuredHeight2 + scaleY));
+            i = 1;
+        }
+        boolean zDrawChild = super.drawChild(canvas, view, j);
+        if (i != 0) {
+            canvas.restore();
+        }
+        return zDrawChild;
+    }
+
+    public boolean onTouch(MotionEvent motionEvent) {
+        float x = ((motionEvent.getX() - this.renderView.getTranslationX()) - (getMeasuredWidth() / 2.0f)) / this.renderView.getScaleX();
+        float y = ((motionEvent.getY() - this.renderView.getTranslationY()) - (getMeasuredHeight() / 2.0f)) / this.renderView.getScaleY();
+        double d = x;
+        double radians = (float) Math.toRadians(-this.renderView.getRotation());
+        double d2 = y;
+        float fCos = ((float) ((Math.cos(radians) * d) - (Math.sin(radians) * d2))) + (this.renderView.getMeasuredWidth() / 2.0f);
+        float fSin = ((float) ((d * Math.sin(radians)) + (d2 * Math.cos(radians)))) + (this.renderView.getMeasuredHeight() / 2.0f);
+        MotionEvent motionEventObtain = MotionEvent.obtain(motionEvent);
+        motionEventObtain.setLocation(fCos, fSin);
+        this.renderView.onTouch(motionEventObtain);
+        motionEventObtain.recycle();
+        return true;
+    }
+
+    public Bitmap getBitmap() {
+        Bitmap resultBitmap = this.renderView.getResultBitmap(false, false);
+        if (this.orientation == 0) {
+            return resultBitmap;
+        }
+        int width = resultBitmap.getWidth();
+        int height = resultBitmap.getHeight();
+        if ((this.orientation / 90) % 2 != 0) {
+            width = resultBitmap.getHeight();
+            height = resultBitmap.getWidth();
+        }
+        Bitmap bitmapCreateBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmapCreateBitmap);
+        canvas.translate(width / 2.0f, height / 2.0f);
+        canvas.rotate(-this.orientation);
+        RectF rectF = AndroidUtilities.rectTmp;
+        rectF.set((-resultBitmap.getWidth()) / 2.0f, (-resultBitmap.getHeight()) / 2.0f, resultBitmap.getWidth() / 2.0f, resultBitmap.getHeight() / 2.0f);
+        canvas.drawBitmap(resultBitmap, (Rect) null, rectF, new Paint(3));
+        resultBitmap.recycle();
+        return bitmapCreateBitmap;
+    }
+
+    public RenderView getRenderView() {
+        return this.renderView;
+    }
+
+    public void shutdown() {
+        this.renderView.shutdown();
+        this.queue.postRunnable(new Runnable() { // from class: org.telegram.ui.Components.Paint.Views.MaskPaintView$$ExternalSyntheticLambda0
+            @Override // java.lang.Runnable
+            public final void run() {
+                MaskPaintView.$r8$lambda$cXRL7e_YItIUpm3UBcEWZiwtjVc();
+            }
+        });
+    }
+
+    public static /* synthetic */ void $r8$lambda$cXRL7e_YItIUpm3UBcEWZiwtjVc() {
+        Looper looperMyLooper = Looper.myLooper();
+        if (looperMyLooper != null) {
+            looperMyLooper.quit();
+        }
+    }
+}

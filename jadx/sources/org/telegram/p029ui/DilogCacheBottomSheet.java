@@ -1,0 +1,379 @@
+package org.telegram.p029ui;
+
+import android.content.Context;
+import android.graphics.drawable.ColorDrawable;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.FrameLayout;
+import android.widget.LinearLayout;
+import androidx.recyclerview.widget.RecyclerView;
+import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.C2888R;
+import org.telegram.messenger.LocaleController;
+import org.telegram.p029ui.ActionBar.ActionBar;
+import org.telegram.p029ui.ActionBar.AlertDialog;
+import org.telegram.p029ui.ActionBar.BottomSheet;
+import org.telegram.p029ui.ActionBar.Theme;
+import org.telegram.p029ui.CacheControlActivity;
+import org.telegram.p029ui.CachedMediaLayout;
+import org.telegram.p029ui.Cells.CheckBoxCell;
+import org.telegram.p029ui.Cells.TextInfoPrivacyCell;
+import org.telegram.p029ui.Components.BottomSheetWithRecyclerListView;
+import org.telegram.p029ui.Components.CombinedDrawable;
+import org.telegram.p029ui.Components.LayoutHelper;
+import org.telegram.p029ui.Components.NestedSizeNotifierLayout;
+import org.telegram.p029ui.Components.RecyclerListView;
+import org.telegram.p029ui.Components.StorageDiagramView;
+import org.telegram.p029ui.Storage.CacheModel;
+import org.telegram.tgnet.TLObject;
+
+/* JADX INFO: loaded from: classes6.dex */
+public class DilogCacheBottomSheet extends BottomSheetWithRecyclerListView {
+    private CacheControlActivity.ClearCacheButton button;
+    private final Delegate cacheDelegate;
+    private final CacheModel cacheModel;
+    CachedMediaLayout cachedMediaLayout;
+    CheckBoxCell[] checkBoxes;
+    private final StorageDiagramView circleDiagramView;
+    private StorageDiagramView.ClearViewData[] clearViewData;
+    long dialogId;
+    CacheControlActivity.DialogFileEntities entities;
+    LinearLayout linearLayout;
+
+    public interface Delegate {
+        void cleanupDialogFiles(CacheControlActivity.DialogFileEntities dialogFileEntities, StorageDiagramView.ClearViewData[] clearViewDataArr, CacheModel cacheModel);
+
+        void onAvatarClick();
+    }
+
+    @Override // org.telegram.p029ui.Components.BottomSheetWithRecyclerListView, org.telegram.p029ui.ActionBar.BottomSheet
+    protected boolean canDismissWithSwipe() {
+        return false;
+    }
+
+    @Override // org.telegram.p029ui.Components.BottomSheetWithRecyclerListView
+    protected CharSequence getTitle() {
+        return getBaseFragment().getMessagesController().getFullName(this.dialogId);
+    }
+
+    @Override // org.telegram.p029ui.Components.BottomSheetWithRecyclerListView
+    protected RecyclerListView.SelectionAdapter createAdapter(RecyclerListView recyclerListView) {
+        return new RecyclerListView.SelectionAdapter() { // from class: org.telegram.ui.DilogCacheBottomSheet.1
+            @Override // androidx.recyclerview.widget.RecyclerView.Adapter
+            public int getItemViewType(int i) {
+                return i;
+            }
+
+            @Override // org.telegram.ui.Components.RecyclerListView.SelectionAdapter
+            public boolean isEnabled(RecyclerView.ViewHolder viewHolder) {
+                return false;
+            }
+
+            @Override // androidx.recyclerview.widget.RecyclerView.Adapter
+            public void onBindViewHolder(RecyclerView.ViewHolder viewHolder, int i) {
+            }
+
+            @Override // androidx.recyclerview.widget.RecyclerView.Adapter
+            public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup viewGroup, int i) {
+                View view;
+                if (i == 0) {
+                    view = DilogCacheBottomSheet.this.linearLayout;
+                } else if (i == 2) {
+                    view = DilogCacheBottomSheet.this.cachedMediaLayout;
+                    RecyclerView.LayoutParams layoutParams = new RecyclerView.LayoutParams(-1, -2);
+                    ((ViewGroup.MarginLayoutParams) layoutParams).leftMargin = ((BottomSheet) DilogCacheBottomSheet.this).backgroundPaddingLeft;
+                    ((ViewGroup.MarginLayoutParams) layoutParams).rightMargin = ((BottomSheet) DilogCacheBottomSheet.this).backgroundPaddingLeft;
+                    view.setLayoutParams(layoutParams);
+                } else {
+                    TextInfoPrivacyCell textInfoPrivacyCell = new TextInfoPrivacyCell(viewGroup.getContext());
+                    textInfoPrivacyCell.setFixedSize(12);
+                    CombinedDrawable combinedDrawable = new CombinedDrawable(new ColorDrawable(Theme.getColor(Theme.key_windowBackgroundGray)), Theme.getThemedDrawableByKey(viewGroup.getContext(), C2888R.drawable.greydivider_bottom, Theme.key_windowBackgroundGrayShadow));
+                    combinedDrawable.setFullsize(true);
+                    textInfoPrivacyCell.setBackgroundDrawable(combinedDrawable);
+                    view = textInfoPrivacyCell;
+                }
+                return new RecyclerListView.Holder(view);
+            }
+
+            @Override // androidx.recyclerview.widget.RecyclerView.Adapter
+            public int getItemCount() {
+                return DilogCacheBottomSheet.this.cacheModel.isEmpty() ? 1 : 3;
+            }
+        };
+    }
+
+    public DilogCacheBottomSheet(CacheControlActivity cacheControlActivity, CacheControlActivity.DialogFileEntities dialogFileEntities, final CacheModel cacheModel, final Delegate delegate) {
+        String string;
+        int i;
+        boolean z;
+        long j;
+        super(cacheControlActivity, false, false, !cacheModel.isEmpty(), null);
+        this.clearViewData = new StorageDiagramView.ClearViewData[8];
+        this.checkBoxes = new CheckBoxCell[8];
+        this.cacheDelegate = delegate;
+        this.entities = dialogFileEntities;
+        this.cacheModel = cacheModel;
+        this.dialogId = dialogFileEntities.dialogId;
+        boolean z2 = false;
+        this.allowNestedScroll = false;
+        updateTitle();
+        setAllowNestedScroll(true);
+        this.topPadding = 0.2f;
+        Context context = cacheControlActivity.getContext();
+        fixNavigationBar();
+        setApplyBottomPadding(false);
+        LinearLayout linearLayout = new LinearLayout(context);
+        this.linearLayout = linearLayout;
+        linearLayout.setOrientation(1);
+        StorageDiagramView storageDiagramView = new StorageDiagramView(getContext(), dialogFileEntities.dialogId) { // from class: org.telegram.ui.DilogCacheBottomSheet.2
+            @Override // org.telegram.p029ui.Components.StorageDiagramView
+            protected void onAvatarClick() {
+                delegate.onAvatarClick();
+            }
+        };
+        this.circleDiagramView = storageDiagramView;
+        this.linearLayout.addView(storageDiagramView, LayoutHelper.createLinear(-2, -2, 1, 0, 16, 0, 16));
+        CheckBoxCell checkBoxCell = null;
+        int i2 = 0;
+        for (int i3 = 8; i2 < i3; i3 = 8) {
+            if (i2 == 0) {
+                string = LocaleController.getString(C2888R.string.LocalPhotoCache);
+                i = Theme.key_statisticChartLine_lightblue;
+            } else if (i2 == 1) {
+                string = LocaleController.getString(C2888R.string.LocalVideoCache);
+                i = Theme.key_statisticChartLine_blue;
+            } else if (i2 == 2) {
+                string = LocaleController.getString(C2888R.string.LocalDocumentCache);
+                i = Theme.key_statisticChartLine_green;
+            } else if (i2 == 3) {
+                string = LocaleController.getString(C2888R.string.LocalMusicCache);
+                i = Theme.key_statisticChartLine_red;
+            } else if (i2 == 4) {
+                string = LocaleController.getString(C2888R.string.LocalAudioCache);
+                i = Theme.key_statisticChartLine_lightgreen;
+            } else if (i2 == 5) {
+                string = LocaleController.getString(C2888R.string.LocalStickersCache);
+                i = Theme.key_statisticChartLine_orange;
+            } else if (i2 == 7) {
+                string = LocaleController.getString(C2888R.string.LocalStoriesCache);
+                i = Theme.key_statisticChartLine_indigo;
+            } else {
+                string = LocaleController.getString(C2888R.string.LocalMiscellaneousCache);
+                i = Theme.key_statisticChartLine_purple;
+            }
+            CacheControlActivity.FileEntities fileEntities = (CacheControlActivity.FileEntities) dialogFileEntities.entitiesByType.get(i2);
+            if (fileEntities != null) {
+                z = z2;
+                j = fileEntities.totalSize;
+            } else {
+                z = z2;
+                j = 0;
+            }
+            if (j > 0) {
+                this.clearViewData[i2] = new StorageDiagramView.ClearViewData(this.circleDiagramView);
+                StorageDiagramView.ClearViewData clearViewData = this.clearViewData[i2];
+                clearViewData.size = j;
+                clearViewData.colorKey = i;
+                checkBoxCell = new CheckBoxCell(context, 4, 21, null);
+                checkBoxCell.setTag(Integer.valueOf(i2));
+                checkBoxCell.setBackgroundDrawable(Theme.getSelectorDrawable(z));
+                this.linearLayout.addView(checkBoxCell, LayoutHelper.createLinear(-1, 50));
+                checkBoxCell.setText(string, AndroidUtilities.formatFileSize(j), true, true);
+                checkBoxCell.setTextColor(Theme.getColor(Theme.key_dialogTextBlack));
+                checkBoxCell.setCheckBoxColor(i, Theme.key_windowBackgroundWhiteGrayIcon, Theme.key_checkboxCheck);
+                checkBoxCell.setOnClickListener(new View.OnClickListener() { // from class: org.telegram.ui.DilogCacheBottomSheet$$ExternalSyntheticLambda1
+                    @Override // android.view.View.OnClickListener
+                    public final void onClick(View view) {
+                        this.f$0.lambda$new$0(cacheModel, view);
+                    }
+                });
+                this.checkBoxes[i2] = checkBoxCell;
+            } else {
+                this.clearViewData[i2] = null;
+                this.checkBoxes[i2] = null;
+            }
+            i2++;
+            z2 = z;
+        }
+        boolean z3 = z2;
+        if (checkBoxCell != null) {
+            checkBoxCell.setNeedDivider(z3);
+        }
+        this.circleDiagramView.setData(cacheModel, this.clearViewData);
+        CachedMediaLayout cachedMediaLayout = new CachedMediaLayout(getContext(), cacheControlActivity) { // from class: org.telegram.ui.DilogCacheBottomSheet.3
+            @Override // org.telegram.p029ui.CachedMediaLayout, android.widget.FrameLayout, android.view.View
+            protected void onMeasure(int i4, int i5) {
+                super.onMeasure(i4, View.MeasureSpec.makeMeasureSpec((((BottomSheetWithRecyclerListView) DilogCacheBottomSheet.this).contentHeight - ActionBar.getCurrentActionBarHeight()) - AndroidUtilities.statusBarHeight, TLObject.FLAG_30));
+            }
+        };
+        this.cachedMediaLayout = cachedMediaLayout;
+        cachedMediaLayout.setBottomPadding(AndroidUtilities.m1124dp(80.0f));
+        this.cachedMediaLayout.setCacheModel(cacheModel);
+        this.cachedMediaLayout.setDelegate(new CachedMediaLayout.Delegate() { // from class: org.telegram.ui.DilogCacheBottomSheet.4
+            @Override // org.telegram.ui.CachedMediaLayout.Delegate
+            public void clear() {
+            }
+
+            @Override // org.telegram.ui.CachedMediaLayout.Delegate
+            public void clearSelection() {
+            }
+
+            @Override // org.telegram.ui.CachedMediaLayout.Delegate
+            public void onItemSelected(CacheControlActivity.DialogFileEntities dialogFileEntities2, CacheModel.FileInfo fileInfo, boolean z4) {
+                if (fileInfo != null) {
+                    cacheModel.toggleSelect(fileInfo);
+                    DilogCacheBottomSheet.this.cachedMediaLayout.updateVisibleRows();
+                    DilogCacheBottomSheet.this.syncCheckBoxes();
+                    DilogCacheBottomSheet.this.button.setSize(true, DilogCacheBottomSheet.this.circleDiagramView.updateDescription());
+                    DilogCacheBottomSheet.this.circleDiagramView.update(true);
+                }
+            }
+
+            @Override // org.telegram.ui.CachedMediaLayout.Delegate
+            public void dismiss() {
+                DilogCacheBottomSheet.this.lambda$new$0();
+            }
+        });
+        NestedSizeNotifierLayout nestedSizeNotifierLayout = this.nestedSizeNotifierLayout;
+        if (nestedSizeNotifierLayout != null) {
+            nestedSizeNotifierLayout.setChildLayout(this.cachedMediaLayout);
+        } else {
+            createButton();
+            this.linearLayout.addView(this.button, LayoutHelper.createLinear(-1, 72, 80));
+        }
+        if (this.button != null) {
+            this.button.setSize(true, this.circleDiagramView.calculateSize());
+        }
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public /* synthetic */ void lambda$new$0(CacheModel cacheModel, View view) {
+        int i = 0;
+        while (true) {
+            StorageDiagramView.ClearViewData[] clearViewDataArr = this.clearViewData;
+            if (i < clearViewDataArr.length) {
+                StorageDiagramView.ClearViewData clearViewData = clearViewDataArr[i];
+                if (clearViewData != null) {
+                    boolean z = clearViewData.clear;
+                }
+                i++;
+            } else {
+                CheckBoxCell checkBoxCell = (CheckBoxCell) view;
+                int iIntValue = ((Integer) checkBoxCell.getTag()).intValue();
+                this.clearViewData[iIntValue].setClear(!r1.clear);
+                checkBoxCell.setChecked(this.clearViewData[iIntValue].clear, true);
+                cacheModel.allFilesSelcetedByType(iIntValue, this.clearViewData[iIntValue].clear);
+                this.cachedMediaLayout.update();
+                this.button.setSize(true, this.circleDiagramView.updateDescription());
+                this.circleDiagramView.update(true);
+                return;
+            }
+        }
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public void syncCheckBoxes() {
+        CheckBoxCell checkBoxCell = this.checkBoxes[0];
+        if (checkBoxCell != null) {
+            StorageDiagramView.ClearViewData clearViewData = this.clearViewData[0];
+            boolean z = this.cacheModel.allPhotosSelected;
+            clearViewData.clear = z;
+            checkBoxCell.setChecked(z, true);
+        }
+        CheckBoxCell checkBoxCell2 = this.checkBoxes[1];
+        if (checkBoxCell2 != null) {
+            StorageDiagramView.ClearViewData clearViewData2 = this.clearViewData[1];
+            boolean z2 = this.cacheModel.allVideosSelected;
+            clearViewData2.clear = z2;
+            checkBoxCell2.setChecked(z2, true);
+        }
+        CheckBoxCell checkBoxCell3 = this.checkBoxes[2];
+        if (checkBoxCell3 != null) {
+            StorageDiagramView.ClearViewData clearViewData3 = this.clearViewData[2];
+            boolean z3 = this.cacheModel.allDocumentsSelected;
+            clearViewData3.clear = z3;
+            checkBoxCell3.setChecked(z3, true);
+        }
+        CheckBoxCell checkBoxCell4 = this.checkBoxes[3];
+        if (checkBoxCell4 != null) {
+            StorageDiagramView.ClearViewData clearViewData4 = this.clearViewData[3];
+            boolean z4 = this.cacheModel.allMusicSelected;
+            clearViewData4.clear = z4;
+            checkBoxCell4.setChecked(z4, true);
+        }
+        CheckBoxCell checkBoxCell5 = this.checkBoxes[4];
+        if (checkBoxCell5 != null) {
+            StorageDiagramView.ClearViewData clearViewData5 = this.clearViewData[4];
+            boolean z5 = this.cacheModel.allVoiceSelected;
+            clearViewData5.clear = z5;
+            checkBoxCell5.setChecked(z5, true);
+        }
+    }
+
+    @Override // org.telegram.p029ui.Components.BottomSheetWithRecyclerListView
+    public void onViewCreated(FrameLayout frameLayout) {
+        super.onViewCreated(frameLayout);
+        this.recyclerListView.addOnScrollListener(new RecyclerView.OnScrollListener() { // from class: org.telegram.ui.DilogCacheBottomSheet.5
+            @Override // androidx.recyclerview.widget.RecyclerView.OnScrollListener
+            public void onScrolled(RecyclerView recyclerView, int i, int i2) {
+                super.onScrolled(recyclerView, i, i2);
+                DilogCacheBottomSheet dilogCacheBottomSheet = DilogCacheBottomSheet.this;
+                if (dilogCacheBottomSheet.nestedSizeNotifierLayout != null) {
+                    dilogCacheBottomSheet.setShowShadow(!r2.isPinnedToTop());
+                }
+            }
+        });
+        if (this.nestedSizeNotifierLayout != null) {
+            createButton();
+            frameLayout.addView(this.button, LayoutHelper.createFrame(-1, 72, 80));
+        }
+    }
+
+    private void createButton() {
+        CacheControlActivity.ClearCacheButton clearCacheButton = new CacheControlActivity.ClearCacheButton(getContext());
+        this.button = clearCacheButton;
+        clearCacheButton.button.setOnClickListener(new View.OnClickListener() { // from class: org.telegram.ui.DilogCacheBottomSheet$$ExternalSyntheticLambda0
+            @Override // android.view.View.OnClickListener
+            public final void onClick(View view) {
+                this.f$0.lambda$createButton$3(view);
+            }
+        });
+        StorageDiagramView storageDiagramView = this.circleDiagramView;
+        if (storageDiagramView != null) {
+            this.button.setSize(true, storageDiagramView.calculateSize());
+        }
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public /* synthetic */ void lambda$createButton$3(View view) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        builder.setTitle(LocaleController.getString(C2888R.string.ClearCache));
+        builder.setMessage(LocaleController.getString(C2888R.string.ClearCacheForChat));
+        builder.setNegativeButton(LocaleController.getString(C2888R.string.Cancel), new AlertDialog.OnButtonClickListener() { // from class: org.telegram.ui.DilogCacheBottomSheet$$ExternalSyntheticLambda2
+            @Override // org.telegram.ui.ActionBar.AlertDialog.OnButtonClickListener
+            public final void onClick(AlertDialog alertDialog, int i) {
+                this.f$0.lambda$createButton$1(alertDialog, i);
+            }
+        });
+        builder.setPositiveButton(LocaleController.getString(C2888R.string.Clear), new AlertDialog.OnButtonClickListener() { // from class: org.telegram.ui.DilogCacheBottomSheet$$ExternalSyntheticLambda3
+            @Override // org.telegram.ui.ActionBar.AlertDialog.OnButtonClickListener
+            public final void onClick(AlertDialog alertDialog, int i) {
+                this.f$0.lambda$createButton$2(alertDialog, i);
+            }
+        });
+        AlertDialog alertDialogCreate = builder.create();
+        alertDialogCreate.show();
+        alertDialogCreate.redPositive();
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public /* synthetic */ void lambda$createButton$1(AlertDialog alertDialog, int i) {
+        lambda$new$0();
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public /* synthetic */ void lambda$createButton$2(AlertDialog alertDialog, int i) {
+        lambda$new$0();
+        this.cacheDelegate.cleanupDialogFiles(this.entities, this.clearViewData, this.cacheModel);
+    }
+}

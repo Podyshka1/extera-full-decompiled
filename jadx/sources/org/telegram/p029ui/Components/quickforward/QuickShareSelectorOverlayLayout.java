@@ -1,0 +1,232 @@
+package org.telegram.p029ui.Components.quickforward;
+
+import android.content.Context;
+import android.content.res.Configuration;
+import android.graphics.Canvas;
+import android.graphics.drawable.Drawable;
+import android.view.View;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
+import org.telegram.messenger.ChatObject;
+import org.telegram.messenger.DialogObject;
+import org.telegram.messenger.MediaDataController;
+import org.telegram.messenger.MessageObject;
+import org.telegram.messenger.MessagesController;
+import org.telegram.messenger.UserConfig;
+import org.telegram.messenger.UserObject;
+import org.telegram.p029ui.Cells.ChatMessageCell;
+import org.telegram.p029ui.Components.Bulletin;
+import org.telegram.tgnet.TLRPC;
+
+/* JADX INFO: loaded from: classes7.dex */
+public class QuickShareSelectorOverlayLayout extends View {
+    private final int currentAccount;
+    private final ArrayList dialogs;
+    private final HashMap drawableHashMap;
+    private final ArrayList drawablesForRemove;
+
+    public QuickShareSelectorOverlayLayout(Context context) {
+        super(context);
+        this.drawableHashMap = new HashMap();
+        this.drawablesForRemove = new ArrayList();
+        this.dialogs = new ArrayList();
+        this.currentAccount = UserConfig.selectedAccount;
+    }
+
+    public void open(ChatMessageCell chatMessageCell) {
+        fetchDialogs();
+        final String strKey = key(chatMessageCell);
+        if (strKey == null) {
+            return;
+        }
+        QuickShareSelectorDrawable quickShareSelectorDrawable = new QuickShareSelectorDrawable(this, chatMessageCell, removeDuplicates(this.dialogs), strKey, new Runnable() { // from class: org.telegram.ui.Components.quickforward.QuickShareSelectorOverlayLayout$$ExternalSyntheticLambda0
+            @Override // java.lang.Runnable
+            public final void run() {
+                this.f$0.lambda$open$0(strKey);
+            }
+        });
+        quickShareSelectorDrawable.setBounds(0, 0, getMeasuredWidth(), getMeasuredHeight());
+        quickShareSelectorDrawable.setCallback(this);
+        if (this.drawableHashMap.containsKey(strKey)) {
+            return;
+        }
+        this.drawableHashMap.put(strKey, quickShareSelectorDrawable);
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public /* synthetic */ void lambda$open$0(String str) {
+        this.drawablesForRemove.add(str);
+        invalidate();
+    }
+
+    public boolean isActive() {
+        Iterator it = this.drawableHashMap.entrySet().iterator();
+        while (it.hasNext()) {
+            if (((QuickShareSelectorDrawable) ((Map.Entry) it.next()).getValue()).isActive()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override // android.view.View, android.graphics.drawable.Drawable.Callback
+    public void invalidateDrawable(Drawable drawable) {
+        super.invalidateDrawable(drawable);
+        if (drawable instanceof QuickShareSelectorDrawable) {
+            invalidate();
+        }
+    }
+
+    public void onTouchMoveEvent(ChatMessageCell chatMessageCell, float f, float f2) {
+        QuickShareSelectorDrawable quickShareSelectorDrawable = (QuickShareSelectorDrawable) this.drawableHashMap.get(key(chatMessageCell));
+        if (quickShareSelectorDrawable != null) {
+            quickShareSelectorDrawable.onTouchMoveEvent(f, f2);
+        }
+    }
+
+    public long getSelectedDialogId(ChatMessageCell chatMessageCell) {
+        QuickShareSelectorDrawable quickShareSelectorDrawable = (QuickShareSelectorDrawable) this.drawableHashMap.get(key(chatMessageCell));
+        if (quickShareSelectorDrawable != null) {
+            return quickShareSelectorDrawable.getSelectedDialogId();
+        }
+        return 0L;
+    }
+
+    public MessageObject getSelectedMessageObject(ChatMessageCell chatMessageCell) {
+        QuickShareSelectorDrawable quickShareSelectorDrawable = (QuickShareSelectorDrawable) this.drawableHashMap.get(key(chatMessageCell));
+        if (quickShareSelectorDrawable != null) {
+            return quickShareSelectorDrawable.messageObject;
+        }
+        return null;
+    }
+
+    public void close(ChatMessageCell chatMessageCell, Bulletin bulletin) {
+        QuickShareSelectorDrawable quickShareSelectorDrawable = (QuickShareSelectorDrawable) this.drawableHashMap.get(key(chatMessageCell));
+        if (quickShareSelectorDrawable != null) {
+            quickShareSelectorDrawable.close(bulletin);
+        }
+    }
+
+    @Override // android.view.View
+    protected void onConfigurationChanged(Configuration configuration) {
+        super.onConfigurationChanged(configuration);
+        Iterator it = this.drawableHashMap.entrySet().iterator();
+        while (it.hasNext()) {
+            ((QuickShareSelectorDrawable) ((Map.Entry) it.next()).getValue()).destroy();
+        }
+        this.drawableHashMap.clear();
+        this.drawablesForRemove.clear();
+    }
+
+    @Override // android.view.View
+    protected void onLayout(boolean z, int i, int i2, int i3, int i4) {
+        super.onLayout(z, i, i2, i3, i4);
+        Iterator it = this.drawableHashMap.entrySet().iterator();
+        while (it.hasNext()) {
+            ((QuickShareSelectorDrawable) ((Map.Entry) it.next()).getValue()).setBounds(0, 0, getMeasuredWidth(), getMeasuredHeight());
+        }
+    }
+
+    @Override // android.view.View
+    protected void onDraw(Canvas canvas) {
+        super.onDraw(canvas);
+        Iterator it = this.drawableHashMap.entrySet().iterator();
+        while (it.hasNext()) {
+            ((QuickShareSelectorDrawable) ((Map.Entry) it.next()).getValue()).draw(canvas);
+        }
+        if (this.drawablesForRemove.isEmpty()) {
+            return;
+        }
+        ArrayList arrayList = this.drawablesForRemove;
+        int size = arrayList.size();
+        int i = 0;
+        while (i < size) {
+            Object obj = arrayList.get(i);
+            i++;
+            QuickShareSelectorDrawable quickShareSelectorDrawable = (QuickShareSelectorDrawable) this.drawableHashMap.remove((String) obj);
+            if (quickShareSelectorDrawable != null) {
+                quickShareSelectorDrawable.destroy();
+            }
+        }
+        this.drawablesForRemove.clear();
+    }
+
+    private void fetchDialogs() {
+        TLRPC.TL_chatAdminRights tL_chatAdminRights;
+        this.dialogs.clear();
+        UserConfig userConfig = UserConfig.getInstance(this.currentAccount);
+        long j = userConfig.clientUserId;
+        this.dialogs.add(Long.valueOf(j));
+        if (userConfig.suggestContacts) {
+            ArrayList<TLRPC.TL_topPeer> arrayList = MediaDataController.getInstance(this.currentAccount).hints;
+            int size = arrayList.size();
+            int i = 0;
+            while (i < size) {
+                TLRPC.TL_topPeer tL_topPeer = arrayList.get(i);
+                i++;
+                TLRPC.TL_topPeer tL_topPeer2 = tL_topPeer;
+                long j2 = tL_topPeer2.peer.user_id;
+                if (j2 != 0 && MessagesController.getInstance(this.currentAccount).getUser(Long.valueOf(tL_topPeer2.peer.user_id)) != null) {
+                    this.dialogs.add(Long.valueOf(j2));
+                }
+            }
+        }
+        ArrayList arrayList2 = new ArrayList();
+        ArrayList<TLRPC.Dialog> allDialogs = MessagesController.getInstance(this.currentAccount).getAllDialogs();
+        for (int i2 = 0; i2 < allDialogs.size(); i2++) {
+            TLRPC.Dialog dialog = allDialogs.get(i2);
+            if (dialog instanceof TLRPC.TL_dialog) {
+                long j3 = dialog.f1666id;
+                if (j3 != j && !DialogObject.isEncryptedDialog(j3)) {
+                    if (DialogObject.isUserDialog(dialog.f1666id)) {
+                        TLRPC.User user = MessagesController.getInstance(this.currentAccount).getUser(Long.valueOf(dialog.f1666id));
+                        if (user != null && !UserObject.isBot(user) && !UserObject.isDeleted(user) && !UserObject.isService(user.f1825id)) {
+                            if (dialog.folder_id == 1) {
+                                arrayList2.add(Long.valueOf(dialog.f1666id));
+                            } else {
+                                this.dialogs.add(Long.valueOf(dialog.f1666id));
+                            }
+                        }
+                    } else {
+                        TLRPC.Chat chat = MessagesController.getInstance(this.currentAccount).getChat(Long.valueOf(-dialog.f1666id));
+                        if (chat != null && !chat.forum && !ChatObject.isNotInChat(chat) && ((!chat.gigagroup || ChatObject.hasAdminRights(chat)) && (!ChatObject.isChannel(chat) || chat.creator || (((tL_chatAdminRights = chat.admin_rights) != null && tL_chatAdminRights.post_messages) || chat.megagroup)))) {
+                            if (dialog.folder_id == 1) {
+                                arrayList2.add(Long.valueOf(dialog.f1666id));
+                            } else {
+                                this.dialogs.add(Long.valueOf(dialog.f1666id));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        this.dialogs.addAll(arrayList2);
+    }
+
+    private static String key(ChatMessageCell chatMessageCell) {
+        MessageObject messageObject = chatMessageCell.getMessageObject();
+        if (messageObject == null) {
+            return null;
+        }
+        return messageObject.getChatId() + "_" + messageObject.getId();
+    }
+
+    private static ArrayList removeDuplicates(ArrayList arrayList) {
+        HashSet hashSet = new HashSet();
+        ArrayList arrayList2 = new ArrayList();
+        int size = arrayList.size();
+        int i = 0;
+        while (i < size) {
+            Object obj = arrayList.get(i);
+            i++;
+            Long l = (Long) obj;
+            if (hashSet.add(l) && DialogObject.isUserDialog(l.longValue())) {
+                arrayList2.add(l);
+            }
+        }
+        return arrayList2;
+    }
+}

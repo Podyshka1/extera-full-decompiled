@@ -1,0 +1,158 @@
+package org.telegram.p029ui;
+
+import android.content.Context;
+import android.view.View;
+import android.widget.FrameLayout;
+import android.widget.LinearLayout;
+import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.C2888R;
+import org.telegram.messenger.LocaleController;
+import org.telegram.messenger.Utilities;
+import org.telegram.p029ui.ActionBar.ActionBarMenuItem;
+import org.telegram.p029ui.ActionBar.ActionBarMenuSlider;
+import org.telegram.p029ui.ActionBar.ActionBarMenuSubItem;
+import org.telegram.p029ui.ActionBar.ActionBarPopupWindow;
+import org.telegram.p029ui.Components.LayoutHelper;
+import org.telegram.p029ui.Components.PopupSwipeBackLayout;
+
+/* JADX INFO: loaded from: classes6.dex */
+public class ChooseSpeedLayout {
+    ActionBarMenuSlider.SpeedSlider slider;
+    ActionBarMenuSubItem[] speedItems = new ActionBarMenuSubItem[5];
+    public ActionBarPopupWindow.ActionBarPopupWindowLayout speedSwipeBackLayout;
+
+    public interface Callback {
+        void onSpeedSelected(float f, boolean z, boolean z2);
+    }
+
+    /* JADX WARN: Type inference fix 'apply assigned field type' failed
+    java.lang.UnsupportedOperationException: ArgType.getObject(), call class: class jadx.core.dex.instructions.args.ArgType$UnknownArg
+    	at jadx.core.dex.instructions.args.ArgType.getObject(ArgType.java:593)
+    	at jadx.core.dex.attributes.nodes.ClassTypeVarsAttr.getTypeVarsMapFor(ClassTypeVarsAttr.java:35)
+    	at jadx.core.dex.nodes.utils.TypeUtils.replaceClassGenerics(TypeUtils.java:177)
+    	at jadx.core.dex.visitors.typeinference.FixTypesVisitor.insertExplicitUseCast(FixTypesVisitor.java:397)
+    	at jadx.core.dex.visitors.typeinference.FixTypesVisitor.tryFieldTypeWithNewCasts(FixTypesVisitor.java:359)
+    	at jadx.core.dex.visitors.typeinference.FixTypesVisitor.applyFieldType(FixTypesVisitor.java:309)
+    	at jadx.core.dex.visitors.typeinference.FixTypesVisitor.visit(FixTypesVisitor.java:94)
+     */
+    public ChooseSpeedLayout(Context context, final PopupSwipeBackLayout popupSwipeBackLayout, final Callback callback) {
+        ActionBarPopupWindow.ActionBarPopupWindowLayout actionBarPopupWindowLayout = new ActionBarPopupWindow.ActionBarPopupWindowLayout(context, 0, null);
+        this.speedSwipeBackLayout = actionBarPopupWindowLayout;
+        actionBarPopupWindowLayout.setFitItems(true);
+        ActionBarMenuSubItem actionBarMenuSubItemAddItem = ActionBarMenuItem.addItem(this.speedSwipeBackLayout, C2888R.drawable.msg_arrow_back, LocaleController.getString(C2888R.string.Back), false, null);
+        actionBarMenuSubItemAddItem.setOnClickListener(new View.OnClickListener() { // from class: org.telegram.ui.ChooseSpeedLayout$$ExternalSyntheticLambda0
+            @Override // android.view.View.OnClickListener
+            public final void onClick(View view) {
+                popupSwipeBackLayout.closeForeground();
+            }
+        });
+        actionBarMenuSubItemAddItem.setColors(-328966, -328966);
+        actionBarMenuSubItemAddItem.setSelectorColor(268435455);
+        FrameLayout frameLayout = new FrameLayout(context) { // from class: org.telegram.ui.ChooseSpeedLayout.1
+            @Override // android.widget.FrameLayout, android.view.View
+            protected void onMeasure(int i, int i2) {
+                super.onMeasure(i, i2);
+            }
+        };
+        frameLayout.setMinimumWidth(AndroidUtilities.m1124dp(196.0f));
+        frameLayout.setBackgroundColor(-15198184);
+        this.speedSwipeBackLayout.addView(frameLayout);
+        LinearLayout.LayoutParams layoutParams = (LinearLayout.LayoutParams) frameLayout.getLayoutParams();
+        if (LocaleController.isRTL) {
+            layoutParams.gravity = 5;
+        }
+        layoutParams.width = -1;
+        layoutParams.height = AndroidUtilities.m1124dp(8.0f);
+        frameLayout.setLayoutParams(layoutParams);
+        ActionBarMenuSlider.SpeedSlider speedSlider = new ActionBarMenuSlider.SpeedSlider(context, null);
+        this.slider = speedSlider;
+        speedSlider.setMinimumWidth(AndroidUtilities.m1124dp(196.0f));
+        this.slider.setDrawShadow(false);
+        this.slider.setBackgroundColor(-14540254);
+        this.slider.setTextColor(-1);
+        this.slider.setOnValueChange(new Utilities.Callback2() { // from class: org.telegram.ui.ChooseSpeedLayout$$ExternalSyntheticLambda1
+            @Override // org.telegram.messenger.Utilities.Callback2
+            public final void run(Object obj, Object obj2) {
+                callback.onSpeedSelected((((Float) obj).floatValue() * 2.3f) + 0.2f, ((Boolean) obj2).booleanValue(), false);
+            }
+        });
+        this.speedSwipeBackLayout.addView((View) this.slider, LayoutHelper.createLinear(-1, 44));
+        FrameLayout frameLayout2 = new FrameLayout(context) { // from class: org.telegram.ui.ChooseSpeedLayout.2
+            @Override // android.widget.FrameLayout, android.view.View
+            protected void onMeasure(int i, int i2) {
+                super.onMeasure(i, i2);
+            }
+        };
+        frameLayout2.setMinimumWidth(AndroidUtilities.m1124dp(196.0f));
+        frameLayout2.setBackgroundColor(-15198184);
+        this.speedSwipeBackLayout.addView(frameLayout2);
+        LinearLayout.LayoutParams layoutParams2 = (LinearLayout.LayoutParams) frameLayout2.getLayoutParams();
+        if (LocaleController.isRTL) {
+            layoutParams2.gravity = 5;
+        }
+        layoutParams2.width = -1;
+        layoutParams2.height = AndroidUtilities.m1124dp(8.0f);
+        frameLayout2.setLayoutParams(layoutParams2);
+        ActionBarMenuSubItem actionBarMenuSubItemAddItem2 = ActionBarMenuItem.addItem(this.speedSwipeBackLayout, C2888R.drawable.msg_speed_0_2, LocaleController.getString(C2888R.string.SpeedVerySlow), false, null);
+        actionBarMenuSubItemAddItem2.setColors(-328966, -328966);
+        actionBarMenuSubItemAddItem2.setOnClickListener(new View.OnClickListener() { // from class: org.telegram.ui.ChooseSpeedLayout$$ExternalSyntheticLambda2
+            @Override // android.view.View.OnClickListener
+            public final void onClick(View view) {
+                callback.onSpeedSelected(0.2f, true, true);
+            }
+        });
+        actionBarMenuSubItemAddItem2.setSelectorColor(268435455);
+        this.speedItems[0] = actionBarMenuSubItemAddItem2;
+        ActionBarMenuSubItem actionBarMenuSubItemAddItem3 = ActionBarMenuItem.addItem(this.speedSwipeBackLayout, C2888R.drawable.msg_speed_slow, LocaleController.getString(C2888R.string.SpeedSlow), false, null);
+        actionBarMenuSubItemAddItem3.setColors(-328966, -328966);
+        actionBarMenuSubItemAddItem3.setOnClickListener(new View.OnClickListener() { // from class: org.telegram.ui.ChooseSpeedLayout$$ExternalSyntheticLambda3
+            @Override // android.view.View.OnClickListener
+            public final void onClick(View view) {
+                callback.onSpeedSelected(0.5f, true, true);
+            }
+        });
+        actionBarMenuSubItemAddItem3.setSelectorColor(268435455);
+        this.speedItems[1] = actionBarMenuSubItemAddItem3;
+        ActionBarMenuSubItem actionBarMenuSubItemAddItem4 = ActionBarMenuItem.addItem(this.speedSwipeBackLayout, C2888R.drawable.msg_speed_normal, LocaleController.getString(C2888R.string.SpeedNormal), false, null);
+        actionBarMenuSubItemAddItem4.setColors(-328966, -328966);
+        actionBarMenuSubItemAddItem4.setOnClickListener(new View.OnClickListener() { // from class: org.telegram.ui.ChooseSpeedLayout$$ExternalSyntheticLambda4
+            @Override // android.view.View.OnClickListener
+            public final void onClick(View view) {
+                callback.onSpeedSelected(1.0f, true, true);
+            }
+        });
+        actionBarMenuSubItemAddItem4.setSelectorColor(268435455);
+        this.speedItems[2] = actionBarMenuSubItemAddItem4;
+        ActionBarMenuSubItem actionBarMenuSubItemAddItem5 = ActionBarMenuItem.addItem(this.speedSwipeBackLayout, C2888R.drawable.msg_speed_fast, LocaleController.getString(C2888R.string.SpeedFast), false, null);
+        actionBarMenuSubItemAddItem5.setColors(-328966, -328966);
+        actionBarMenuSubItemAddItem5.setOnClickListener(new View.OnClickListener() { // from class: org.telegram.ui.ChooseSpeedLayout$$ExternalSyntheticLambda5
+            @Override // android.view.View.OnClickListener
+            public final void onClick(View view) {
+                callback.onSpeedSelected(1.5f, true, true);
+            }
+        });
+        actionBarMenuSubItemAddItem5.setSelectorColor(268435455);
+        this.speedItems[3] = actionBarMenuSubItemAddItem5;
+        ActionBarMenuSubItem actionBarMenuSubItemAddItem6 = ActionBarMenuItem.addItem(this.speedSwipeBackLayout, C2888R.drawable.msg_speed_superfast, LocaleController.getString(C2888R.string.SpeedVeryFast), false, null);
+        actionBarMenuSubItemAddItem6.setColors(-328966, -328966);
+        actionBarMenuSubItemAddItem6.setOnClickListener(new View.OnClickListener() { // from class: org.telegram.ui.ChooseSpeedLayout$$ExternalSyntheticLambda6
+            @Override // android.view.View.OnClickListener
+            public final void onClick(View view) {
+                callback.onSpeedSelected(2.0f, true, true);
+            }
+        });
+        actionBarMenuSubItemAddItem6.setSelectorColor(268435455);
+        this.speedItems[4] = actionBarMenuSubItemAddItem6;
+    }
+
+    public void update(float f, boolean z) {
+        for (int i = 0; i < this.speedItems.length; i++) {
+            if (z && ((i == 0 && Math.abs(f - 0.2f) < 0.01f) || ((i == 1 && Math.abs(f - 0.5f) < 0.1f) || ((i == 2 && Math.abs(f - 1.0f) < 0.1f) || ((i == 3 && Math.abs(f - 1.5f) < 0.1f) || (i == 4 && Math.abs(f - 2.0f) < 0.1f)))))) {
+                this.speedItems[i].setColors(-9718023, -9718023);
+            } else {
+                this.speedItems[i].setColors(-328966, -328966);
+            }
+        }
+        this.slider.setSpeed(f, true);
+    }
+}

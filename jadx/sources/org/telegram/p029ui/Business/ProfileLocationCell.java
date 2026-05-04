@@ -1,0 +1,121 @@
+package org.telegram.p029ui.Business;
+
+import android.content.Context;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.drawable.Drawable;
+import android.view.View;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.C2888R;
+import org.telegram.messenger.ImageLocation;
+import org.telegram.messenger.ImageReceiver;
+import org.telegram.messenger.LocaleController;
+import org.telegram.messenger.WebFile;
+import org.telegram.p029ui.ActionBar.Theme;
+import org.telegram.p029ui.Components.LayoutHelper;
+import org.telegram.p029ui.Components.LoadingDrawable;
+import org.telegram.p029ui.Components.RecyclerListView;
+import org.telegram.p029ui.Components.UItem;
+import org.telegram.p029ui.Components.UniversalAdapter;
+import org.telegram.p029ui.Components.UniversalRecyclerView;
+import org.telegram.tgnet.TLObject;
+import org.telegram.tgnet.TLRPC;
+
+/* JADX INFO: loaded from: classes6.dex */
+public class ProfileLocationCell extends LinearLayout {
+    private final ImageReceiver imageReceiver;
+    private boolean needDivider;
+    private final Theme.ResourcesProvider resourcesProvider;
+    private final TextView textView1;
+    private final TextView textView2;
+    private final LoadingDrawable thumbDrawable;
+
+    public ProfileLocationCell(Context context, Theme.ResourcesProvider resourcesProvider) {
+        super(context);
+        ImageReceiver imageReceiver = new ImageReceiver(this);
+        this.imageReceiver = imageReceiver;
+        this.resourcesProvider = resourcesProvider;
+        setOrientation(1);
+        LoadingDrawable loadingDrawable = new LoadingDrawable();
+        this.thumbDrawable = loadingDrawable;
+        int i = Theme.key_windowBackgroundWhiteBlackText;
+        int color = Theme.getColor(i, resourcesProvider);
+        loadingDrawable.setColors(Theme.multAlpha(color, 0.05f), Theme.multAlpha(color, 0.15f), Theme.multAlpha(color, 0.1f), Theme.multAlpha(color, 0.3f));
+        loadingDrawable.setRadiiDp(4.0f);
+        loadingDrawable.strokePaint.setStrokeWidth(AndroidUtilities.m1124dp(1.0f));
+        imageReceiver.setRoundRadius(AndroidUtilities.m1124dp(4.0f));
+        TextView textView = new TextView(context);
+        this.textView1 = textView;
+        textView.setGravity(LocaleController.isRTL ? 5 : 3);
+        textView.setTextColor(Theme.getColor(i, resourcesProvider));
+        textView.setTextSize(1, 16.0f);
+        boolean z = LocaleController.isRTL;
+        addView(textView, LayoutHelper.createLinear(-1, -2, 55, z ? 70 : 18, 10, z ? 18 : 70, 4));
+        TextView textView2 = new TextView(context);
+        this.textView2 = textView2;
+        textView2.setGravity(LocaleController.isRTL ? 5 : 3);
+        textView2.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2, resourcesProvider));
+        textView2.setText(LocaleController.getString(C2888R.string.BusinessProfileLocation));
+        textView2.setTextSize(1, 13.0f);
+        boolean z2 = LocaleController.isRTL;
+        addView(textView2, LayoutHelper.createLinear(-1, -2, 55, z2 ? 70 : 18, 0, z2 ? 18 : 70, 8));
+        setWillNotDraw(false);
+    }
+
+    @Override // android.view.View
+    protected boolean verifyDrawable(Drawable drawable) {
+        return drawable == this.thumbDrawable || super.verifyDrawable(drawable);
+    }
+
+    public void set(TLRPC.TL_businessLocation tL_businessLocation, boolean z) {
+        if (tL_businessLocation != null) {
+            this.textView1.setText(tL_businessLocation.address);
+            if (tL_businessLocation.geo_point != null) {
+                this.imageReceiver.setImage(ImageLocation.getForWebFile(WebFile.createWithGeoPoint(tL_businessLocation.geo_point, AndroidUtilities.m1124dp(44.0f), AndroidUtilities.m1124dp(44.0f), 15, Math.min(2, (int) Math.ceil(AndroidUtilities.density)))), "44_44", this.thumbDrawable, 0L, (String) null, (Object) null, 0);
+            } else {
+                this.imageReceiver.setImageBitmap((Drawable) null);
+            }
+        }
+        this.needDivider = z;
+        setPadding(0, 0, 0, z ? 1 : 0);
+        invalidate();
+    }
+
+    @Override // android.widget.LinearLayout, android.view.View
+    protected void onDraw(Canvas canvas) {
+        this.imageReceiver.setImageCoords(LocaleController.isRTL ? AndroidUtilities.m1124dp(16.0f) : getWidth() - AndroidUtilities.m1124dp(60.0f), AndroidUtilities.m1124dp(8.0f), AndroidUtilities.m1124dp(44.0f), AndroidUtilities.m1124dp(44.0f));
+        this.imageReceiver.draw(canvas);
+        super.onDraw(canvas);
+        if (this.needDivider) {
+            Paint themePaint = Theme.getThemePaint("paintDivider", this.resourcesProvider);
+            if (themePaint == null) {
+                themePaint = Theme.dividerPaint;
+            }
+            canvas.drawRect(AndroidUtilities.m1124dp(LocaleController.isRTL ? 0.0f : 21.33f), getMeasuredHeight() - 1, getWidth() - AndroidUtilities.m1124dp(LocaleController.isRTL ? 21.33f : 0.0f), getMeasuredHeight(), themePaint);
+        }
+    }
+
+    @Override // android.widget.LinearLayout, android.view.View
+    protected void onMeasure(int i, int i2) {
+        super.onMeasure(View.MeasureSpec.makeMeasureSpec(View.MeasureSpec.getSize(i), TLObject.FLAG_30), i2);
+    }
+
+    public static final class Factory extends UItem.UItemFactory {
+        static {
+            UItem.UItemFactory.setup(new Factory());
+        }
+
+        @Override // org.telegram.ui.Components.UItem.UItemFactory
+        public ProfileLocationCell createView(Context context, RecyclerListView recyclerListView, int i, int i2, Theme.ResourcesProvider resourcesProvider) {
+            return new ProfileLocationCell(context, resourcesProvider);
+        }
+
+        @Override // org.telegram.ui.Components.UItem.UItemFactory
+        public void bindView(View view, UItem uItem, boolean z, UniversalAdapter universalAdapter, UniversalRecyclerView universalRecyclerView) {
+            view.setId(uItem.f2105id);
+            ((ProfileLocationCell) view).set((TLRPC.TL_businessLocation) uItem.object, z);
+        }
+    }
+}

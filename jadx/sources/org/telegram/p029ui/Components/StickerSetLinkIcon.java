@@ -1,0 +1,145 @@
+package org.telegram.p029ui.Components;
+
+import android.graphics.Canvas;
+import android.graphics.ColorFilter;
+import android.graphics.RectF;
+import android.graphics.drawable.Drawable;
+import android.view.View;
+import java.util.ArrayList;
+import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.MessageObject;
+import org.telegram.p029ui.ActionBar.Theme;
+import org.telegram.tgnet.TLRPC;
+
+/* JADX INFO: loaded from: classes7.dex */
+public class StickerSetLinkIcon extends Drawable {
+
+    /* JADX INFO: renamed from: N */
+    private final int f2091N;
+    private final int count;
+    private final AnimatedEmojiDrawable[] drawables;
+    public final boolean out;
+    public int alpha = 255;
+    private final RectF rect = new RectF();
+    private boolean hit = false;
+
+    @Override // android.graphics.drawable.Drawable
+    public int getOpacity() {
+        return -2;
+    }
+
+    @Override // android.graphics.drawable.Drawable
+    public void setColorFilter(ColorFilter colorFilter) {
+    }
+
+    public StickerSetLinkIcon(int i, boolean z, ArrayList arrayList, boolean z2) {
+        this.out = z;
+        int iMax = (int) Math.max(1.0d, Math.sqrt(arrayList.size()));
+        this.f2091N = iMax;
+        int iMin = Math.min(iMax * iMax, arrayList.size());
+        this.count = iMin;
+        this.drawables = new AnimatedEmojiDrawable[iMin];
+        if (!arrayList.isEmpty()) {
+            MessageObject.isAnimatedEmoji((TLRPC.Document) arrayList.get(0));
+        }
+        int i2 = iMax < 2 ? 1 : 0;
+        for (int i3 = 0; i3 < this.count; i3++) {
+            this.drawables[i3] = AnimatedEmojiDrawable.make(i, i2, (TLRPC.Document) arrayList.get(i3));
+        }
+    }
+
+    public boolean equals(ArrayList arrayList) {
+        if (arrayList == null) {
+            return this.drawables.length == 0;
+        }
+        if (this.drawables.length != arrayList.size()) {
+            return false;
+        }
+        int i = 0;
+        while (true) {
+            AnimatedEmojiDrawable[] animatedEmojiDrawableArr = this.drawables;
+            if (i >= animatedEmojiDrawableArr.length) {
+                return true;
+            }
+            TLRPC.Document document = animatedEmojiDrawableArr[i].getDocument();
+            if ((document == null ? 0L : document.f1668id) != ((TLRPC.Document) arrayList.get(i)).f1668id) {
+                return false;
+            }
+            i++;
+        }
+    }
+
+    public void attach(View view) {
+        for (int i = 0; i < this.count; i++) {
+            this.drawables[i].addView(view);
+        }
+    }
+
+    public void detach(View view) {
+        for (int i = 0; i < this.count; i++) {
+            this.drawables[i].removeView(view);
+        }
+    }
+
+    @Override // android.graphics.drawable.Drawable
+    public void draw(Canvas canvas) {
+        AnimatedEmojiDrawable animatedEmojiDrawable;
+        if (this.alpha <= 0) {
+            return;
+        }
+        this.rect.set(getBounds());
+        float fCenterX = this.rect.centerX() - (getIntrinsicWidth() / 2.0f);
+        float fCenterY = this.rect.centerY() - (getIntrinsicHeight() / 2.0f);
+        float intrinsicWidth = getIntrinsicWidth() / this.f2091N;
+        float intrinsicHeight = getIntrinsicHeight() / this.f2091N;
+        canvas.save();
+        canvas.clipRect(fCenterX, fCenterY, getIntrinsicWidth() + fCenterX, getIntrinsicHeight() + fCenterY);
+        for (int i = 0; i < this.f2091N; i++) {
+            int i2 = 0;
+            while (true) {
+                int i3 = this.f2091N;
+                if (i2 < i3) {
+                    int i4 = (i3 * i) + i2;
+                    if (i4 >= 0) {
+                        AnimatedEmojiDrawable[] animatedEmojiDrawableArr = this.drawables;
+                        if (i4 < animatedEmojiDrawableArr.length && (animatedEmojiDrawable = animatedEmojiDrawableArr[i4]) != null) {
+                            animatedEmojiDrawable.setBounds((int) ((i2 * intrinsicWidth) + fCenterX), (int) ((i * intrinsicHeight) + fCenterY), (int) (((i2 + 1) * intrinsicWidth) + fCenterX), (int) (((i + 1) * intrinsicHeight) + fCenterY));
+                            this.drawables[i4].setAlpha(this.alpha);
+                            this.drawables[i4].setColorFilter(this.out ? Theme.chat_outAnimatedEmojiTextColorFilter : Theme.chat_animatedEmojiTextColorFilter);
+                            this.drawables[i4].draw(canvas);
+                        }
+                    }
+                    i2++;
+                }
+            }
+        }
+        canvas.restore();
+    }
+
+    @Override // android.graphics.drawable.Drawable
+    public void setAlpha(int i) {
+        this.alpha = i;
+    }
+
+    @Override // android.graphics.drawable.Drawable
+    public int getIntrinsicHeight() {
+        return AndroidUtilities.m1124dp(48.0f);
+    }
+
+    @Override // android.graphics.drawable.Drawable
+    public int getIntrinsicWidth() {
+        return AndroidUtilities.m1124dp(48.0f);
+    }
+
+    public void readyToDie() {
+        this.hit = true;
+    }
+
+    public void keepAlive() {
+        this.hit = false;
+    }
+
+    public boolean die() {
+        return this.hit;
+    }
+}

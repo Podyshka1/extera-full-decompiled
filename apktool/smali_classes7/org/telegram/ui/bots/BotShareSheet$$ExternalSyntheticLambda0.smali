@@ -1,0 +1,76 @@
+.class public final synthetic Lorg/telegram/ui/bots/BotShareSheet$$ExternalSyntheticLambda0;
+.super Ljava/lang/Object;
+.source "SourceFile"
+
+# interfaces
+.implements Lorg/telegram/tgnet/RequestDelegate;
+
+
+# instance fields
+.field public final synthetic f$0:Landroid/content/Context;
+
+.field public final synthetic f$1:I
+
+.field public final synthetic f$2:J
+
+.field public final synthetic f$3:Ljava/lang/String;
+
+.field public final synthetic f$4:Lorg/telegram/ui/ActionBar/Theme$ResourcesProvider;
+
+.field public final synthetic f$5:Ljava/lang/Runnable;
+
+.field public final synthetic f$6:Lorg/telegram/messenger/Utilities$Callback2;
+
+
+# direct methods
+.method public synthetic constructor <init>(Landroid/content/Context;IJLjava/lang/String;Lorg/telegram/ui/ActionBar/Theme$ResourcesProvider;Ljava/lang/Runnable;Lorg/telegram/messenger/Utilities$Callback2;)V
+    .locals 0
+
+    .line 0
+    invoke-direct {p0}, Ljava/lang/Object;-><init>()V
+
+    iput-object p1, p0, Lorg/telegram/ui/bots/BotShareSheet$$ExternalSyntheticLambda0;->f$0:Landroid/content/Context;
+
+    iput p2, p0, Lorg/telegram/ui/bots/BotShareSheet$$ExternalSyntheticLambda0;->f$1:I
+
+    iput-wide p3, p0, Lorg/telegram/ui/bots/BotShareSheet$$ExternalSyntheticLambda0;->f$2:J
+
+    iput-object p5, p0, Lorg/telegram/ui/bots/BotShareSheet$$ExternalSyntheticLambda0;->f$3:Ljava/lang/String;
+
+    iput-object p6, p0, Lorg/telegram/ui/bots/BotShareSheet$$ExternalSyntheticLambda0;->f$4:Lorg/telegram/ui/ActionBar/Theme$ResourcesProvider;
+
+    iput-object p7, p0, Lorg/telegram/ui/bots/BotShareSheet$$ExternalSyntheticLambda0;->f$5:Ljava/lang/Runnable;
+
+    iput-object p8, p0, Lorg/telegram/ui/bots/BotShareSheet$$ExternalSyntheticLambda0;->f$6:Lorg/telegram/messenger/Utilities$Callback2;
+
+    return-void
+.end method
+
+
+# virtual methods
+.method public final run(Lorg/telegram/tgnet/TLObject;Lorg/telegram/tgnet/TLRPC$TL_error;)V
+    .locals 10
+
+    .line 0
+    iget-object v0, p0, Lorg/telegram/ui/bots/BotShareSheet$$ExternalSyntheticLambda0;->f$0:Landroid/content/Context;
+
+    iget v1, p0, Lorg/telegram/ui/bots/BotShareSheet$$ExternalSyntheticLambda0;->f$1:I
+
+    iget-wide v2, p0, Lorg/telegram/ui/bots/BotShareSheet$$ExternalSyntheticLambda0;->f$2:J
+
+    iget-object v4, p0, Lorg/telegram/ui/bots/BotShareSheet$$ExternalSyntheticLambda0;->f$3:Ljava/lang/String;
+
+    iget-object v5, p0, Lorg/telegram/ui/bots/BotShareSheet$$ExternalSyntheticLambda0;->f$4:Lorg/telegram/ui/ActionBar/Theme$ResourcesProvider;
+
+    iget-object v6, p0, Lorg/telegram/ui/bots/BotShareSheet$$ExternalSyntheticLambda0;->f$5:Ljava/lang/Runnable;
+
+    iget-object v7, p0, Lorg/telegram/ui/bots/BotShareSheet$$ExternalSyntheticLambda0;->f$6:Lorg/telegram/messenger/Utilities$Callback2;
+
+    move-object v8, p1
+
+    move-object v9, p2
+
+    invoke-static/range {v0 .. v9}, Lorg/telegram/ui/bots/BotShareSheet;->$r8$lambda$gBWWo7HLsxBgsqo_RZ9O4nT44IE(Landroid/content/Context;IJLjava/lang/String;Lorg/telegram/ui/ActionBar/Theme$ResourcesProvider;Ljava/lang/Runnable;Lorg/telegram/messenger/Utilities$Callback2;Lorg/telegram/tgnet/TLObject;Lorg/telegram/tgnet/TLRPC$TL_error;)V
+
+    return-void
+.end method

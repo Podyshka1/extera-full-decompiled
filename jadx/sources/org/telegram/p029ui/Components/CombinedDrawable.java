@@ -1,0 +1,216 @@
+package org.telegram.p029ui.Components;
+
+import android.graphics.Canvas;
+import android.graphics.ColorFilter;
+import android.graphics.Rect;
+import android.graphics.drawable.Drawable;
+
+/* JADX INFO: loaded from: classes3.dex */
+public class CombinedDrawable extends Drawable implements Drawable.Callback {
+    private int backHeight;
+    private int backWidth;
+    private Drawable background;
+    private boolean both;
+    private boolean center;
+    private boolean fullSize;
+    private Drawable icon;
+    private int iconHeight;
+    private int iconWidth;
+    private int left;
+    private int offsetX;
+    private int offsetY;
+    private int top;
+    public float translateX;
+    public float translateY;
+
+    @Override // android.graphics.drawable.Drawable
+    protected boolean onStateChange(int[] iArr) {
+        return true;
+    }
+
+    public CombinedDrawable(Drawable drawable, Drawable drawable2, int i, int i2) {
+        this.background = drawable;
+        this.icon = drawable2;
+        this.left = i;
+        this.top = i2;
+        if (drawable2 != null) {
+            drawable2.setCallback(this);
+        }
+    }
+
+    public CombinedDrawable setIconSize(int i, int i2) {
+        this.iconWidth = i;
+        this.iconHeight = i2;
+        return this;
+    }
+
+    public CombinedDrawable(Drawable drawable, Drawable drawable2) {
+        this.background = drawable;
+        this.icon = drawable2;
+        if (drawable2 != null) {
+            drawable2.setCallback(this);
+        }
+    }
+
+    public void setBackgroundDrawable(Drawable drawable) {
+        this.background = drawable;
+        invalidateSelf();
+    }
+
+    public void setCustomSize(int i, int i2) {
+        this.backWidth = i;
+        this.backHeight = i2;
+    }
+
+    public void setCenter(boolean z) {
+        this.center = z;
+    }
+
+    public void setIconOffset(int i, int i2) {
+        this.offsetX = i;
+        this.offsetY = i2;
+    }
+
+    public Drawable getIcon() {
+        return this.icon;
+    }
+
+    public Drawable getBackground() {
+        return this.background;
+    }
+
+    public void setFullsize(boolean z) {
+        this.fullSize = z;
+    }
+
+    @Override // android.graphics.drawable.Drawable
+    public void setColorFilter(ColorFilter colorFilter) {
+        this.icon.setColorFilter(colorFilter);
+        if (this.both) {
+            this.background.setColorFilter(colorFilter);
+        }
+    }
+
+    @Override // android.graphics.drawable.Drawable
+    public boolean isStateful() {
+        return this.icon.isStateful();
+    }
+
+    @Override // android.graphics.drawable.Drawable
+    public boolean setState(int[] iArr) {
+        this.icon.setState(iArr);
+        return true;
+    }
+
+    @Override // android.graphics.drawable.Drawable
+    public int[] getState() {
+        return this.icon.getState();
+    }
+
+    @Override // android.graphics.drawable.Drawable
+    public void jumpToCurrentState() {
+        this.icon.jumpToCurrentState();
+    }
+
+    @Override // android.graphics.drawable.Drawable
+    public Drawable.ConstantState getConstantState() {
+        return this.icon.getConstantState();
+    }
+
+    @Override // android.graphics.drawable.Drawable
+    public void draw(Canvas canvas) {
+        canvas.save();
+        canvas.translate(this.translateX, this.translateY);
+        if (this.center) {
+            Rect bounds = getBounds();
+            setBounds(bounds.centerX() - (getIntrinsicWidth() / 2), bounds.centerY() - (getIntrinsicHeight() / 2), bounds.centerX() + (getIntrinsicWidth() / 2), bounds.centerY() + (getIntrinsicHeight() / 2));
+        }
+        Drawable drawable = this.background;
+        if (drawable != null) {
+            drawable.setBounds(getBounds());
+            this.background.draw(canvas);
+        }
+        if (this.icon != null) {
+            if (this.fullSize) {
+                Rect bounds2 = getBounds();
+                int i = this.left;
+                if (i != 0) {
+                    Drawable drawable2 = this.icon;
+                    int i2 = bounds2.left + i;
+                    int i3 = bounds2.top;
+                    int i4 = this.top;
+                    drawable2.setBounds(i2, i3 + i4, bounds2.right - i, bounds2.bottom - i4);
+                } else {
+                    this.icon.setBounds(bounds2);
+                }
+            } else if (this.iconWidth != 0) {
+                int iCenterX = (getBounds().centerX() - (this.iconWidth / 2)) + this.left + this.offsetX;
+                int iCenterY = getBounds().centerY();
+                int i5 = this.iconHeight;
+                int i6 = (iCenterY - (i5 / 2)) + this.top + this.offsetY;
+                this.icon.setBounds(iCenterX, i6, this.iconWidth + iCenterX, i5 + i6);
+            } else {
+                int iCenterX2 = (getBounds().centerX() - (this.icon.getIntrinsicWidth() / 2)) + this.left;
+                int iCenterY2 = (getBounds().centerY() - (this.icon.getIntrinsicHeight() / 2)) + this.top;
+                Drawable drawable3 = this.icon;
+                drawable3.setBounds(iCenterX2, iCenterY2, drawable3.getIntrinsicWidth() + iCenterX2, this.icon.getIntrinsicHeight() + iCenterY2);
+            }
+            this.icon.draw(canvas);
+        }
+        canvas.restore();
+    }
+
+    @Override // android.graphics.drawable.Drawable
+    public void setAlpha(int i) {
+        this.icon.setAlpha(i);
+        this.background.setAlpha(i);
+    }
+
+    @Override // android.graphics.drawable.Drawable
+    public int getIntrinsicWidth() {
+        int i = this.backWidth;
+        return i != 0 ? i : this.background.getIntrinsicWidth();
+    }
+
+    @Override // android.graphics.drawable.Drawable
+    public int getIntrinsicHeight() {
+        int i = this.backHeight;
+        return i != 0 ? i : this.background.getIntrinsicHeight();
+    }
+
+    @Override // android.graphics.drawable.Drawable
+    public int getMinimumWidth() {
+        int i = this.backWidth;
+        return i != 0 ? i : this.background.getMinimumWidth();
+    }
+
+    @Override // android.graphics.drawable.Drawable
+    public int getMinimumHeight() {
+        int i = this.backHeight;
+        return i != 0 ? i : this.background.getMinimumHeight();
+    }
+
+    @Override // android.graphics.drawable.Drawable
+    public int getOpacity() {
+        return this.icon.getOpacity();
+    }
+
+    @Override // android.graphics.drawable.Drawable.Callback
+    public void invalidateDrawable(Drawable drawable) {
+        invalidateSelf();
+    }
+
+    @Override // android.graphics.drawable.Drawable.Callback
+    public void scheduleDrawable(Drawable drawable, Runnable runnable, long j) {
+        scheduleSelf(runnable, j);
+    }
+
+    @Override // android.graphics.drawable.Drawable.Callback
+    public void unscheduleDrawable(Drawable drawable, Runnable runnable) {
+        unscheduleSelf(runnable);
+    }
+
+    public Drawable getBackgroundDrawable() {
+        return this.background;
+    }
+}

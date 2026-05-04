@@ -1,0 +1,224 @@
+package org.telegram.p029ui.Stories;
+
+import android.graphics.Canvas;
+import android.graphics.Rect;
+import android.view.View;
+import java.util.ArrayList;
+import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.ApplicationLoader;
+import org.telegram.messenger.ImageReceiver;
+import org.telegram.messenger.UserConfig;
+import org.telegram.p029ui.Components.Paint.Views.LocationMarker;
+import org.telegram.p029ui.Components.Reactions.ReactionImageHolder;
+import org.telegram.p029ui.Components.Reactions.ReactionsLayoutInBubble;
+import org.telegram.p029ui.Stories.recorder.Weather;
+import org.telegram.tgnet.p028tl.TL_stories;
+
+/* JADX INFO: loaded from: classes3.dex */
+public class StoryWidgetsImageDecorator extends ImageReceiver.Decorator {
+    ArrayList drawingObjects;
+    float imageH;
+    float imageW;
+    float imageX;
+    float imageY;
+
+    public static abstract class DrawingObject {
+        public abstract void draw(Canvas canvas, ImageReceiver imageReceiver, float f);
+
+        public abstract void onAttachedToWindow(boolean z);
+
+        public abstract void setParent(View view);
+    }
+
+    public StoryWidgetsImageDecorator(TL_stories.StoryItem storyItem) {
+        for (int i = 0; i < storyItem.media_areas.size(); i++) {
+            if (storyItem.media_areas.get(i) instanceof TL_stories.TL_mediaAreaSuggestedReaction) {
+                if (this.drawingObjects == null) {
+                    this.drawingObjects = new ArrayList();
+                }
+                this.drawingObjects.add(new ReactionWidget((TL_stories.TL_mediaAreaSuggestedReaction) storyItem.media_areas.get(i)));
+            } else if (storyItem.media_areas.get(i) instanceof TL_stories.TL_mediaAreaWeather) {
+                if (this.drawingObjects == null) {
+                    this.drawingObjects = new ArrayList();
+                }
+                this.drawingObjects.add(new WeatherWidget((TL_stories.TL_mediaAreaWeather) storyItem.media_areas.get(i)));
+            }
+        }
+    }
+
+    @Override // org.telegram.messenger.ImageReceiver.Decorator
+    protected void onDraw(Canvas canvas, ImageReceiver imageReceiver) {
+        if (this.drawingObjects == null) {
+            return;
+        }
+        float alpha = imageReceiver.getAlpha();
+        float centerX = imageReceiver.getCenterX();
+        float centerY = imageReceiver.getCenterY();
+        float imageWidth = imageReceiver.getImageWidth();
+        this.imageW = imageWidth;
+        float f = (16.0f * imageWidth) / 9.0f;
+        this.imageH = f;
+        this.imageX = centerX - (imageWidth / 2.0f);
+        this.imageY = centerY - (f / 2.0f);
+        canvas.save();
+        canvas.clipRect(imageReceiver.getImageX(), imageReceiver.getImageY(), imageReceiver.getImageX2(), imageReceiver.getImageY2());
+        for (int i = 0; i < this.drawingObjects.size(); i++) {
+            ((DrawingObject) this.drawingObjects.get(i)).draw(canvas, imageReceiver, alpha);
+        }
+        canvas.restore();
+    }
+
+    @Override // org.telegram.messenger.ImageReceiver.Decorator
+    public void onAttachedToWindow(ImageReceiver imageReceiver) {
+        if (this.drawingObjects == null) {
+            return;
+        }
+        for (int i = 0; i < this.drawingObjects.size(); i++) {
+            ((DrawingObject) this.drawingObjects.get(i)).setParent(imageReceiver.getParentView());
+            ((DrawingObject) this.drawingObjects.get(i)).onAttachedToWindow(true);
+        }
+    }
+
+    @Override // org.telegram.messenger.ImageReceiver.Decorator
+    public void onDetachedFromWidnow() {
+        if (this.drawingObjects == null) {
+            return;
+        }
+        for (int i = 0; i < this.drawingObjects.size(); i++) {
+            ((DrawingObject) this.drawingObjects.get(i)).onAttachedToWindow(false);
+        }
+    }
+
+    public class ReactionWidget extends DrawingObject {
+        private final ReactionImageHolder imageHolder;
+        private final TL_stories.TL_mediaAreaSuggestedReaction mediaArea;
+        private final StoryReactionWidgetBackground storyReactionWidgetBackground;
+
+        public ReactionWidget(TL_stories.TL_mediaAreaSuggestedReaction tL_mediaAreaSuggestedReaction) {
+            StoryReactionWidgetBackground storyReactionWidgetBackground = new StoryReactionWidgetBackground(null);
+            this.storyReactionWidgetBackground = storyReactionWidgetBackground;
+            ReactionImageHolder reactionImageHolder = new ReactionImageHolder(null);
+            this.imageHolder = reactionImageHolder;
+            this.mediaArea = tL_mediaAreaSuggestedReaction;
+            if (tL_mediaAreaSuggestedReaction.flipped) {
+                storyReactionWidgetBackground.setMirror(true, false);
+            }
+            if (tL_mediaAreaSuggestedReaction.dark) {
+                storyReactionWidgetBackground.nextStyle();
+            }
+            reactionImageHolder.setStatic();
+            reactionImageHolder.setVisibleReaction(ReactionsLayoutInBubble.VisibleReaction.fromTL(tL_mediaAreaSuggestedReaction.reaction));
+        }
+
+        @Override // org.telegram.ui.Stories.StoryWidgetsImageDecorator.DrawingObject
+        public void draw(Canvas canvas, ImageReceiver imageReceiver, float f) {
+            if (this.imageHolder.isLoaded()) {
+                StoryWidgetsImageDecorator storyWidgetsImageDecorator = StoryWidgetsImageDecorator.this;
+                double d = storyWidgetsImageDecorator.imageX;
+                float f2 = storyWidgetsImageDecorator.imageW;
+                TL_stories.MediaAreaCoordinates mediaAreaCoordinates = this.mediaArea.coordinates;
+                float f3 = (float) (d + ((((double) f2) * mediaAreaCoordinates.f1854x) / 100.0d));
+                double d2 = storyWidgetsImageDecorator.imageY;
+                float f4 = storyWidgetsImageDecorator.imageH;
+                float f5 = (float) (d2 + ((((double) f4) * mediaAreaCoordinates.f1855y) / 100.0d));
+                float f6 = ((float) ((((double) f2) * mediaAreaCoordinates.f1853w) / 100.0d)) / 2.0f;
+                float f7 = ((float) ((((double) f4) * mediaAreaCoordinates.f1852h) / 100.0d)) / 2.0f;
+                this.storyReactionWidgetBackground.setBounds((int) (f3 - f6), (int) (f5 - f7), (int) (f6 + f3), (int) (f7 + f5));
+                this.storyReactionWidgetBackground.setAlpha((int) (255.0f * f));
+                canvas.save();
+                double d3 = this.mediaArea.coordinates.rotation;
+                if (d3 != 0.0d) {
+                    canvas.rotate((float) d3, f3, f5);
+                }
+                Rect rect = AndroidUtilities.rectTmp2;
+                float fHeight = (this.storyReactionWidgetBackground.getBounds().height() * 0.61f) / 2.0f;
+                rect.set((int) (this.storyReactionWidgetBackground.getBounds().centerX() - fHeight), (int) (this.storyReactionWidgetBackground.getBounds().centerY() - fHeight), (int) (this.storyReactionWidgetBackground.getBounds().centerX() + fHeight), (int) (this.storyReactionWidgetBackground.getBounds().centerY() + fHeight));
+                this.storyReactionWidgetBackground.updateShadowLayer(1.0f);
+                this.storyReactionWidgetBackground.draw(canvas);
+                this.imageHolder.setBounds(rect);
+                this.imageHolder.setAlpha(f);
+                this.imageHolder.setColor(this.storyReactionWidgetBackground.isDarkStyle() ? -1 : -16777216);
+                this.imageHolder.draw(canvas);
+                canvas.restore();
+            }
+        }
+
+        @Override // org.telegram.ui.Stories.StoryWidgetsImageDecorator.DrawingObject
+        public void onAttachedToWindow(boolean z) {
+            this.imageHolder.onAttachedToWindow(z);
+        }
+
+        @Override // org.telegram.ui.Stories.StoryWidgetsImageDecorator.DrawingObject
+        public void setParent(View view) {
+            this.imageHolder.setParent(view);
+        }
+    }
+
+    /* JADX INFO: loaded from: classes7.dex */
+    public class WeatherWidget extends DrawingObject {
+        private final LocationMarker marker;
+        private final TL_stories.TL_mediaAreaWeather mediaArea;
+        private View parentView;
+
+        public WeatherWidget(TL_stories.TL_mediaAreaWeather tL_mediaAreaWeather) {
+            this.mediaArea = tL_mediaAreaWeather;
+            Weather.State state = new Weather.State();
+            state.emoji = tL_mediaAreaWeather.emoji;
+            state.temperature = (float) tL_mediaAreaWeather.temperature_c;
+            LocationMarker locationMarker = new LocationMarker(ApplicationLoader.applicationContext, 1, AndroidUtilities.density, 0) { // from class: org.telegram.ui.Stories.StoryWidgetsImageDecorator.WeatherWidget.1
+                @Override // android.view.View
+                public void invalidate() {
+                    if (WeatherWidget.this.parentView != null) {
+                        WeatherWidget.this.parentView.invalidate();
+                    }
+                }
+            };
+            this.marker = locationMarker;
+            locationMarker.setMaxWidth(AndroidUtilities.displaySize.x);
+            locationMarker.setIsVideo(false);
+            locationMarker.setCodeEmoji(UserConfig.selectedAccount, state.getEmoji());
+            locationMarker.setText(state.getTemperature());
+            locationMarker.setType(3, tL_mediaAreaWeather.color);
+            locationMarker.setupLayout();
+        }
+
+        @Override // org.telegram.ui.Stories.StoryWidgetsImageDecorator.DrawingObject
+        public void draw(Canvas canvas, ImageReceiver imageReceiver, float f) {
+            StoryWidgetsImageDecorator storyWidgetsImageDecorator = StoryWidgetsImageDecorator.this;
+            double d = storyWidgetsImageDecorator.imageX;
+            float f2 = storyWidgetsImageDecorator.imageW;
+            TL_stories.MediaAreaCoordinates mediaAreaCoordinates = this.mediaArea.coordinates;
+            float f3 = (float) (d + ((((double) f2) * mediaAreaCoordinates.f1854x) / 100.0d));
+            double d2 = storyWidgetsImageDecorator.imageY;
+            float f4 = storyWidgetsImageDecorator.imageH;
+            float f5 = (float) (d2 + ((((double) f4) * mediaAreaCoordinates.f1855y) / 100.0d));
+            float f6 = (float) ((((double) f2) * mediaAreaCoordinates.f1853w) / 100.0d);
+            float f7 = (float) ((((double) f4) * mediaAreaCoordinates.f1852h) / 100.0d);
+            canvas.save();
+            canvas.translate(f3, f5);
+            float fMin = Math.min(f6 / ((this.marker.getWidthInternal() - this.marker.getPaddingLeft()) - this.marker.getPaddingRight()), f7 / ((this.marker.getHeightInternal() - this.marker.getPaddingTop()) - this.marker.getPaddingBottom()));
+            canvas.scale(fMin, fMin);
+            double d3 = this.mediaArea.coordinates.rotation;
+            if (d3 != 0.0d) {
+                canvas.rotate((float) d3);
+            }
+            canvas.translate(((-r0) / 2.0f) - this.marker.getPaddingLeft(), ((-r1) / 2.0f) - this.marker.getPaddingTop());
+            this.marker.drawInternal(canvas);
+            canvas.restore();
+        }
+
+        @Override // org.telegram.ui.Stories.StoryWidgetsImageDecorator.DrawingObject
+        public void onAttachedToWindow(boolean z) {
+            if (z) {
+                this.marker.attachInternal();
+            } else {
+                this.marker.detachInternal();
+            }
+        }
+
+        @Override // org.telegram.ui.Stories.StoryWidgetsImageDecorator.DrawingObject
+        public void setParent(View view) {
+            this.parentView = view;
+        }
+    }
+}

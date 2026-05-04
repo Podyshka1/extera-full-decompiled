@@ -1,0 +1,22 @@
+package retrofit2;
+
+import p022j$.util.Objects;
+
+/* JADX INFO: loaded from: classes7.dex */
+public class HttpException extends RuntimeException {
+    private final int code;
+    private final String message;
+    private final transient Response response;
+
+    private static String getMessage(Response response) {
+        Objects.requireNonNull(response, "response == null");
+        return "HTTP " + response.code() + " " + response.message();
+    }
+
+    public HttpException(Response response) {
+        super(getMessage(response));
+        this.code = response.code();
+        this.message = response.message();
+        this.response = response;
+    }
+}

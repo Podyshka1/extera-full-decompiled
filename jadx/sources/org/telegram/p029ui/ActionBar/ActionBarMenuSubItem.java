@@ -1,0 +1,483 @@
+package org.telegram.p029ui.ActionBar;
+
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.ValueAnimator;
+import android.content.Context;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
+import android.graphics.drawable.Drawable;
+import android.text.TextUtils;
+import android.view.View;
+import android.view.accessibility.AccessibilityNodeInfo;
+import android.widget.FrameLayout;
+import android.widget.ImageView;
+import android.widget.TextView;
+import androidx.core.graphics.ColorUtils;
+import com.exteragram.messenger.utils.p017ui.UIUtil;
+import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.ImageLocation;
+import org.telegram.messenger.LocaleController;
+import org.telegram.p029ui.ActionBar.Theme;
+import org.telegram.p029ui.Components.AnimatedEmojiSpan;
+import org.telegram.p029ui.Components.BackupImageView;
+import org.telegram.p029ui.Components.CheckBox2;
+import org.telegram.p029ui.Components.CubicBezierInterpolator;
+import org.telegram.p029ui.Components.LayoutHelper;
+import org.telegram.p029ui.Components.RLottieImageView;
+import org.telegram.tgnet.TLObject;
+
+/* JADX INFO: loaded from: classes3.dex */
+public class ActionBarMenuSubItem extends FrameLayout {
+    private BackupImageView backupImageView;
+    boolean bottom;
+    public CheckBox2 checkView;
+    public boolean checkViewLeft;
+    private boolean enabled;
+    private ValueAnimator enabledAnimator;
+    boolean expandIfMultiline;
+    private int iconColor;
+    private PorterDuff.Mode iconColorMode;
+    private int iconResId;
+    public RLottieImageView imageView;
+    private int itemHeight;
+    public Runnable openSwipeBackLayout;
+    protected final Theme.ResourcesProvider resourcesProvider;
+    private ImageView rightIcon;
+    private int selectorColor;
+    int selectorRad;
+    public TextView subtextView;
+    private int textColor;
+    public AnimatedEmojiSpan.TextViewEmojis textView;
+    boolean top;
+
+    public ActionBarMenuSubItem(Context context, boolean z, boolean z2) {
+        this(context, false, z, z2);
+    }
+
+    public ActionBarMenuSubItem(Context context, boolean z, boolean z2, boolean z3) {
+        this(context, z ? 1 : 0, z2, z3, (Theme.ResourcesProvider) null);
+    }
+
+    public ActionBarMenuSubItem(Context context, boolean z, boolean z2, Theme.ResourcesProvider resourcesProvider) {
+        this(context, 0, z, z2, resourcesProvider);
+    }
+
+    public ActionBarMenuSubItem(Context context, boolean z, boolean z2, boolean z3, Theme.ResourcesProvider resourcesProvider) {
+        this(context, z ? 1 : 0, z2, z3, resourcesProvider);
+    }
+
+    public ActionBarMenuSubItem(Context context, int i, boolean z, boolean z2, Theme.ResourcesProvider resourcesProvider) {
+        super(context);
+        this.selectorRad = 12;
+        this.itemHeight = 48;
+        this.resourcesProvider = resourcesProvider;
+        this.top = z;
+        this.bottom = z2;
+        this.textColor = getThemedColor(Theme.key_actionBarDefaultSubmenuItem);
+        this.iconColor = getThemedColor(Theme.key_actionBarDefaultSubmenuItemIcon);
+        PorterDuff.Mode mode = PorterDuff.Mode.MULTIPLY;
+        this.iconColorMode = mode;
+        this.selectorColor = getThemedColor(Theme.key_dialogButtonSelector);
+        updateBackground();
+        setPadding(AndroidUtilities.m1124dp(18.0f), 0, AndroidUtilities.m1124dp(18.0f), 0);
+        RLottieImageView rLottieImageView = new RLottieImageView(context);
+        this.imageView = rLottieImageView;
+        rLottieImageView.setScaleType(ImageView.ScaleType.CENTER);
+        this.imageView.setColorFilter(new PorterDuffColorFilter(this.iconColor, mode));
+        addView(this.imageView, LayoutHelper.createFrame(-2, 40, (LocaleController.isRTL ? 5 : 3) | 16));
+        AnimatedEmojiSpan.TextViewEmojis textViewEmojis = new AnimatedEmojiSpan.TextViewEmojis(context);
+        this.textView = textViewEmojis;
+        textViewEmojis.setLines(1);
+        this.textView.setSingleLine(true);
+        this.textView.setGravity(3);
+        this.textView.setEllipsize(TextUtils.TruncateAt.END);
+        this.textView.setTextColor(this.textColor);
+        this.textView.setTextSize(1, 16.0f);
+        this.textView.setTypeface(AndroidUtilities.getTypeface(AndroidUtilities.TYPEFACE_ROBOTO_REGULAR));
+        addView(this.textView, LayoutHelper.createFrame(-2, -2, (LocaleController.isRTL ? 5 : 3) | 16));
+        this.checkViewLeft = LocaleController.isRTL;
+        makeCheckView(i);
+    }
+
+    public void makeCheckView(int i) {
+        if (i > 0) {
+            CheckBox2 checkBox2 = new CheckBox2(getContext(), 26, this.resourcesProvider);
+            this.checkView = checkBox2;
+            checkBox2.setDrawUnchecked(false);
+            this.checkView.setColor(-1, -1, Theme.key_actionBarDefaultSubmenuItem);
+            this.checkView.setDrawBackgroundAsArc(-1);
+            if (i == 1) {
+                boolean z = LocaleController.isRTL;
+                this.checkViewLeft = !z;
+                addView(this.checkView, LayoutHelper.createFrame(26, -1, (z ? 5 : 3) | 16));
+                this.textView.setPadding(!LocaleController.isRTL ? AndroidUtilities.m1124dp(34.0f) : 0, 0, !LocaleController.isRTL ? 0 : AndroidUtilities.m1124dp(34.0f), 0);
+                return;
+            }
+            addView(this.checkView, LayoutHelper.createFrame(26, -1, (LocaleController.isRTL ? 3 : 5) | 16));
+            this.textView.setPadding(LocaleController.isRTL ? AndroidUtilities.m1124dp(34.0f) : 0, 0, LocaleController.isRTL ? 0 : AndroidUtilities.m1124dp(34.0f), 0);
+        }
+    }
+
+    public void setEmojiCacheType(int i) {
+        this.textView.setCacheType(i);
+    }
+
+    @Override // android.widget.FrameLayout, android.view.View
+    protected void onMeasure(int i, int i2) {
+        super.onMeasure(i, View.MeasureSpec.makeMeasureSpec(AndroidUtilities.m1124dp(this.itemHeight), TLObject.FLAG_30));
+        if (!this.expandIfMultiline || this.textView.getLayout().getLineCount() <= 1) {
+            return;
+        }
+        super.onMeasure(i, View.MeasureSpec.makeMeasureSpec(AndroidUtilities.m1124dp(this.itemHeight + 8), TLObject.FLAG_30));
+    }
+
+    public void setItemHeight(int i) {
+        this.itemHeight = i;
+    }
+
+    public void setChecked(boolean z) {
+        CheckBox2 checkBox2 = this.checkView;
+        if (checkBox2 == null) {
+            return;
+        }
+        checkBox2.setChecked(z, true);
+    }
+
+    @Override // android.view.View
+    public void onInitializeAccessibilityNodeInfo(AccessibilityNodeInfo accessibilityNodeInfo) {
+        super.onInitializeAccessibilityNodeInfo(accessibilityNodeInfo);
+        accessibilityNodeInfo.setEnabled(isEnabled());
+        CheckBox2 checkBox2 = this.checkView;
+        if (checkBox2 == null || !checkBox2.isChecked()) {
+            return;
+        }
+        accessibilityNodeInfo.setCheckable(true);
+        accessibilityNodeInfo.setChecked(this.checkView.isChecked());
+        accessibilityNodeInfo.setClassName("android.widget.CheckBox");
+    }
+
+    public void setCheckColor(int i) {
+        this.checkView.setColor(-1, -1, i);
+    }
+
+    public void setRightIcon(int i) {
+        if (this.rightIcon == null) {
+            ImageView imageView = new ImageView(getContext());
+            this.rightIcon = imageView;
+            imageView.setScaleType(ImageView.ScaleType.CENTER);
+            this.rightIcon.setColorFilter(this.iconColor, PorterDuff.Mode.MULTIPLY);
+            if (LocaleController.isRTL) {
+                this.rightIcon.setScaleX(-1.0f);
+            }
+            addView(this.rightIcon, LayoutHelper.createFrame(24, -1, (LocaleController.isRTL ? 3 : 5) | 16));
+        }
+        FrameLayout.LayoutParams layoutParams = (FrameLayout.LayoutParams) this.textView.getLayoutParams();
+        if (LocaleController.isRTL) {
+            layoutParams.leftMargin = this.rightIcon != null ? AndroidUtilities.m1124dp(32.0f) : 0;
+        } else {
+            layoutParams.rightMargin = this.rightIcon != null ? AndroidUtilities.m1124dp(32.0f) : 0;
+        }
+        this.textView.setLayoutParams(layoutParams);
+        setPadding(AndroidUtilities.m1124dp(LocaleController.isRTL ? 8.0f : 18.0f), 0, AndroidUtilities.m1124dp(LocaleController.isRTL ? 18.0f : 8.0f), 0);
+        if (i == 0) {
+            this.rightIcon.setVisibility(8);
+        } else {
+            this.rightIcon.setVisibility(0);
+            this.rightIcon.setImageResource(i);
+        }
+    }
+
+    public void setTextAndIcon(CharSequence charSequence, int i) {
+        setTextAndIcon(charSequence, i, null);
+    }
+
+    public void setMultiline(boolean z) {
+        this.textView.setLines(2);
+        if (z) {
+            this.textView.setTextSize(1, 14.0f);
+        } else {
+            this.expandIfMultiline = true;
+        }
+        this.textView.setSingleLine(false);
+        this.textView.setGravity(16);
+    }
+
+    public void setTextAndIcon(CharSequence charSequence, int i, Drawable drawable) {
+        int iM1124dp;
+        int iM1124dp2;
+        this.textView.setText(charSequence);
+        if (i != 0 || drawable != null || this.checkView != null) {
+            if (drawable != null) {
+                this.iconResId = 0;
+                this.imageView.setImageDrawable(drawable);
+            } else {
+                this.iconResId = i;
+                this.imageView.setImageResource(i);
+            }
+            this.imageView.setVisibility(0);
+            AnimatedEmojiSpan.TextViewEmojis textViewEmojis = this.textView;
+            if (this.checkViewLeft) {
+                iM1124dp = this.checkView != null ? AndroidUtilities.m1124dp(43.0f) : 0;
+            } else {
+                iM1124dp = AndroidUtilities.m1124dp((i == 0 && drawable == null) ? 0.0f : 43.0f);
+            }
+            if (this.checkViewLeft) {
+                iM1124dp2 = AndroidUtilities.m1124dp((i == 0 && drawable == null) ? 0.0f : 43.0f);
+            } else {
+                iM1124dp2 = this.checkView != null ? AndroidUtilities.m1124dp(43.0f) : 0;
+            }
+            textViewEmojis.setPadding(iM1124dp, 0, iM1124dp2, 0);
+        } else {
+            this.iconResId = 0;
+            this.imageView.setVisibility(4);
+            this.textView.setPadding(0, 0, 0, 0);
+        }
+        TextView textView = this.subtextView;
+        if (textView != null) {
+            textView.setPadding(this.textView.getPaddingLeft(), 0, this.textView.getPaddingRight(), 0);
+        }
+    }
+
+    public void setTextAndIcon(CharSequence charSequence, ImageLocation imageLocation, String str, Drawable drawable, Object obj) {
+        this.textView.setText(charSequence);
+        this.textView.setPadding((this.checkViewLeft && this.checkView == null) ? 0 : AndroidUtilities.m1124dp(43.0f), 0, (!this.checkViewLeft && this.checkView == null) ? 0 : AndroidUtilities.m1124dp(43.0f), 0);
+        if (this.backupImageView == null) {
+            BackupImageView backupImageView = new BackupImageView(getContext());
+            this.backupImageView = backupImageView;
+            backupImageView.setRoundRadius(AndroidUtilities.m1124dp(5.0f));
+            addView(this.backupImageView, LayoutHelper.createFrame(28, 28, (LocaleController.isRTL ? 5 : 3) | 16));
+        }
+        this.imageView.setVisibility(4);
+        this.backupImageView.setImage(imageLocation, str, drawable, obj);
+    }
+
+    public void setIconColorImage(int i) {
+        BackupImageView backupImageView = this.backupImageView;
+        if (backupImageView != null) {
+            backupImageView.setColorFilter(new PorterDuffColorFilter(i, PorterDuff.Mode.SRC_IN));
+        }
+    }
+
+    public void setImageSize(int i, int i2) {
+        BackupImageView backupImageView = this.backupImageView;
+        if (backupImageView != null) {
+            backupImageView.setLayoutParams(LayoutHelper.createFrame(i, i2, (LocaleController.isRTL ? 5 : 3) | 16));
+        }
+    }
+
+    public ActionBarMenuSubItem setColors(int i, int i2) {
+        setTextColor(i);
+        setIconColor(i2);
+        return this;
+    }
+
+    public void setTextColor(int i) {
+        if (this.textColor != i) {
+            AnimatedEmojiSpan.TextViewEmojis textViewEmojis = this.textView;
+            this.textColor = i;
+            textViewEmojis.setTextColor(i);
+        }
+    }
+
+    public void setIconColor(int i) {
+        setIconColor(i, PorterDuff.Mode.MULTIPLY);
+    }
+
+    public void setIconColor(int i, PorterDuff.Mode mode) {
+        if (this.iconColor == i && this.iconColorMode == mode) {
+            return;
+        }
+        RLottieImageView rLottieImageView = this.imageView;
+        this.iconColor = i;
+        this.iconColorMode = mode;
+        rLottieImageView.setColorFilter(new PorterDuffColorFilter(i, mode));
+    }
+
+    public void setEnabledByColor(final boolean z, final int i, final int i2) {
+        ValueAnimator valueAnimator = this.enabledAnimator;
+        if (valueAnimator != null) {
+            valueAnimator.cancel();
+        }
+        ValueAnimator valueAnimatorOfFloat = ValueAnimator.ofFloat(this.enabled ? 1.0f : 0.0f, z ? 1.0f : 0.0f);
+        this.enabledAnimator = valueAnimatorOfFloat;
+        this.enabled = z;
+        valueAnimatorOfFloat.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() { // from class: org.telegram.ui.ActionBar.ActionBarMenuSubItem$$ExternalSyntheticLambda0
+            @Override // android.animation.ValueAnimator.AnimatorUpdateListener
+            public final void onAnimationUpdate(ValueAnimator valueAnimator2) {
+                this.f$0.lambda$setEnabledByColor$0(i, i2, valueAnimator2);
+            }
+        });
+        this.enabledAnimator.addListener(new AnimatorListenerAdapter() { // from class: org.telegram.ui.ActionBar.ActionBarMenuSubItem.1
+            @Override // android.animation.AnimatorListenerAdapter, android.animation.Animator.AnimatorListener
+            public void onAnimationEnd(Animator animator) {
+                float f = z ? 1.0f : 0.0f;
+                ActionBarMenuSubItem.this.setTextColor(ColorUtils.blendARGB(i, i2, f));
+                ActionBarMenuSubItem.this.setIconColor(ColorUtils.blendARGB(i, i2, f));
+            }
+        });
+        this.enabledAnimator.setInterpolator(CubicBezierInterpolator.EASE_OUT_QUINT);
+        this.enabledAnimator.start();
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public /* synthetic */ void lambda$setEnabledByColor$0(int i, int i2, ValueAnimator valueAnimator) {
+        float fFloatValue = ((Float) valueAnimator.getAnimatedValue()).floatValue();
+        setTextColor(ColorUtils.blendARGB(i, i2, fFloatValue));
+        setIconColor(ColorUtils.blendARGB(i, i2, fFloatValue));
+    }
+
+    public void setEnabledByColor(final boolean z, final int i, final int i2, final int i3) {
+        ValueAnimator valueAnimator = this.enabledAnimator;
+        if (valueAnimator != null) {
+            valueAnimator.cancel();
+        }
+        ValueAnimator valueAnimatorOfFloat = ValueAnimator.ofFloat(this.enabled ? 1.0f : 0.0f, z ? 1.0f : 0.0f);
+        this.enabledAnimator = valueAnimatorOfFloat;
+        this.enabled = z;
+        valueAnimatorOfFloat.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() { // from class: org.telegram.ui.ActionBar.ActionBarMenuSubItem$$ExternalSyntheticLambda1
+            @Override // android.animation.ValueAnimator.AnimatorUpdateListener
+            public final void onAnimationUpdate(ValueAnimator valueAnimator2) {
+                this.f$0.lambda$setEnabledByColor$1(i, i3, i2, valueAnimator2);
+            }
+        });
+        this.enabledAnimator.addListener(new AnimatorListenerAdapter() { // from class: org.telegram.ui.ActionBar.ActionBarMenuSubItem.2
+            @Override // android.animation.AnimatorListenerAdapter, android.animation.Animator.AnimatorListener
+            public void onAnimationEnd(Animator animator) {
+                float f = z ? 1.0f : 0.0f;
+                ActionBarMenuSubItem.this.setTextColor(ColorUtils.blendARGB(i, i3, f));
+                ActionBarMenuSubItem.this.setIconColor(ColorUtils.blendARGB(i2, i3, f));
+            }
+        });
+        this.enabledAnimator.setInterpolator(CubicBezierInterpolator.EASE_OUT_QUINT);
+        this.enabledAnimator.start();
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public /* synthetic */ void lambda$setEnabledByColor$1(int i, int i2, int i3, ValueAnimator valueAnimator) {
+        float fFloatValue = ((Float) valueAnimator.getAnimatedValue()).floatValue();
+        setTextColor(ColorUtils.blendARGB(i, i2, fFloatValue));
+        setIconColor(ColorUtils.blendARGB(i3, i2, fFloatValue));
+    }
+
+    public int getIconResId() {
+        return this.iconResId;
+    }
+
+    public void setIcon(int i) {
+        RLottieImageView rLottieImageView = this.imageView;
+        this.iconResId = i;
+        rLottieImageView.setImageResource(i);
+    }
+
+    public void setIcon(Drawable drawable) {
+        this.iconResId = 0;
+        this.imageView.setImageDrawable(drawable);
+    }
+
+    public void setAnimatedIcon(int i) {
+        this.iconResId = 0;
+        this.imageView.setAnimation(i, 24, 24);
+    }
+
+    public void onItemShown() {
+        if (this.imageView.getAnimatedDrawable() != null) {
+            this.imageView.getAnimatedDrawable().start();
+        }
+    }
+
+    public void setText(CharSequence charSequence) {
+        this.textView.setText(charSequence);
+    }
+
+    public void setSubtextColor(int i) {
+        TextView textView = this.subtextView;
+        if (textView != null) {
+            textView.setTextColor(i);
+        }
+    }
+
+    public void setSubtext(CharSequence charSequence) {
+        if (this.subtextView == null) {
+            TextView textView = new TextView(getContext());
+            this.subtextView = textView;
+            textView.setLines(1);
+            this.subtextView.setSingleLine(true);
+            this.subtextView.setGravity(3);
+            this.subtextView.setEllipsize(TextUtils.TruncateAt.END);
+            this.subtextView.setTextColor(getThemedColor(Theme.key_groupcreate_sectionText));
+            this.subtextView.setVisibility(8);
+            this.subtextView.setTextSize(1, 13.0f);
+            this.subtextView.setPadding(this.textView.getPaddingLeft(), 0, this.textView.getPaddingRight(), 0);
+            addView(this.subtextView, LayoutHelper.createFrame(-2, -2.0f, (LocaleController.isRTL ? 5 : 3) | 16, 0.0f, 10.0f, 0.0f, 0.0f));
+        }
+        boolean zIsEmpty = TextUtils.isEmpty(charSequence);
+        if ((!zIsEmpty) != (this.subtextView.getVisibility() == 0)) {
+            this.subtextView.setVisibility(zIsEmpty ? 8 : 0);
+            FrameLayout.LayoutParams layoutParams = (FrameLayout.LayoutParams) this.textView.getLayoutParams();
+            layoutParams.bottomMargin = zIsEmpty ? 0 : AndroidUtilities.m1124dp(10.0f);
+            this.textView.setLayoutParams(layoutParams);
+        }
+        this.subtextView.setText(charSequence);
+    }
+
+    public AnimatedEmojiSpan.TextViewEmojis getTextView() {
+        return this.textView;
+    }
+
+    public ImageView getImageView() {
+        return this.imageView;
+    }
+
+    public void setSelectorColor(int i) {
+        if (this.selectorColor != i) {
+            this.selectorColor = i;
+            updateBackground();
+        }
+    }
+
+    public void updateSelectorBackground(boolean z, boolean z2) {
+        if (this.top == z && this.bottom == z2) {
+            return;
+        }
+        this.top = z;
+        this.bottom = z2;
+        updateBackground();
+    }
+
+    public void updateSelectorBackground(boolean z, boolean z2, int i) {
+        if (this.top == z && this.bottom == z2 && this.selectorRad == i) {
+            return;
+        }
+        this.top = z;
+        this.bottom = z2;
+        this.selectorRad = i;
+        updateBackground();
+    }
+
+    public void updateBackground() {
+        int i = this.selectorColor;
+        int i2 = this.selectorRad;
+        setBackground(Theme.createRadSelectorDrawable(i, i2, i2));
+        UIUtil.applyScaleStateListAnimator(this, this.selectorRad, this.top, this.bottom, 3, 0.04f, 1.5f);
+    }
+
+    private int getThemedColor(int i) {
+        return Theme.getColor(i, this.resourcesProvider);
+    }
+
+    public CheckBox2 getCheckView() {
+        return this.checkView;
+    }
+
+    public void openSwipeBack() {
+        Runnable runnable = this.openSwipeBackLayout;
+        if (runnable != null) {
+            runnable.run();
+        }
+    }
+
+    public ImageView getRightIcon() {
+        return this.rightIcon;
+    }
+}

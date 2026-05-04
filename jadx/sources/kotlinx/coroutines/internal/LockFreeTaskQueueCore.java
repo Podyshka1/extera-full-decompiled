@@ -1,0 +1,243 @@
+package kotlinx.coroutines.internal;
+
+import androidx.concurrent.futures.AbstractC0329xc40028dd;
+import java.util.concurrent.atomic.AtomicLongFieldUpdater;
+import java.util.concurrent.atomic.AtomicReferenceArray;
+import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
+import kotlin.jvm.internal.DefaultConstructorMarker;
+
+/* JADX INFO: loaded from: classes.dex */
+public final class LockFreeTaskQueueCore {
+    private volatile /* synthetic */ Object _next$volatile;
+    private volatile /* synthetic */ long _state$volatile;
+    private final /* synthetic */ AtomicReferenceArray array;
+    private final int capacity;
+    private final int mask;
+    private final boolean singleConsumer;
+    public static final Companion Companion = new Companion(null);
+    private static final /* synthetic */ AtomicReferenceFieldUpdater _next$volatile$FU = AtomicReferenceFieldUpdater.newUpdater(LockFreeTaskQueueCore.class, Object.class, "_next$volatile");
+    private static final /* synthetic */ AtomicLongFieldUpdater _state$volatile$FU = AtomicLongFieldUpdater.newUpdater(LockFreeTaskQueueCore.class, "_state$volatile");
+    public static final Symbol REMOVE_FROZEN = new Symbol("REMOVE_FROZEN");
+
+    private final /* synthetic */ AtomicReferenceArray getArray() {
+        return this.array;
+    }
+
+    public LockFreeTaskQueueCore(int i, boolean z) {
+        this.capacity = i;
+        this.singleConsumer = z;
+        int i2 = i - 1;
+        this.mask = i2;
+        this.array = new AtomicReferenceArray(i);
+        if (i2 > 1073741823) {
+            throw new IllegalStateException("Check failed.");
+        }
+        if ((i & i2) != 0) {
+            throw new IllegalStateException("Check failed.");
+        }
+    }
+
+    public final boolean isEmpty() {
+        long j = _state$volatile$FU.get(this);
+        return ((int) (1073741823 & j)) == ((int) ((j & 1152921503533105152L) >> 30));
+    }
+
+    public final int getSize() {
+        long j = _state$volatile$FU.get(this);
+        return (((int) ((j & 1152921503533105152L) >> 30)) - ((int) (1073741823 & j))) & 1073741823;
+    }
+
+    public final boolean close() {
+        long j;
+        AtomicLongFieldUpdater atomicLongFieldUpdater = _state$volatile$FU;
+        do {
+            j = atomicLongFieldUpdater.get(this);
+            if ((j & 2305843009213693952L) != 0) {
+                return true;
+            }
+            if ((1152921504606846976L & j) != 0) {
+                return false;
+            }
+        } while (!atomicLongFieldUpdater.compareAndSet(this, j, 2305843009213693952L | j));
+        return true;
+    }
+
+    /* JADX WARN: Code restructure failed: missing block: B:18:0x0052, code lost:
+    
+        return 1;
+     */
+    /*
+        Code decompiled incorrectly, please refer to instructions dump.
+    */
+    public final int addLast(Object obj) {
+        AtomicLongFieldUpdater atomicLongFieldUpdater = _state$volatile$FU;
+        while (true) {
+            long j = atomicLongFieldUpdater.get(this);
+            if ((3458764513820540928L & j) != 0) {
+                return Companion.addFailReason(j);
+            }
+            int i = (int) (1073741823 & j);
+            int i2 = (int) ((1152921503533105152L & j) >> 30);
+            int i3 = this.mask;
+            if (((i2 + 2) & i3) == (i & i3)) {
+                return 1;
+            }
+            if (!this.singleConsumer && getArray().get(i2 & i3) != null) {
+                int i4 = this.capacity;
+                if (i4 < 1024 || ((i2 - i) & 1073741823) > (i4 >> 1)) {
+                    break;
+                }
+            } else if (_state$volatile$FU.compareAndSet(this, j, Companion.updateTail(j, (i2 + 1) & 1073741823))) {
+                getArray().set(i2 & i3, obj);
+                LockFreeTaskQueueCore lockFreeTaskQueueCoreFillPlaceholder = this;
+                while ((_state$volatile$FU.get(lockFreeTaskQueueCoreFillPlaceholder) & 1152921504606846976L) != 0 && (lockFreeTaskQueueCoreFillPlaceholder = lockFreeTaskQueueCoreFillPlaceholder.next().fillPlaceholder(i2, obj)) != null) {
+                }
+                return 0;
+            }
+        }
+    }
+
+    private final LockFreeTaskQueueCore fillPlaceholder(int i, Object obj) {
+        Object obj2 = getArray().get(this.mask & i);
+        if (!(obj2 instanceof Placeholder) || ((Placeholder) obj2).index != i) {
+            return null;
+        }
+        getArray().set(i & this.mask, obj);
+        return this;
+    }
+
+    public final Object removeFirstOrNull() {
+        AtomicLongFieldUpdater atomicLongFieldUpdater = _state$volatile$FU;
+        while (true) {
+            long j = atomicLongFieldUpdater.get(this);
+            if ((1152921504606846976L & j) != 0) {
+                return REMOVE_FROZEN;
+            }
+            int i = (int) (1073741823 & j);
+            int i2 = this.mask;
+            if ((((int) ((1152921503533105152L & j) >> 30)) & i2) == (i2 & i)) {
+                return null;
+            }
+            Object obj = getArray().get(this.mask & i);
+            if (obj == null) {
+                if (this.singleConsumer) {
+                    return null;
+                }
+            } else {
+                if (obj instanceof Placeholder) {
+                    return null;
+                }
+                int i3 = (i + 1) & 1073741823;
+                if (_state$volatile$FU.compareAndSet(this, j, Companion.updateHead(j, i3))) {
+                    getArray().set(this.mask & i, null);
+                    return obj;
+                }
+                if (this.singleConsumer) {
+                    LockFreeTaskQueueCore lockFreeTaskQueueCoreRemoveSlowPath = this;
+                    do {
+                        lockFreeTaskQueueCoreRemoveSlowPath = lockFreeTaskQueueCoreRemoveSlowPath.removeSlowPath(i, i3);
+                    } while (lockFreeTaskQueueCoreRemoveSlowPath != null);
+                    return obj;
+                }
+            }
+        }
+    }
+
+    private final LockFreeTaskQueueCore removeSlowPath(int i, int i2) {
+        long j;
+        int i3;
+        AtomicLongFieldUpdater atomicLongFieldUpdater = _state$volatile$FU;
+        do {
+            j = atomicLongFieldUpdater.get(this);
+            i3 = (int) (1073741823 & j);
+            if ((1152921504606846976L & j) != 0) {
+                return next();
+            }
+        } while (!_state$volatile$FU.compareAndSet(this, j, Companion.updateHead(j, i2)));
+        getArray().set(this.mask & i3, null);
+        return null;
+    }
+
+    public final LockFreeTaskQueueCore next() {
+        return allocateOrGetNextCopy(markFrozen());
+    }
+
+    private final long markFrozen() {
+        long j;
+        long j2;
+        AtomicLongFieldUpdater atomicLongFieldUpdater = _state$volatile$FU;
+        do {
+            j = atomicLongFieldUpdater.get(this);
+            if ((j & 1152921504606846976L) != 0) {
+                return j;
+            }
+            j2 = 1152921504606846976L | j;
+        } while (!atomicLongFieldUpdater.compareAndSet(this, j, j2));
+        return j2;
+    }
+
+    private final LockFreeTaskQueueCore allocateOrGetNextCopy(long j) {
+        AtomicReferenceFieldUpdater atomicReferenceFieldUpdater = _next$volatile$FU;
+        while (true) {
+            LockFreeTaskQueueCore lockFreeTaskQueueCore = (LockFreeTaskQueueCore) atomicReferenceFieldUpdater.get(this);
+            if (lockFreeTaskQueueCore != null) {
+                return lockFreeTaskQueueCore;
+            }
+            AbstractC0329xc40028dd.m112m(_next$volatile$FU, this, null, allocateNextCopy(j));
+        }
+    }
+
+    private final LockFreeTaskQueueCore allocateNextCopy(long j) {
+        LockFreeTaskQueueCore lockFreeTaskQueueCore = new LockFreeTaskQueueCore(this.capacity * 2, this.singleConsumer);
+        int i = (int) (1073741823 & j);
+        int i2 = (int) ((1152921503533105152L & j) >> 30);
+        while (true) {
+            int i3 = this.mask;
+            if ((i & i3) != (i3 & i2)) {
+                Object placeholder = getArray().get(this.mask & i);
+                if (placeholder == null) {
+                    placeholder = new Placeholder(i);
+                }
+                lockFreeTaskQueueCore.getArray().set(lockFreeTaskQueueCore.mask & i, placeholder);
+                i++;
+            } else {
+                _state$volatile$FU.set(lockFreeTaskQueueCore, Companion.m1092wo(j, 1152921504606846976L));
+                return lockFreeTaskQueueCore;
+            }
+        }
+    }
+
+    public static final class Placeholder {
+        public final int index;
+
+        public Placeholder(int i) {
+            this.index = i;
+        }
+    }
+
+    public static final class Companion {
+        public /* synthetic */ Companion(DefaultConstructorMarker defaultConstructorMarker) {
+            this();
+        }
+
+        public final int addFailReason(long j) {
+            return (j & 2305843009213693952L) != 0 ? 2 : 1;
+        }
+
+        /* JADX INFO: renamed from: wo */
+        public final long m1092wo(long j, long j2) {
+            return j & (~j2);
+        }
+
+        private Companion() {
+        }
+
+        public final long updateHead(long j, int i) {
+            return m1092wo(j, 1073741823L) | ((long) i);
+        }
+
+        public final long updateTail(long j, int i) {
+            return m1092wo(j, 1152921503533105152L) | (((long) i) << 30);
+        }
+    }
+}

@@ -1,0 +1,228 @@
+package org.telegram.p029ui.Components.Premium;
+
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.RectF;
+import android.text.Layout;
+import android.text.StaticLayout;
+import android.text.TextPaint;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.SharedConfig;
+import org.telegram.messenger.Utilities;
+
+/* JADX INFO: loaded from: classes7.dex */
+public abstract class HelloParticles {
+    private static final String[] hellos = {"Hello", "Привіт", "Привет", "Bonjour", "Hola", "Ciao", "Olá", "여보세요", "你好", "Salve", "Sveiki", "Halo", "გამარჯობა", "Hallå", "Salam", "Tere", "Dia dhuit", "こんにちは", "Сайн уу", "Bongu", "Ahoj", "γεια", "Zdravo", "नमस्ते", "Habari", "Hallo", "ជំរាបសួរ", "مرحبًا", "ನಮಸ್ಕಾರ", "Салам", "Silav li wir", "سڵاو", "Kif inti", "Talofa", "Thobela", "हॅलो", "ሰላም", "Здраво", "ഹലോ", "ہیلو", "ꯍꯦꯜꯂꯣ", "Alô", "வணக்கம்", "Mhoro", "Moni", "Alo", "สวัสดี", "Salom", "Բարեւ"};
+
+    public static class Drawable {
+        private float bitmapScale;
+        public final int count;
+        public boolean paused;
+        long pausedTime;
+        private TextPaint textPaint = new TextPaint(1);
+        private HashMap bitmaps = new HashMap();
+        public RectF rect = new RectF();
+        public RectF screenRect = new RectF();
+        private Paint paint = new Paint();
+        ArrayList particles = new ArrayList();
+        public float speedScale = 1.0f;
+        public int size1 = 14;
+        public int size2 = 12;
+        public int size3 = 10;
+        public long minLifeTime = 2000;
+
+        /* JADX INFO: renamed from: dt */
+        private final float f2020dt = 1000.0f / AndroidUtilities.screenRefreshRate;
+
+        public Drawable(int i) {
+            this.bitmapScale = 1.0f;
+            this.count = i;
+            this.textPaint.setTypeface(AndroidUtilities.bold());
+            this.textPaint.setColor(-1);
+            int devicePerformanceClass = SharedConfig.getDevicePerformanceClass();
+            if (devicePerformanceClass == 0) {
+                this.bitmapScale = 0.25f;
+            } else if (devicePerformanceClass == 1) {
+                this.bitmapScale = 0.5f;
+            } else {
+                this.bitmapScale = 0.75f;
+            }
+            this.textPaint.setTextSize(AndroidUtilities.m1124dp(this.bitmapScale * 24.0f));
+            this.paint.setColor(-1);
+        }
+
+        public void init() {
+            if (this.particles.isEmpty()) {
+                for (int i = 0; i < this.count; i++) {
+                    this.particles.add(new Particle());
+                }
+            }
+        }
+
+        public void resetPositions() {
+            long jCurrentTimeMillis = System.currentTimeMillis();
+            for (int i = 0; i < this.particles.size(); i++) {
+                ((Particle) this.particles.get(i)).genPosition(jCurrentTimeMillis, i, true);
+            }
+        }
+
+        public void onDraw(Canvas canvas) {
+            long jCurrentTimeMillis = System.currentTimeMillis();
+            for (int i = 0; i < this.particles.size(); i++) {
+                Particle particle = (Particle) this.particles.get(i);
+                if (this.paused) {
+                    particle.draw(canvas, i, this.pausedTime);
+                } else {
+                    particle.draw(canvas, i, jCurrentTimeMillis);
+                }
+                if (particle.inProgress >= 1.0f) {
+                    particle.genPosition(jCurrentTimeMillis, i, false);
+                }
+            }
+        }
+
+        public void recycle() {
+            Iterator it = this.bitmaps.values().iterator();
+            while (it.hasNext()) {
+                ((Bitmap) it.next()).recycle();
+            }
+            this.bitmaps.clear();
+        }
+
+        private class Particle {
+            private int alpha;
+            private Bitmap bitmap;
+            private long duration;
+
+            /* JADX INFO: renamed from: h */
+            private int f2021h;
+            float inProgress;
+
+            /* JADX INFO: renamed from: l */
+            private int f2022l;
+            private float scale;
+            private boolean set;
+            private StaticLayout staticLayout;
+            private float vecX;
+            private float vecY;
+
+            /* JADX INFO: renamed from: w */
+            private int f2023w;
+
+            /* JADX INFO: renamed from: x */
+            private float f2024x;
+
+            /* JADX INFO: renamed from: y */
+            private float f2025y;
+
+            private Particle() {
+            }
+
+            public void draw(Canvas canvas, int i, long j) {
+                Drawable drawable = Drawable.this;
+                if (!drawable.paused) {
+                    float f = this.inProgress;
+                    if (f != 1.0f) {
+                        float f2 = f + (drawable.f2020dt / this.duration);
+                        this.inProgress = f2;
+                        if (f2 > 1.0f) {
+                            this.inProgress = 1.0f;
+                        }
+                    }
+                }
+                if (this.bitmap != null) {
+                    canvas.save();
+                    float fPow = 1.0f - (((float) Math.pow(this.inProgress - 0.5f, 2.0d)) * 4.0f);
+                    float f3 = (this.scale / Drawable.this.bitmapScale) * ((0.4f * fPow) + 0.7f);
+                    canvas.translate(this.f2024x - (this.f2023w / 2.0f), this.f2025y - (this.f2021h / 2.0f));
+                    canvas.scale(f3, f3, this.f2023w / 2.0f, this.f2021h / 2.0f);
+                    Drawable.this.paint.setAlpha((int) (this.alpha * fPow));
+                    canvas.drawBitmap(this.bitmap, 0.0f, 0.0f, Drawable.this.paint);
+                    canvas.restore();
+                }
+            }
+
+            public void genPosition(long j, int i, boolean z) {
+                this.duration = Math.abs(Utilities.fastRandom.nextLong() % 2250) + 2250;
+                this.scale = (Math.abs(Utilities.fastRandom.nextFloat()) * 0.45f) + 0.6f;
+                String str = HelloParticles.hellos[Math.abs(Utilities.fastRandom.nextInt() % HelloParticles.hellos.length)];
+                if (str.length() > 7) {
+                    this.scale *= 0.6f;
+                } else if (str.length() > 5) {
+                    this.scale *= 0.75f;
+                }
+                StaticLayout staticLayout = new StaticLayout(str, Drawable.this.textPaint, AndroidUtilities.displaySize.x, Layout.Alignment.ALIGN_NORMAL, 1.0f, 0.0f, false);
+                this.staticLayout = staticLayout;
+                int i2 = 0;
+                if (staticLayout.getLineCount() <= 0) {
+                    this.f2021h = 0;
+                    this.f2023w = 0;
+                    this.f2022l = 0;
+                } else {
+                    this.f2022l = (int) this.staticLayout.getLineLeft(0);
+                    this.f2023w = (int) this.staticLayout.getLineWidth(0);
+                    this.f2021h = this.staticLayout.getHeight();
+                }
+                Bitmap bitmap = (Bitmap) Drawable.this.bitmaps.get(str);
+                this.bitmap = bitmap;
+                if (bitmap == null) {
+                    this.bitmap = Bitmap.createBitmap(Math.max(1, this.f2023w - Math.max(0, this.f2022l)), Math.max(1, this.f2021h), Bitmap.Config.ARGB_8888);
+                    Canvas canvas = new Canvas(this.bitmap);
+                    canvas.translate(-this.f2022l, 0.0f);
+                    this.staticLayout.draw(canvas);
+                    Drawable.this.bitmaps.put(str, this.bitmap);
+                }
+                RectF rectF = Drawable.this.rect;
+                float f = rectF.left;
+                int i3 = this.f2023w;
+                float fCenterX = f + (i3 / 4.0f);
+                float fCenterX2 = rectF.right - (i3 / 4.0f);
+                if (i % 2 == 0) {
+                    fCenterX2 = rectF.centerX() - (this.f2023w / 2.0f);
+                } else {
+                    fCenterX = (this.f2023w / 2.0f) + rectF.centerX();
+                }
+                float f2 = fCenterX2 - fCenterX;
+                float fAbs = Math.abs(Utilities.fastRandom.nextInt() % f2) + fCenterX;
+                float fAbs2 = Drawable.this.rect.top + Math.abs(Utilities.fastRandom.nextInt() % Drawable.this.rect.height());
+                int i4 = 0;
+                float f3 = 0.0f;
+                while (i4 < 10) {
+                    float fAbs3 = Math.abs(Utilities.fastRandom.nextInt() % f2) + fCenterX;
+                    float fAbs4 = Drawable.this.rect.top + Math.abs(Utilities.fastRandom.nextInt() % Drawable.this.rect.height());
+                    float f4 = 2.1474836E9f;
+                    for (int i5 = i2; i5 < Drawable.this.particles.size(); i5++) {
+                        Particle particle = (Particle) Drawable.this.particles.get(i5);
+                        if (particle.set) {
+                            float fMin = Math.min(Math.abs((particle.f2024x + ((particle.f2023w * (this.scale / Drawable.this.bitmapScale)) * 1.1f)) - fAbs3), Math.abs(particle.f2024x - fAbs3));
+                            float f5 = particle.f2025y - fAbs4;
+                            float f6 = (fMin * fMin) + (f5 * f5);
+                            if (f6 < f4) {
+                                f4 = f6;
+                            }
+                        }
+                    }
+                    if (f4 > f3) {
+                        fAbs = fAbs3;
+                        fAbs2 = fAbs4;
+                        f3 = f4;
+                    }
+                    i4++;
+                    i2 = 0;
+                }
+                this.f2024x = fAbs;
+                this.f2025y = fAbs2;
+                double dAtan2 = Math.atan2(fAbs - Drawable.this.rect.centerX(), this.f2025y - Drawable.this.rect.centerY());
+                this.vecX = (float) Math.sin(dAtan2);
+                this.vecY = (float) Math.cos(dAtan2);
+                this.alpha = (int) (((Utilities.fastRandom.nextInt(50) + 50) / 100.0f) * 255.0f);
+                this.inProgress = z ? Math.abs((Utilities.fastRandom.nextFloat() % 1.0f) * 0.9f) : 0.0f;
+                this.set = true;
+            }
+        }
+    }
+}

@@ -1,0 +1,30 @@
+package androidx.datastore.preferences.protobuf;
+
+import java.util.Iterator;
+import java.util.Map;
+
+/* JADX INFO: loaded from: classes4.dex */
+class LazyField$LazyIterator implements Iterator {
+    private Iterator iterator;
+
+    public LazyField$LazyIterator(Iterator it) {
+        this.iterator = it;
+    }
+
+    @Override // java.util.Iterator
+    public boolean hasNext() {
+        return this.iterator.hasNext();
+    }
+
+    @Override // java.util.Iterator
+    public Map.Entry next() {
+        Map.Entry entry = (Map.Entry) this.iterator.next();
+        entry.getValue();
+        return entry;
+    }
+
+    @Override // java.util.Iterator
+    public void remove() {
+        this.iterator.remove();
+    }
+}

@@ -1,0 +1,573 @@
+package org.telegram.p029ui;
+
+import android.content.Context;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.RectF;
+import android.graphics.Typeface;
+import android.text.Editable;
+import android.text.SpannableStringBuilder;
+import android.text.TextUtils;
+import android.text.TextWatcher;
+import android.text.style.ReplacementSpan;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.FrameLayout;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.TableRow;
+import android.widget.TextView;
+import com.google.android.material.navigation.NavigationBarView;
+import java.util.ArrayList;
+import okhttp3.internal.url._UrlKt;
+import org.mvel2.MVEL;
+import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.BillingController;
+import org.telegram.messenger.C2888R;
+import org.telegram.messenger.Emoji;
+import org.telegram.messenger.LocaleController;
+import org.telegram.messenger.MessagesController;
+import org.telegram.messenger.Utilities;
+import org.telegram.messenger.utils.tlutils.AmountUtils$Amount;
+import org.telegram.messenger.utils.tlutils.AmountUtils$Currency;
+import org.telegram.p029ui.ActionBar.BaseFragment;
+import org.telegram.p029ui.ActionBar.Theme;
+import org.telegram.p029ui.Components.BottomSheetWithRecyclerListView;
+import org.telegram.p029ui.Components.Bulletin;
+import org.telegram.p029ui.Components.BulletinFactory;
+import org.telegram.p029ui.Components.ButtonSpan;
+import org.telegram.p029ui.Components.ColoredImageSpan;
+import org.telegram.p029ui.Components.EditTextBoldCursor;
+import org.telegram.p029ui.Components.LayoutHelper;
+import org.telegram.p029ui.Components.OutlineTextContainerView;
+import org.telegram.p029ui.Components.RecyclerListView;
+import org.telegram.p029ui.Components.ScaleStateListAnimator;
+import org.telegram.p029ui.Components.TableView;
+import org.telegram.p029ui.Components.Text;
+import org.telegram.p029ui.Components.TextHelper;
+import org.telegram.p029ui.Components.UItem;
+import org.telegram.p029ui.Components.UniversalAdapter;
+import org.telegram.p029ui.Stars.BalanceCloud;
+import org.telegram.p029ui.Stars.StarsController;
+import org.telegram.p029ui.Stars.StarsIntroActivity;
+import org.telegram.p029ui.Stories.recorder.ButtonWithCounterView;
+import org.telegram.p029ui.TON.TONIntroActivity;
+import org.telegram.tgnet.TLRPC;
+
+/* JADX INFO: loaded from: classes6.dex */
+public class StakedDiceSheet extends BottomSheetWithRecyclerListView {
+    private UniversalAdapter adapter;
+    private final BalanceCloud balanceCloud;
+    private boolean balanceCloudVisible;
+    private LinearLayout editView;
+    private boolean isOpenAnimationEnd;
+    private LinearLayout topView;
+
+    public static /* synthetic */ void $r8$lambda$2XCcAruOv5QszSEYM9slNEERuNA() {
+    }
+
+    @Override // org.telegram.p029ui.ActionBar.BottomSheet
+    protected boolean isTouchOutside(float f, float f2) {
+        if (f < this.balanceCloud.getX() || f > this.balanceCloud.getX() + this.balanceCloud.getWidth() || f2 < this.balanceCloud.getY() || f2 > this.balanceCloud.getY() + this.balanceCloud.getHeight()) {
+            return super.isTouchOutside(f, f2);
+        }
+        return false;
+    }
+
+    public StakedDiceSheet(final Context context, final int i, final Theme.ResourcesProvider resourcesProvider, final Utilities.Callback callback) {
+        super(context, null, true, false, false, BottomSheetWithRecyclerListView.ActionBarType.FADING, resourcesProvider);
+        this.currentAccount = i;
+        this.topPadding = 0.2f;
+        this.smoothKeyboardAnimationEnabled = true;
+        this.smoothKeyboardByBottom = true;
+        BalanceCloud balanceCloud = new BalanceCloud(context, i, AmountUtils$Currency.TON, resourcesProvider);
+        this.balanceCloud = balanceCloud;
+        balanceCloud.setScaleX(0.6f);
+        balanceCloud.setScaleY(0.6f);
+        balanceCloud.setAlpha(0.0f);
+        this.container.addView(balanceCloud, 0, LayoutHelper.createFrame(-2, -2.0f, 49, 0.0f, 48.0f, 0.0f, 0.0f));
+        ScaleStateListAnimator.apply(balanceCloud);
+        balanceCloud.setOnClickListener(new View.OnClickListener() { // from class: org.telegram.ui.StakedDiceSheet$$ExternalSyntheticLambda3
+            @Override // android.view.View.OnClickListener
+            public final void onClick(View view) {
+                new StarsIntroActivity.StarsOptionsSheet(context, resourcesProvider).show();
+            }
+        });
+        TLRPC.EmojiGameInfo emojiGameInfo = MessagesController.getInstance(i).stakeDiceInfo;
+        if (!(emojiGameInfo instanceof TLRPC.TL_emojiGameDiceInfo)) {
+            return;
+        }
+        TLRPC.TL_emojiGameDiceInfo tL_emojiGameDiceInfo = (TLRPC.TL_emojiGameDiceInfo) emojiGameInfo;
+        LinearLayout linearLayout = new LinearLayout(context);
+        this.topView = linearLayout;
+        linearLayout.setOrientation(1);
+        this.topView.setPadding(AndroidUtilities.m1124dp(16.0f), AndroidUtilities.m1124dp(20.0f), AndroidUtilities.m1124dp(16.0f), AndroidUtilities.m1124dp(4.0f));
+        this.topView.setClipChildren(false);
+        this.topView.setClipToPadding(false);
+        ImageView imageView = new ImageView(context);
+        imageView.setImageResource(C2888R.drawable.dice6);
+        this.topView.addView(imageView, LayoutHelper.createLinear(80, 80, 1, 0, 0, 0, 8));
+        int i2 = Theme.key_dialogTextBlack;
+        TextView textViewMakeTextView = TextHelper.makeTextView(context, 20.0f, i2, true);
+        textViewMakeTextView.setGravity(17);
+        SpannableStringBuilder spannableStringBuilder = new SpannableStringBuilder(LocaleController.getString(C2888R.string.StakeDiceTitle));
+        spannableStringBuilder.append((CharSequence) " ");
+        int length = spannableStringBuilder.length();
+        spannableStringBuilder.append((CharSequence) LocaleController.getString(C2888R.string.StakeDiceTitleBeta));
+        spannableStringBuilder.setSpan(new ReplacementSpan() { // from class: org.telegram.ui.StakedDiceSheet.1
+            final Text text = new Text(LocaleController.getString(C2888R.string.StakeDiceTitleBeta), 12.0f, AndroidUtilities.bold());
+            final Paint bgPaint = new Paint(1);
+
+            @Override // android.text.style.ReplacementSpan
+            public int getSize(Paint paint, CharSequence charSequence, int i3, int i4, Paint.FontMetricsInt fontMetricsInt) {
+                return (int) (AndroidUtilities.m1124dp(16.0f) + this.text.getCurrentWidth());
+            }
+
+            @Override // android.text.style.ReplacementSpan
+            public void draw(Canvas canvas, CharSequence charSequence, int i3, int i4, float f, int i5, int i6, int i7, Paint paint) {
+                float fM1124dp = ((i5 + i7) / 2.0f) + AndroidUtilities.m1124dp(1.0f);
+                this.bgPaint.setColor(Theme.getColor(Theme.key_featuredStickers_addButton, resourcesProvider));
+                RectF rectF = AndroidUtilities.rectTmp;
+                rectF.set(f, fM1124dp - AndroidUtilities.m1124dp(9.0f), AndroidUtilities.m1124dp(16.0f) + f + this.text.getCurrentWidth(), AndroidUtilities.m1124dp(9.0f) + fM1124dp);
+                canvas.drawRoundRect(rectF, AndroidUtilities.m1124dp(9.0f), AndroidUtilities.m1124dp(9.0f), this.bgPaint);
+                this.text.draw(canvas, f + AndroidUtilities.m1124dp(8.0f), fM1124dp, -1, 1.0f);
+            }
+        }, length, spannableStringBuilder.length(), 33);
+        textViewMakeTextView.setText(spannableStringBuilder);
+        this.topView.addView(textViewMakeTextView, LayoutHelper.createLinear(-1, -2, 32.0f, 0.0f, 32.0f, 8.0f));
+        TextView textViewMakeTextView2 = TextHelper.makeTextView(context, 14.0f, i2, false);
+        textViewMakeTextView2.setGravity(17);
+        textViewMakeTextView2.setText(LocaleController.getString(C2888R.string.StakeDiceText));
+        this.topView.addView(textViewMakeTextView2, LayoutHelper.createLinear(-1, -2, 32.0f, 0.0f, 32.0f, 12.0f));
+        LinearLayout linearLayout2 = new LinearLayout(context);
+        linearLayout2.setOrientation(1);
+        TextView textViewMakeTextView3 = TextHelper.makeTextView(context, 14.0f, Theme.key_windowBackgroundWhiteBlueHeader, true);
+        textViewMakeTextView3.setText(LocaleController.getString(C2888R.string.StakeDiceReturns));
+        linearLayout2.addView(textViewMakeTextView3, LayoutHelper.createLinear(-1, -2, 0.0f, 0.0f, 0.0f, 8.0f));
+        final TableView tableView = new TableView(context, resourcesProvider);
+        linearLayout2.addView(tableView, LayoutHelper.createLinear(-1, -2, 0.0f, 0.0f, 0.0f, 0.0f));
+        TableRow tableRow = new TableRow(context);
+        tableView.addView(tableRow);
+        TableRow tableRow2 = new TableRow(context);
+        tableView.addView(tableRow2);
+        int i3 = C2888R.drawable.dice1;
+        int i4 = C2888R.drawable.dice2;
+        int i5 = C2888R.drawable.dice3;
+        int i6 = C2888R.drawable.dice4;
+        int i7 = C2888R.drawable.dice5;
+        int i8 = C2888R.drawable.dice6;
+        final int[] iArr = {i3, i4, i5, i6, i7, i8, i8};
+        Utilities.Callback2Return callback2Return = new Utilities.Callback2Return() { // from class: org.telegram.ui.StakedDiceSheet$$ExternalSyntheticLambda4
+            @Override // org.telegram.messenger.Utilities.Callback2Return
+            public final Object run(Object obj, Object obj2) {
+                return StakedDiceSheet.m18150$r8$lambda$Avzvs7HEBCdkCHlzfUQfHJlva8(context, iArr, resourcesProvider, tableView, (Integer) obj, (Float) obj2);
+            }
+        };
+        float f = 1.0f;
+        if (tL_emojiGameDiceInfo.params.size() == 7) {
+            tableRow.addView((View) callback2Return.run(1, Float.valueOf(((Integer) tL_emojiGameDiceInfo.params.get(0)).intValue() / 1000.0f)), new TableRow.LayoutParams(0, -1, 1.0f));
+            tableRow.addView((View) callback2Return.run(2, Float.valueOf(((Integer) tL_emojiGameDiceInfo.params.get(1)).intValue() / 1000.0f)), new TableRow.LayoutParams(0, -1, 1.0f));
+            tableRow.addView((View) callback2Return.run(3, Float.valueOf(((Integer) tL_emojiGameDiceInfo.params.get(2)).intValue() / 1000.0f)), new TableRow.LayoutParams(0, -1, 1.0f));
+            tableRow.addView((View) callback2Return.run(4, Float.valueOf(((Integer) tL_emojiGameDiceInfo.params.get(3)).intValue() / 1000.0f)), new TableRow.LayoutParams(0, -1, 1.0f));
+            tableRow2.addView((View) callback2Return.run(5, Float.valueOf(((Integer) tL_emojiGameDiceInfo.params.get(4)).intValue() / 1000.0f)), new TableRow.LayoutParams(0, -1, 1.0f));
+            tableRow2.addView((View) callback2Return.run(6, Float.valueOf(((Integer) tL_emojiGameDiceInfo.params.get(5)).intValue() / 1000.0f)), new TableRow.LayoutParams(0, -1, 1.0f));
+            tableRow2.addView((View) callback2Return.run(7, Float.valueOf(((Integer) tL_emojiGameDiceInfo.params.get(6)).intValue() / 1000.0f)), new TableRow.LayoutParams(0, -1, 2.0f));
+        }
+        TextView textViewMakeTextView4 = TextHelper.makeTextView(context, 14.0f, Theme.key_windowBackgroundWhiteGrayText, false);
+        textViewMakeTextView4.setGravity(17);
+        SpannableStringBuilder spannableStringBuilder2 = new SpannableStringBuilder("🎲");
+        ColoredImageSpan coloredImageSpan = new ColoredImageSpan(C2888R.drawable.dice6);
+        coloredImageSpan.recolorDrawable = false;
+        coloredImageSpan.setScale(0.8f, 0.8f);
+        spannableStringBuilder2.setSpan(coloredImageSpan, 0, spannableStringBuilder2.length(), 33);
+        textViewMakeTextView4.setText(AndroidUtilities.replaceMultipleCharSequence("🎲", LocaleController.getString(C2888R.string.StakeDiceReturnsInfo), spannableStringBuilder2));
+        linearLayout2.addView(textViewMakeTextView4, LayoutHelper.createLinear(-1, -2, 0.0f, 4.0f, 0.0f, 16.0f));
+        this.topView.addView(linearLayout2, LayoutHelper.createLinear(-1, -2, 8.0f, 0.0f, 8.0f, 0.0f));
+        LinearLayout linearLayout3 = new LinearLayout(context);
+        this.editView = linearLayout3;
+        linearLayout3.setOrientation(1);
+        this.editView.setPadding(AndroidUtilities.m1124dp(42.0f), AndroidUtilities.m1124dp(0.0f), AndroidUtilities.m1124dp(42.0f), AndroidUtilities.m1124dp(7.0f));
+        this.editView.setClipToPadding(false);
+        final EditTextBoldCursor editTextBoldCursor = new EditTextBoldCursor(context);
+        final OutlineTextContainerView outlineTextContainerView = new OutlineTextContainerView(context, resourcesProvider);
+        outlineTextContainerView.setForceForceUseCenter(true);
+        outlineTextContainerView.setText(LocaleController.getString(C2888R.string.StakeDicePlaceholder));
+        outlineTextContainerView.setLeftPadding(AndroidUtilities.m1124dp(36.0f));
+        editTextBoldCursor.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText, resourcesProvider));
+        editTextBoldCursor.setCursorSize(AndroidUtilities.m1124dp(20.0f));
+        editTextBoldCursor.setCursorWidth(1.5f);
+        editTextBoldCursor.setBackground(null);
+        editTextBoldCursor.setTextSize(1, 18.0f);
+        editTextBoldCursor.setMaxLines(1);
+        int iM1124dp = AndroidUtilities.m1124dp(16.0f);
+        editTextBoldCursor.setPadding(AndroidUtilities.m1124dp(6.0f), iM1124dp, iM1124dp, iM1124dp);
+        editTextBoldCursor.setInputType(8194);
+        editTextBoldCursor.setTypeface(Typeface.DEFAULT);
+        editTextBoldCursor.setSelectAllOnFocus(true);
+        editTextBoldCursor.setHighlightColor(Theme.getColor(Theme.key_chat_inTextSelectionHighlight, resourcesProvider));
+        editTextBoldCursor.setHandlesColor(Theme.getColor(Theme.key_chat_TextSelectionCursor, resourcesProvider));
+        editTextBoldCursor.setGravity(LocaleController.isRTL ? 5 : 3);
+        editTextBoldCursor.setOnFocusChangeListener(new View.OnFocusChangeListener() { // from class: org.telegram.ui.StakedDiceSheet$$ExternalSyntheticLambda5
+            @Override // android.view.View.OnFocusChangeListener
+            public final void onFocusChange(View view, boolean z) {
+                OutlineTextContainerView outlineTextContainerView2 = outlineTextContainerView;
+                EditTextBoldCursor editTextBoldCursor2 = editTextBoldCursor;
+                outlineTextContainerView2.animateSelection(z, !TextUtils.isEmpty(editTextBoldCursor2.getText()));
+            }
+        });
+        LinearLayout linearLayout4 = new LinearLayout(context);
+        linearLayout4.setOrientation(0);
+        ImageView imageView2 = new ImageView(context);
+        imageView2.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+        imageView2.setImageResource(C2888R.drawable.diamond);
+        linearLayout4.addView(imageView2, LayoutHelper.createLinear(-2, -2, 0.0f, 19, 14, 0, 0, 0));
+        linearLayout4.addView(editTextBoldCursor, LayoutHelper.createLinear(-1, -2, 1.0f, 119));
+        outlineTextContainerView.attachEditText(editTextBoldCursor);
+        outlineTextContainerView.addView(linearLayout4, LayoutHelper.createFrame(-1, -2, 48));
+        this.editView.addView(outlineTextContainerView, LayoutHelper.createLinear(-1, -2));
+        final TextView textView = new TextView(context);
+        textView.setTextSize(1, 16.0f);
+        textView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText3));
+        outlineTextContainerView.addView(textView, LayoutHelper.createFrame(-2, -2.0f, 21, 0.0f, 0.0f, 14.0f, 0.0f));
+        long j = tL_emojiGameDiceInfo.prev_stake;
+        j = j <= 0 ? 1000000000L : j;
+        editTextBoldCursor.setText(StarsIntroActivity.formatTON(j));
+        textView.setAlpha(1.0f);
+        textView.setText("≈" + BillingController.getInstance().formatCurrency((long) ((j / 1.0E9d) * MessagesController.getInstance(i).config.tonUsdRate.get() * 100.0d), "USD", 2));
+        final int[] iArr2 = {2};
+        outlineTextContainerView.animateSelection(false, TextUtils.isEmpty(editTextBoldCursor.getText()) ^ true);
+        editTextBoldCursor.addTextChangedListener(new TextWatcher() { // from class: org.telegram.ui.StakedDiceSheet.2
+            private boolean ignore;
+
+            @Override // android.text.TextWatcher
+            public void beforeTextChanged(CharSequence charSequence, int i9, int i10, int i11) {
+            }
+
+            @Override // android.text.TextWatcher
+            public void onTextChanged(CharSequence charSequence, int i9, int i10, int i11) {
+            }
+
+            @Override // android.text.TextWatcher
+            public void afterTextChanged(Editable editable) {
+                double d;
+                if (this.ignore) {
+                    return;
+                }
+                try {
+                    d = TextUtils.isEmpty(editable) ? 0.0d : Double.parseDouble(editable.toString());
+                    try {
+                        if (d > MessagesController.getInstance(i).tonStakeddiceStakeAmountMax / 1.0E9d) {
+                            this.ignore = true;
+                            d = MessagesController.getInstance(i).tonStakeddiceStakeAmountMax / 1.0E9d;
+                            editTextBoldCursor.setText(Double.toString(d));
+                            EditTextBoldCursor editTextBoldCursor2 = editTextBoldCursor;
+                            editTextBoldCursor2.setSelection(editTextBoldCursor2.getText().length());
+                            OutlineTextContainerView outlineTextContainerView2 = outlineTextContainerView;
+                            int[] iArr3 = iArr2;
+                            int i9 = -iArr3[0];
+                            iArr3[0] = i9;
+                            AndroidUtilities.shakeViewSpring(outlineTextContainerView2, i9);
+                        } else if (d > 0.0d && d < MessagesController.getInstance(i).tonStakeddiceStakeAmountMin / 1.0E9d) {
+                            this.ignore = true;
+                            d = MessagesController.getInstance(i).tonStakeddiceStakeAmountMin / 1.0E9d;
+                            editTextBoldCursor.setText(Double.toString(d));
+                            EditTextBoldCursor editTextBoldCursor3 = editTextBoldCursor;
+                            editTextBoldCursor3.setSelection(editTextBoldCursor3.getText().length());
+                            OutlineTextContainerView outlineTextContainerView3 = outlineTextContainerView;
+                            int[] iArr4 = iArr2;
+                            int i10 = -iArr4[0];
+                            iArr4[0] = i10;
+                            AndroidUtilities.shakeViewSpring(outlineTextContainerView3, i10);
+                        }
+                    } catch (Exception unused) {
+                        this.ignore = true;
+                        editTextBoldCursor.setText(d <= 0.0d ? _UrlKt.FRAGMENT_ENCODE_SET : Double.toString(d));
+                        EditTextBoldCursor editTextBoldCursor4 = editTextBoldCursor;
+                        editTextBoldCursor4.setSelection(editTextBoldCursor4.getText().length());
+                    }
+                } catch (Exception unused2) {
+                    d = 0.0d;
+                }
+                this.ignore = false;
+                outlineTextContainerView.animateSelection(editTextBoldCursor.isFocused(), true ^ TextUtils.isEmpty(editTextBoldCursor.getText()));
+                if (d == 0.0d) {
+                    textView.animate().alpha(0.0f).start();
+                    textView.setText(_UrlKt.FRAGMENT_ENCODE_SET);
+                    return;
+                }
+                textView.animate().alpha(1.0f).start();
+                textView.setText("≈" + BillingController.getInstance().formatCurrency((long) (d * MessagesController.getInstance(i).config.tonUsdRate.get() * 100.0d), "USD", 2));
+            }
+        });
+        Utilities.CallbackReturn callbackReturn = new Utilities.CallbackReturn() { // from class: org.telegram.ui.StakedDiceSheet$$ExternalSyntheticLambda6
+            @Override // org.telegram.messenger.Utilities.CallbackReturn
+            public final Object run(Object obj) {
+                return StakedDiceSheet.m18151$r8$lambda$U3QzNjIEL4Nod70FOH84Lt4RXk(context, resourcesProvider, editTextBoldCursor, (Long) obj);
+            }
+        };
+        long[] jArr = MessagesController.getInstance(i).tonStakediceStakeSuggestedAmounts;
+        int i9 = 0;
+        while (true) {
+            int i10 = 3;
+            if (i9 < Utilities.divCeil(jArr.length, 3)) {
+                LinearLayout linearLayout5 = new LinearLayout(context);
+                linearLayout5.setOrientation(0);
+                int i11 = 0;
+                float f2 = f;
+                while (true) {
+                    int i12 = i9 * 3;
+                    if (i11 < Math.min(i10, jArr.length - i12)) {
+                        linearLayout5.addView((View) callbackReturn.run(Long.valueOf(jArr[i12 + i11])), LayoutHelper.createLinear(0, 26, 1.0f, 112, 0, 0, i11 == 2 ? 0 : 6, 0));
+                        i11++;
+                        i10 = 3;
+                    }
+                }
+                this.editView.addView(linearLayout5, LayoutHelper.createLinear(-1, -2, 0.0f, 7.0f, 0.0f, 0.0f));
+                i9++;
+                f = f2;
+            } else {
+                float f3 = f;
+                ButtonWithCounterView buttonWithCounterView = new ButtonWithCounterView(context, resourcesProvider);
+                SpannableStringBuilder spannableStringBuilder3 = new SpannableStringBuilder("🎲");
+                ColoredImageSpan coloredImageSpan2 = new ColoredImageSpan(C2888R.drawable.mini_roll);
+                coloredImageSpan2.setTranslateY(AndroidUtilities.m1124dp(f3));
+                spannableStringBuilder3.setSpan(coloredImageSpan2, 0, spannableStringBuilder3.length(), 33);
+                spannableStringBuilder3.append((CharSequence) "  ").append((CharSequence) LocaleController.getString(C2888R.string.StakeDiceButton));
+                buttonWithCounterView.setText(spannableStringBuilder3, false);
+                buttonWithCounterView.setOnClickListener(new View.OnClickListener() { // from class: org.telegram.ui.StakedDiceSheet$$ExternalSyntheticLambda7
+                    @Override // android.view.View.OnClickListener
+                    public final void onClick(View view) {
+                        this.f$0.lambda$new$6(editTextBoldCursor, i, outlineTextContainerView, iArr2, context, resourcesProvider, callback, view);
+                    }
+                });
+                FrameLayout frameLayout = new FrameLayout(context);
+                frameLayout.addView(buttonWithCounterView, LayoutHelper.createLinear(-1, 48, 87, 16, 0, 16, 10));
+                ViewGroup viewGroup = this.containerView;
+                int i13 = this.backgroundPaddingLeft;
+                viewGroup.addView(frameLayout, LayoutHelper.createFrameMarginPx(-1, -2.0f, 87, i13, 0, i13, 0));
+                RecyclerListView recyclerListView = this.recyclerListView;
+                int i14 = this.backgroundPaddingLeft;
+                recyclerListView.setPadding(i14, 0, i14, AndroidUtilities.m1124dp(68.0f));
+                this.adapter.update(false);
+                return;
+            }
+        }
+    }
+
+    /* JADX INFO: renamed from: $r8$lambda$Avzvs7HEBCdk-CHlzfUQfHJlva8, reason: not valid java name */
+    public static /* synthetic */ TableView.TableRowContent m18150$r8$lambda$Avzvs7HEBCdkCHlzfUQfHJlva8(Context context, int[] iArr, Theme.ResourcesProvider resourcesProvider, TableView tableView, Integer num, Float f) {
+        LinearLayout linearLayout = new LinearLayout(context);
+        linearLayout.setOrientation(1);
+        LinearLayout linearLayout2 = new LinearLayout(context);
+        linearLayout.addView(linearLayout2, LayoutHelper.createLinear(-2, -2, 1, 0, 0, 0, 0));
+        ImageView imageView = new ImageView(context);
+        imageView.setImageResource(iArr[num.intValue() - 1]);
+        imageView.setScaleType(ImageView.ScaleType.CENTER);
+        linearLayout2.addView(imageView, LayoutHelper.createLinear(24, 24));
+        if (num.intValue() == 7) {
+            for (int i = 0; i < 2; i++) {
+                ImageView imageView2 = new ImageView(context);
+                imageView2.setImageResource(iArr[num.intValue() - 1]);
+                imageView2.setScaleType(ImageView.ScaleType.CENTER);
+                linearLayout2.addView(imageView2, LayoutHelper.createLinear(24, 24));
+            }
+        }
+        TextView textView = new TextView(context);
+        textView.setTypeface(AndroidUtilities.getTypeface("fonts/num.otf"));
+        textView.setTextColor(Theme.getColor(Theme.key_dialogTextBlack, resourcesProvider));
+        StringBuilder sb = new StringBuilder();
+        sb.append("x");
+        sb.append(f.floatValue() <= 0.0f ? MVEL.VERSION_SUB : f);
+        textView.setText(sb.toString());
+        textView.setTextSize(1, 13.0f);
+        textView.setGravity(17);
+        linearLayout.addView(textView, LayoutHelper.createLinear(-1, -2, 0.0f, 3.0f, 0.0f, 0.0f));
+        return new TableView.TableRowContent(tableView, linearLayout, false);
+    }
+
+    /* JADX INFO: renamed from: $r8$lambda$U3QzNjIEL4No-d70FOH84Lt4RXk, reason: not valid java name */
+    public static /* synthetic */ View m18151$r8$lambda$U3QzNjIEL4Nod70FOH84Lt4RXk(Context context, Theme.ResourcesProvider resourcesProvider, final EditTextBoldCursor editTextBoldCursor, final Long l) {
+        TextView textView = new TextView(context);
+        textView.setGravity(17);
+        textView.setTextSize(1, 13.0f);
+        textView.setTypeface(AndroidUtilities.bold());
+        int i = Theme.key_featuredStickers_addButton;
+        textView.setTextColor(Theme.getColor(i, resourcesProvider));
+        textView.setBackground(Theme.createRoundRectDrawable(AndroidUtilities.m1124dp(13.0f), Theme.multAlpha(Theme.getColor(i, resourcesProvider), 0.15f)));
+        textView.setText(StarsIntroActivity.replaceDiamond(StarsIntroActivity.formatTON(l.longValue()) + " 💎", 0.75f));
+        ScaleStateListAnimator.apply(textView);
+        textView.setOnClickListener(new View.OnClickListener() { // from class: org.telegram.ui.StakedDiceSheet$$ExternalSyntheticLambda9
+            @Override // android.view.View.OnClickListener
+            public final void onClick(View view) {
+                StakedDiceSheet.$r8$lambda$zzvBunEOVdmRliQ0b4YCyQVjPHw(editTextBoldCursor, l, view);
+            }
+        });
+        return textView;
+    }
+
+    public static /* synthetic */ void $r8$lambda$zzvBunEOVdmRliQ0b4YCyQVjPHw(EditTextBoldCursor editTextBoldCursor, Long l, View view) {
+        editTextBoldCursor.setText(StarsIntroActivity.formatTON(l.longValue()));
+        editTextBoldCursor.setSelection(editTextBoldCursor.getText().length());
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public /* synthetic */ void lambda$new$6(EditTextBoldCursor editTextBoldCursor, int i, OutlineTextContainerView outlineTextContainerView, int[] iArr, Context context, Theme.ResourcesProvider resourcesProvider, Utilities.Callback callback, View view) {
+        Editable text = editTextBoldCursor.getText();
+        try {
+            double d = TextUtils.isEmpty(text) ? 0.0d : Double.parseDouble(text.toString());
+            if (d > MessagesController.getInstance(i).tonStakeddiceStakeAmountMax / 1.0E9d) {
+                editTextBoldCursor.setText(Double.toString(MessagesController.getInstance(i).tonStakeddiceStakeAmountMax / 1.0E9d));
+                editTextBoldCursor.setSelection(editTextBoldCursor.getText().length());
+                int i2 = -iArr[0];
+                iArr[0] = i2;
+                AndroidUtilities.shakeViewSpring(outlineTextContainerView, i2);
+                return;
+            }
+            if (TextUtils.isEmpty(text) || d >= MessagesController.getInstance(i).tonStakeddiceStakeAmountMin / 1.0E9d) {
+                if (StarsController.getInstance(i, true).balance.toDouble() < d) {
+                    new TONIntroActivity.StarsNeededSheet(context, resourcesProvider, AmountUtils$Amount.fromNano((long) (d * 1.0E9d), AmountUtils$Currency.TON), true, new Runnable() { // from class: org.telegram.ui.StakedDiceSheet$$ExternalSyntheticLambda8
+                        @Override // java.lang.Runnable
+                        public final void run() {
+                            StakedDiceSheet.$r8$lambda$2XCcAruOv5QszSEYM9slNEERuNA();
+                        }
+                    });
+                    return;
+                } else {
+                    callback.run(Long.valueOf((long) (d * 1.0E9d)));
+                    lambda$new$0();
+                    return;
+                }
+            }
+            editTextBoldCursor.setText(Double.toString(MessagesController.getInstance(i).tonStakeddiceStakeAmountMin / 1.0E9d));
+            editTextBoldCursor.setSelection(editTextBoldCursor.getText().length());
+            int i3 = -iArr[0];
+            iArr[0] = i3;
+            AndroidUtilities.shakeViewSpring(outlineTextContainerView, i3);
+        } catch (Exception unused) {
+        }
+    }
+
+    @Override // org.telegram.p029ui.ActionBar.BottomSheet
+    public void onOpenAnimationEnd() {
+        super.onOpenAnimationEnd();
+        this.isOpenAnimationEnd = true;
+        checkBalanceCloudVisibility();
+    }
+
+    @Override // org.telegram.p029ui.ActionBar.BottomSheet
+    public void onDismissAnimationStart() {
+        super.onDismissAnimationStart();
+        this.isOpenAnimationEnd = false;
+        checkBalanceCloudVisibility();
+    }
+
+    /* JADX INFO: Access modifiers changed from: protected */
+    @Override // org.telegram.p029ui.ActionBar.BottomSheet
+    public void onContainerTranslationYChanged(float f) {
+        super.onContainerTranslationYChanged(f);
+        checkBalanceCloudVisibility();
+    }
+
+    private void checkBalanceCloudVisibility() {
+        boolean z = (!this.isOpenAnimationEnd || isDismissed() || isKeyboardVisible()) ? false : true;
+        if (this.balanceCloudVisible != z) {
+            this.balanceCloudVisible = z;
+            BalanceCloud balanceCloud = this.balanceCloud;
+            if (balanceCloud != null) {
+                balanceCloud.setEnabled(z);
+                this.balanceCloud.setClickable(z);
+                this.balanceCloud.animate().scaleX(z ? 1.0f : 0.6f).scaleY(z ? 1.0f : 0.6f).alpha(z ? 1.0f : 0.0f).setDuration(180L).start();
+            }
+        }
+    }
+
+    @Override // org.telegram.p029ui.Components.BottomSheetWithRecyclerListView
+    protected CharSequence getTitle() {
+        return LocaleController.getString(C2888R.string.StakeDiceTitle);
+    }
+
+    @Override // org.telegram.p029ui.Components.BottomSheetWithRecyclerListView
+    protected RecyclerListView.SelectionAdapter createAdapter(RecyclerListView recyclerListView) {
+        UniversalAdapter universalAdapter = new UniversalAdapter(recyclerListView, getContext(), this.currentAccount, 0, new Utilities.Callback2() { // from class: org.telegram.ui.StakedDiceSheet$$ExternalSyntheticLambda2
+            @Override // org.telegram.messenger.Utilities.Callback2
+            public final void run(Object obj, Object obj2) {
+                this.f$0.fillItems((ArrayList) obj, (UniversalAdapter) obj2);
+            }
+        }, this.resourcesProvider);
+        this.adapter = universalAdapter;
+        return universalAdapter;
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public void fillItems(ArrayList arrayList, UniversalAdapter universalAdapter) {
+        LinearLayout linearLayout = this.topView;
+        if (linearLayout != null) {
+            arrayList.add(UItem.asCustom(linearLayout));
+        }
+        LinearLayout linearLayout2 = this.editView;
+        if (linearLayout2 != null) {
+            arrayList.add(UItem.asCustom(linearLayout2));
+        }
+    }
+
+    public static void showStakeToast(BaseFragment baseFragment, int i, long j, final Utilities.Callback callback) {
+        final BaseFragment safeLastFragment = baseFragment == null ? LaunchActivity.getSafeLastFragment() : baseFragment;
+        if (safeLastFragment == null) {
+            return;
+        }
+        TLRPC.EmojiGameInfo emojiGameInfo = MessagesController.getInstance(safeLastFragment.getCurrentAccount()).stakeDiceInfo;
+        if (emojiGameInfo instanceof TLRPC.TL_emojiGameDiceInfo) {
+            final long j2 = ((TLRPC.TL_emojiGameDiceInfo) emojiGameInfo).prev_stake;
+            Bulletin.LottieLayout lottieLayout = new Bulletin.LottieLayout(safeLastFragment.getContext(), safeLastFragment.getResourceProvider());
+            lottieLayout.imageView.setScaleX(1.25f);
+            lottieLayout.imageView.setScaleY(1.25f);
+            if (i == 1) {
+                lottieLayout.imageView.setImageResource(C2888R.drawable.dice1);
+            } else if (i == 2) {
+                lottieLayout.imageView.setImageResource(C2888R.drawable.dice2);
+            } else if (i == 3) {
+                lottieLayout.imageView.setImageResource(C2888R.drawable.dice3);
+            } else if (i == 4) {
+                lottieLayout.imageView.setImageResource(C2888R.drawable.dice4);
+            } else if (i == 5) {
+                lottieLayout.imageView.setImageResource(C2888R.drawable.dice5);
+            } else if (i == 6) {
+                lottieLayout.imageView.setImageResource(C2888R.drawable.dice6);
+            } else {
+                lottieLayout.imageView.setScaleX(0.8f);
+                lottieLayout.imageView.setScaleY(0.8f);
+                lottieLayout.imageView.setImageDrawable(Emoji.getEmojiBigDrawable("🎲"));
+            }
+            SpannableStringBuilder spannableStringBuilder = new SpannableStringBuilder(LocaleController.getString(C2888R.string.StakeDiceToast));
+            spannableStringBuilder.append((CharSequence) StarsIntroActivity.formatTON(j2));
+            spannableStringBuilder.append((CharSequence) "  ").append(ButtonSpan.make("change", new Runnable() { // from class: org.telegram.ui.StakedDiceSheet$$ExternalSyntheticLambda0
+                @Override // java.lang.Runnable
+                public final void run() {
+                    BaseFragment baseFragment2 = safeLastFragment;
+                    new StakedDiceSheet(baseFragment2.getContext(), baseFragment2.getCurrentAccount(), baseFragment2.getResourceProvider(), callback).show();
+                }
+            }, safeLastFragment.getResourceProvider()));
+            AndroidUtilities.removeFromParent(lottieLayout.textView);
+            ButtonSpan.TextViewButtons textViewButtons = new ButtonSpan.TextViewButtons(safeLastFragment.getContext());
+            lottieLayout.textView = textViewButtons;
+            textViewButtons.setSingleLine();
+            lottieLayout.textView.setTypeface(Typeface.SANS_SERIF);
+            lottieLayout.textView.setTextSize(1, 15.0f);
+            lottieLayout.textView.setEllipsize(TextUtils.TruncateAt.END);
+            lottieLayout.textView.setPadding(0, AndroidUtilities.m1124dp(8.0f), 0, AndroidUtilities.m1124dp(8.0f));
+            lottieLayout.addView(lottieLayout.textView, LayoutHelper.createFrameRelatively(-2.0f, -2.0f, NavigationBarView.ITEM_GRAVITY_START_CENTER, 56.0f, 0.0f, 16.0f, 0.0f));
+            lottieLayout.textView.setText(StarsIntroActivity.replaceDiamond(spannableStringBuilder));
+            lottieLayout.textView.setLinkTextColor(Theme.getColor(Theme.key_undo_cancelColor, safeLastFragment.getResourceProvider()));
+            lottieLayout.setTextColor(Theme.getColor(Theme.key_undo_infoColor, safeLastFragment.getResourceProvider()));
+            lottieLayout.textView.setSingleLine(false);
+            lottieLayout.textView.setMaxLines(2);
+            lottieLayout.setButton(new Bulletin.UndoButton(safeLastFragment.getContext(), true, safeLastFragment.getResourceProvider()).setText(LocaleController.getString(C2888R.string.StakeDiceToastButton)).setUndoAction(new Runnable() { // from class: org.telegram.ui.StakedDiceSheet$$ExternalSyntheticLambda1
+                @Override // java.lang.Runnable
+                public final void run() {
+                    callback.run(Long.valueOf(j2));
+                }
+            }));
+            BulletinFactory.m1246of(safeLastFragment).create(lottieLayout, 2750).show();
+        }
+    }
+}

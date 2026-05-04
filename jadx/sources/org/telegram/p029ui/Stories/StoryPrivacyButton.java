@@ -1,0 +1,226 @@
+package org.telegram.p029ui.Stories;
+
+import android.content.Context;
+import android.content.res.Resources;
+import android.graphics.Canvas;
+import android.graphics.LinearGradient;
+import android.graphics.Matrix;
+import android.graphics.Paint;
+import android.graphics.Path;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
+import android.graphics.RectF;
+import android.graphics.Shader;
+import android.graphics.drawable.Drawable;
+import android.view.View;
+import java.util.ArrayList;
+import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.C2888R;
+import org.telegram.p029ui.Components.AnimatedFloat;
+import org.telegram.p029ui.Components.ButtonBounce;
+import org.telegram.p029ui.Components.CubicBezierInterpolator;
+import org.telegram.p029ui.Stories.StoriesController;
+import org.telegram.p029ui.Stories.recorder.StoryPrivacyBottomSheet;
+import org.telegram.tgnet.TLObject;
+import org.telegram.tgnet.TLRPC;
+import org.telegram.tgnet.p028tl.TL_stories;
+
+/* JADX INFO: loaded from: classes7.dex */
+public class StoryPrivacyButton extends View {
+    private final Paint arrowPaint;
+    private final Path arrowPath;
+    private final Paint[] backgroundPaint;
+    private int bottomColor;
+    private final ButtonBounce bounce;
+    private final AnimatedFloat crossfadeT;
+    public boolean draw;
+    private boolean drawArrow;
+    private final Matrix gradientMatrix;
+    private final Drawable[] icon;
+    private int iconResId;
+    private final float[] iconSize;
+    private int topColor;
+
+    public StoryPrivacyButton(Context context) {
+        super(context);
+        this.gradientMatrix = new Matrix();
+        this.backgroundPaint = new Paint[]{new Paint(1), new Paint(1)};
+        this.crossfadeT = new AnimatedFloat(this, 0L, 260L, CubicBezierInterpolator.EASE_OUT_QUINT);
+        this.icon = new Drawable[2];
+        this.iconSize = new float[2];
+        Paint paint = new Paint(1);
+        this.arrowPaint = paint;
+        this.arrowPath = new Path();
+        this.bounce = new ButtonBounce(this, 0.6f, 5.0f);
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeCap(Paint.Cap.ROUND);
+        paint.setStrokeJoin(Paint.Join.ROUND);
+        paint.setColor(-1);
+    }
+
+    public boolean set(boolean z, TL_stories.StoryItem storyItem, boolean z2) {
+        ArrayList<TLRPC.PrivacyRule> arrayList;
+        this.drawArrow = z;
+        this.draw = true;
+        if (storyItem == null) {
+            this.draw = false;
+        } else if (storyItem.close_friends) {
+            setIcon(C2888R.drawable.msg_stories_closefriends, 15.0f);
+            setupGradient(-7808710, -13781445);
+            this.crossfadeT.set(z2, true);
+        } else if (storyItem.contacts) {
+            setIcon(C2888R.drawable.msg_folders_private, 17.33f);
+            setupGradient(-3905294, -6923014);
+            this.crossfadeT.set(z2, true);
+        } else if (storyItem.selected_contacts || (z && ((arrayList = storyItem.privacy) == null || arrayList.isEmpty()))) {
+            setIcon(C2888R.drawable.msg_folders_groups, 17.33f);
+            setupGradient(-18621, -618956);
+            this.crossfadeT.set(z2, true);
+        } else if (z) {
+            setIcon(C2888R.drawable.msg_folders_channels, 17.33f);
+            setupGradient(-15292942, -15630089);
+            this.crossfadeT.set(z2, true);
+        } else {
+            this.draw = false;
+        }
+        setVisibility(this.draw ? 0 : 8);
+        invalidate();
+        return this.draw;
+    }
+
+    public boolean set(boolean z, StoriesController.UploadingStory uploadingStory, boolean z2) {
+        StoryPrivacyBottomSheet.StoryPrivacy storyPrivacy;
+        this.drawArrow = z;
+        this.draw = true;
+        if (uploadingStory == null || (storyPrivacy = uploadingStory.entry.privacy) == null) {
+            this.draw = false;
+        } else {
+            int i = storyPrivacy.type;
+            if (i == 1) {
+                setIcon(C2888R.drawable.msg_stories_closefriends, 15.0f);
+                setupGradient(-7808710, -13781445);
+                this.crossfadeT.set(z2, !z2);
+            } else if (i == 2) {
+                setIcon(C2888R.drawable.msg_folders_private, 17.33f);
+                setupGradient(-3905294, -6923014);
+                this.crossfadeT.set(z2, !z2);
+            } else if (i == 3) {
+                setIcon(C2888R.drawable.msg_folders_groups, 17.33f);
+                setupGradient(-18621, -618956);
+                this.crossfadeT.set(z2, !z2);
+            } else if (z) {
+                setIcon(C2888R.drawable.msg_folders_channels, 17.33f);
+                setupGradient(-15292942, -15630089);
+                this.crossfadeT.set(z2, !z2);
+            } else {
+                this.draw = false;
+            }
+        }
+        setVisibility(this.draw ? 0 : 8);
+        invalidate();
+        return this.draw;
+    }
+
+    private void setIcon(int i, float f) {
+        Drawable[] drawableArr = this.icon;
+        Drawable drawable = drawableArr[0];
+        drawableArr[1] = drawable;
+        float[] fArr = this.iconSize;
+        fArr[1] = fArr[0];
+        if (drawable == null || i != this.iconResId) {
+            Resources resources = getContext().getResources();
+            this.iconResId = i;
+            drawableArr[0] = resources.getDrawable(i).mutate();
+            this.icon[0].setColorFilter(new PorterDuffColorFilter(-1, PorterDuff.Mode.SRC_IN));
+            this.iconSize[0] = AndroidUtilities.dpf2(f);
+            invalidate();
+        }
+    }
+
+    private void setupGradient(int i, int i2) {
+        Paint[] paintArr = this.backgroundPaint;
+        paintArr[1].setShader(paintArr[0].getShader());
+        if (this.topColor == i && this.bottomColor == i2) {
+            return;
+        }
+        float fM1124dp = AndroidUtilities.m1124dp(23.0f);
+        this.topColor = i;
+        this.bottomColor = i2;
+        LinearGradient linearGradient = new LinearGradient(0.0f, 0.0f, 0.0f, fM1124dp, new int[]{i, i2}, new float[]{0.0f, 1.0f}, Shader.TileMode.CLAMP);
+        this.gradientMatrix.reset();
+        this.gradientMatrix.postTranslate(0.0f, AndroidUtilities.m1124dp(8.0f));
+        linearGradient.setLocalMatrix(this.gradientMatrix);
+        this.backgroundPaint[0].setShader(linearGradient);
+        invalidate();
+    }
+
+    @Override // android.view.View
+    protected void onDraw(Canvas canvas) {
+        float f;
+        if (this.draw) {
+            float fDpf2 = this.drawArrow ? 0.0f : AndroidUtilities.dpf2(7.0f);
+            float fDpf22 = this.drawArrow ? AndroidUtilities.dpf2(43.0f) : AndroidUtilities.dpf2(23.66f);
+            float fDpf23 = AndroidUtilities.dpf2(23.66f);
+            RectF rectF = AndroidUtilities.rectTmp;
+            rectF.set(((getWidth() - fDpf22) / 2.0f) + fDpf2, (getHeight() - fDpf23) / 2.0f, fDpf2 + ((getWidth() + fDpf22) / 2.0f), (getHeight() + fDpf23) / 2.0f);
+            float scale = this.bounce.getScale(0.075f);
+            canvas.save();
+            canvas.scale(scale, scale, rectF.centerX(), rectF.centerY());
+            float f2 = this.crossfadeT.set(0.0f);
+            if (f2 > 0.0f) {
+                this.backgroundPaint[1].setAlpha(255);
+                canvas.drawRoundRect(rectF, AndroidUtilities.m1124dp(12.0f), AndroidUtilities.m1124dp(12.0f), this.backgroundPaint[1]);
+            }
+            if (f2 < 1.0f) {
+                this.backgroundPaint[0].setAlpha((int) ((1.0f - f2) * 255.0f));
+                canvas.drawRoundRect(rectF, AndroidUtilities.m1124dp(12.0f), AndroidUtilities.m1124dp(12.0f), this.backgroundPaint[0]);
+            }
+            float fAbs = Math.abs(f2 - 0.5f) + 0.5f;
+            if (this.icon[1] == null || f2 <= 0.5f) {
+                f = 0.5f;
+            } else {
+                float fDpf24 = this.drawArrow ? rectF.left + AndroidUtilities.dpf2(14.66f) : rectF.centerX();
+                Drawable drawable = this.icon[1];
+                int i = (int) (fDpf24 - ((this.iconSize[1] / 2.0f) * fAbs));
+                float fCenterY = rectF.centerY();
+                float f3 = this.iconSize[1];
+                f = 0.5f;
+                drawable.setBounds(i, (int) (fCenterY - ((f3 / 2.0f) * fAbs)), (int) (fDpf24 + ((f3 / 2.0f) * fAbs)), (int) (rectF.centerY() + ((this.iconSize[1] / 2.0f) * fAbs)));
+                this.icon[1].draw(canvas);
+            }
+            if (this.icon[0] != null && f2 <= f) {
+                float fDpf25 = this.drawArrow ? rectF.left + AndroidUtilities.dpf2(14.66f) : rectF.centerX();
+                Drawable drawable2 = this.icon[0];
+                int i2 = (int) (fDpf25 - ((this.iconSize[0] / 2.0f) * fAbs));
+                float fCenterY2 = rectF.centerY();
+                float f4 = this.iconSize[0];
+                drawable2.setBounds(i2, (int) (fCenterY2 - ((f4 / 2.0f) * fAbs)), (int) (fDpf25 + ((f4 / 2.0f) * fAbs)), (int) (rectF.centerY() + ((this.iconSize[0] / 2.0f) * fAbs)));
+                this.icon[0].draw(canvas);
+            }
+            if (this.drawArrow) {
+                this.arrowPath.rewind();
+                this.arrowPath.moveTo(rectF.right - AndroidUtilities.dpf2(15.66f), rectF.centerY() - AndroidUtilities.dpf2(1.33f));
+                this.arrowPath.lineTo(rectF.right - AndroidUtilities.dpf2(12.0f), rectF.centerY() + AndroidUtilities.dpf2(2.33f));
+                this.arrowPath.lineTo(rectF.right - AndroidUtilities.dpf2(8.16f), rectF.centerY() - AndroidUtilities.dpf2(1.33f));
+                this.arrowPaint.setStrokeWidth(AndroidUtilities.dpf2(1.33f));
+                canvas.drawPath(this.arrowPath, this.arrowPaint);
+            }
+            canvas.restore();
+        }
+    }
+
+    @Override // android.view.View
+    public void setPressed(boolean z) {
+        super.setPressed(z);
+        this.bounce.setPressed(z);
+    }
+
+    @Override // android.view.View
+    protected void onMeasure(int i, int i2) {
+        super.onMeasure(View.MeasureSpec.makeMeasureSpec(AndroidUtilities.m1124dp(60.0f), TLObject.FLAG_30), View.MeasureSpec.makeMeasureSpec(AndroidUtilities.m1124dp(40.0f), TLObject.FLAG_30));
+    }
+
+    public float getCenterX() {
+        return getX() + (getWidth() / 2.0f) + (this.drawArrow ? 0 : AndroidUtilities.m1124dp(14.0f));
+    }
+}

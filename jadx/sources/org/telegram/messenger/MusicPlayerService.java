@@ -1,0 +1,743 @@
+package org.telegram.messenger;
+
+import android.annotation.SuppressLint;
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.app.Service;
+import android.content.BroadcastReceiver;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.drawable.Drawable;
+import android.media.AudioManager;
+import android.media.MediaMetadata;
+import android.media.RemoteControlClient;
+import android.media.session.MediaSession;
+import android.media.session.PlaybackState;
+import android.net.Uri;
+import android.os.Build;
+import android.os.IBinder;
+import android.text.TextUtils;
+import android.widget.RemoteViews;
+import com.exteragram.messenger.utils.AppUtils;
+import java.io.File;
+import okhttp3.internal.url._UrlKt;
+import org.telegram.messenger.ImageReceiver;
+import org.telegram.messenger.NotificationCenter;
+import org.telegram.messenger.audioinfo.AudioInfo;
+import org.telegram.p029ui.ActionBar.Theme;
+import org.telegram.p029ui.Components.AvatarDrawable;
+import org.telegram.p029ui.LaunchActivity;
+import org.telegram.tgnet.TLObject;
+import org.telegram.tgnet.TLRPC;
+import org.webrtc.MediaStreamTrack;
+
+/* JADX INFO: loaded from: classes5.dex */
+public class MusicPlayerService extends Service implements NotificationCenter.NotificationCenterDelegate {
+    private static final int ID_NOTIFICATION = 5;
+    public static final String NOTIFY_CLOSE = "org.telegram.android.musicplayer.close";
+    public static final String NOTIFY_NEXT = "org.telegram.android.musicplayer.next";
+    public static final String NOTIFY_PAUSE = "org.telegram.android.musicplayer.pause";
+    public static final String NOTIFY_PLAY = "org.telegram.android.musicplayer.play";
+    public static final String NOTIFY_PREVIOUS = "org.telegram.android.musicplayer.previous";
+    public static final String NOTIFY_SEEK = "org.telegram.android.musicplayer.seek";
+    private static boolean supportBigNotifications = true;
+    private static boolean supportLockScreenControls = !TextUtils.isEmpty(AndroidUtilities.getSystemProperty("ro.miui.ui.version.code"));
+    private Bitmap albumArtPlaceholder;
+    private AudioManager audioManager;
+    private boolean foregroundServiceIsStarted;
+    private BroadcastReceiver headsetPlugReceiver = new BroadcastReceiver() { // from class: org.telegram.messenger.MusicPlayerService.1
+        @Override // android.content.BroadcastReceiver
+        public void onReceive(Context context, Intent intent) {
+            if ("android.media.AUDIO_BECOMING_NOISY".equals(intent.getAction())) {
+                MediaController.getInstance().lambda$startAudioAgain$7(MediaController.getInstance().getPlayingMessageObject());
+            }
+        }
+    };
+    private ImageReceiver imageReceiver;
+    private String loadingFilePath;
+    private MediaSession mediaSession;
+    private int notificationMessageID;
+    private PlaybackState.Builder playbackState;
+    private RemoteControlClient remoteControlClient;
+
+    @Override // android.app.Service
+    public IBinder onBind(Intent intent) {
+        return null;
+    }
+
+    @Override // android.app.Service
+    public void onCreate() {
+        this.audioManager = (AudioManager) getSystemService(MediaStreamTrack.AUDIO_TRACK_KIND);
+        for (int i = 0; i < 16; i++) {
+            NotificationCenter.getInstance(i).addObserver(this, NotificationCenter.messagePlayingDidSeek);
+            NotificationCenter.getInstance(i).addObserver(this, NotificationCenter.messagePlayingPlayStateChanged);
+            NotificationCenter.getInstance(i).addObserver(this, NotificationCenter.httpFileDidLoad);
+            NotificationCenter.getInstance(i).addObserver(this, NotificationCenter.fileLoaded);
+        }
+        ImageReceiver imageReceiver = new ImageReceiver(null);
+        this.imageReceiver = imageReceiver;
+        imageReceiver.setDelegate(new ImageReceiver.ImageReceiverDelegate() { // from class: org.telegram.messenger.MusicPlayerService$$ExternalSyntheticLambda0
+            @Override // org.telegram.messenger.ImageReceiver.ImageReceiverDelegate
+            public final void didSetImage(ImageReceiver imageReceiver2, boolean z, boolean z2, boolean z3) {
+                this.f$0.lambda$onCreate$0(imageReceiver2, z, z2, z3);
+            }
+
+            @Override // org.telegram.messenger.ImageReceiver.ImageReceiverDelegate
+            public /* synthetic */ void didSetImageBitmap(int i2, String str, Drawable drawable) {
+                ImageReceiver.ImageReceiverDelegate.CC.$default$didSetImageBitmap(this, i2, str, drawable);
+            }
+
+            @Override // org.telegram.messenger.ImageReceiver.ImageReceiverDelegate
+            public /* synthetic */ void onAnimationReady(ImageReceiver imageReceiver2) {
+                ImageReceiver.ImageReceiverDelegate.CC.$default$onAnimationReady(this, imageReceiver2);
+            }
+        });
+        this.mediaSession = new MediaSession(this, "telegramAudioPlayer");
+        this.playbackState = new PlaybackState.Builder();
+        this.albumArtPlaceholder = Bitmap.createBitmap(AndroidUtilities.m1124dp(102.0f), AndroidUtilities.m1124dp(102.0f), Bitmap.Config.ARGB_8888);
+        Drawable drawable = getResources().getDrawable(C2888R.drawable.nocover_big);
+        drawable.setBounds(0, 0, this.albumArtPlaceholder.getWidth(), this.albumArtPlaceholder.getHeight());
+        drawable.draw(new Canvas(this.albumArtPlaceholder));
+        this.mediaSession.setCallback(new MediaSession.Callback() { // from class: org.telegram.messenger.MusicPlayerService.2
+            @Override // android.media.session.MediaSession.Callback
+            public void onStop() {
+            }
+
+            @Override // android.media.session.MediaSession.Callback
+            public void onPlay() {
+                MediaController.getInstance().playMessage(MediaController.getInstance().getPlayingMessageObject());
+            }
+
+            @Override // android.media.session.MediaSession.Callback
+            public void onPause() {
+                MediaController.getInstance().lambda$startAudioAgain$7(MediaController.getInstance().getPlayingMessageObject());
+            }
+
+            @Override // android.media.session.MediaSession.Callback
+            public void onSkipToNext() {
+                MessageObject playingMessageObject = MediaController.getInstance().getPlayingMessageObject();
+                if (playingMessageObject == null || !playingMessageObject.isMusic()) {
+                    return;
+                }
+                MediaController.getInstance().playNextMessage();
+            }
+
+            @Override // android.media.session.MediaSession.Callback
+            public void onSkipToPrevious() {
+                MessageObject playingMessageObject = MediaController.getInstance().getPlayingMessageObject();
+                if (playingMessageObject == null || !playingMessageObject.isMusic()) {
+                    return;
+                }
+                MediaController.getInstance().playPreviousMessage();
+            }
+
+            @Override // android.media.session.MediaSession.Callback
+            public void onSeekTo(long j) {
+                MessageObject playingMessageObject = MediaController.getInstance().getPlayingMessageObject();
+                if (playingMessageObject != null) {
+                    MediaController.getInstance().seekToProgress(playingMessageObject, (j / 1000) / ((float) playingMessageObject.getDuration()));
+                    MusicPlayerService.this.updatePlaybackState(j);
+                }
+            }
+        });
+        this.mediaSession.setActive(true);
+        registerReceiver(this.headsetPlugReceiver, new IntentFilter("android.media.AUDIO_BECOMING_NOISY"));
+        super.onCreate();
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public /* synthetic */ void lambda$onCreate$0(ImageReceiver imageReceiver, boolean z, boolean z2, boolean z3) {
+        if (!z || TextUtils.isEmpty(this.loadingFilePath)) {
+            return;
+        }
+        MessageObject playingMessageObject = MediaController.getInstance().getPlayingMessageObject();
+        if (playingMessageObject != null) {
+            createNotification(playingMessageObject, true);
+        }
+        this.loadingFilePath = null;
+    }
+
+    @Override // android.app.Service
+    @SuppressLint({"NewApi"})
+    public int onStartCommand(Intent intent, int i, int i2) {
+        if (intent != null) {
+            try {
+                if ((getPackageName() + ".STOP_PLAYER").equals(intent.getAction())) {
+                    MediaController.getInstance().cleanupPlayer(true, true);
+                    return 2;
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        MessageObject playingMessageObject = MediaController.getInstance().getPlayingMessageObject();
+        if (playingMessageObject == null) {
+            AndroidUtilities.runOnUIThread(new Runnable() { // from class: org.telegram.messenger.MusicPlayerService$$ExternalSyntheticLambda1
+                @Override // java.lang.Runnable
+                public final void run() {
+                    this.f$0.stopSelf();
+                }
+            });
+            return 1;
+        }
+        if (supportLockScreenControls) {
+            ComponentName componentName = new ComponentName(getApplicationContext(), MusicPlayerReceiver.class.getName());
+            try {
+                if (this.remoteControlClient == null) {
+                    this.audioManager.registerMediaButtonEventReceiver(componentName);
+                    Intent intent2 = new Intent("android.intent.action.MEDIA_BUTTON");
+                    intent2.setComponent(componentName);
+                    RemoteControlClient remoteControlClient = new RemoteControlClient(PendingIntent.getBroadcast(this, 0, intent2, fixIntentFlags(33554432)));
+                    this.remoteControlClient = remoteControlClient;
+                    this.audioManager.registerRemoteControlClient(remoteControlClient);
+                }
+                this.remoteControlClient.setTransportControlFlags(189);
+            } catch (Exception e2) {
+                FileLog.m1136e(e2);
+            }
+        }
+        createNotification(playingMessageObject, false);
+        return 1;
+    }
+
+    private Bitmap loadArtworkFromUrl(String str, boolean z, boolean z2) {
+        ImageLoader.getHttpFileName(str);
+        File httpFilePath = ImageLoader.getHttpFilePath(str, "jpg");
+        if (httpFilePath.exists()) {
+            return ImageLoader.loadBitmap(httpFilePath.getAbsolutePath(), null, z ? 600.0f : 100.0f, z ? 600.0f : 100.0f, false);
+        }
+        if (z2) {
+            this.loadingFilePath = httpFilePath.getAbsolutePath();
+            if (!z) {
+                this.imageReceiver.setImage(str, "48_48", null, null, 0L);
+            }
+        } else {
+            this.loadingFilePath = null;
+        }
+        return null;
+    }
+
+    private Bitmap getAvatarBitmap(TLObject tLObject, boolean z, boolean z2) {
+        AvatarDrawable avatarDrawable;
+        int i = z ? 600 : 100;
+        try {
+            if (tLObject instanceof TLRPC.User) {
+                TLRPC.User user = (TLRPC.User) tLObject;
+                TLRPC.FileLocation fileLocation = z ? user.photo.photo_big : user.photo.photo_small;
+                if (fileLocation != null) {
+                    File pathToAttach = FileLoader.getInstance(UserConfig.selectedAccount).getPathToAttach(fileLocation, true);
+                    if (pathToAttach.exists()) {
+                        float f = i;
+                        return ImageLoader.loadBitmap(pathToAttach.getAbsolutePath(), null, f, f, false);
+                    }
+                    if (z) {
+                        if (z2) {
+                            this.loadingFilePath = FileLoader.getAttachFileName(fileLocation);
+                            this.imageReceiver.setImage(ImageLocation.getForUser(user, 0), _UrlKt.FRAGMENT_ENCODE_SET, null, null, null, 0);
+                        } else {
+                            this.loadingFilePath = null;
+                        }
+                    }
+                }
+            } else {
+                TLRPC.Chat chat = (TLRPC.Chat) tLObject;
+                TLRPC.FileLocation fileLocation2 = z ? chat.photo.photo_big : chat.photo.photo_small;
+                if (fileLocation2 != null) {
+                    File pathToAttach2 = FileLoader.getInstance(UserConfig.selectedAccount).getPathToAttach(fileLocation2, true);
+                    if (pathToAttach2.exists()) {
+                        float f2 = i;
+                        return ImageLoader.loadBitmap(pathToAttach2.getAbsolutePath(), null, f2, f2, false);
+                    }
+                    if (z) {
+                        if (z2) {
+                            this.loadingFilePath = FileLoader.getAttachFileName(fileLocation2);
+                            this.imageReceiver.setImage(ImageLocation.getForChat(chat, 0), _UrlKt.FRAGMENT_ENCODE_SET, null, null, null, 0);
+                        } else {
+                            this.loadingFilePath = null;
+                        }
+                    }
+                }
+            }
+        } catch (Throwable th) {
+            FileLog.m1136e(th);
+        }
+        if (z) {
+            return null;
+        }
+        Theme.createDialogsResources(this);
+        if (tLObject instanceof TLRPC.User) {
+            avatarDrawable = new AvatarDrawable((TLRPC.User) tLObject);
+        } else {
+            avatarDrawable = new AvatarDrawable((TLRPC.Chat) tLObject);
+        }
+        avatarDrawable.setRoundRadius(1);
+        float f3 = i;
+        Bitmap bitmapCreateBitmap = Bitmap.createBitmap(AndroidUtilities.m1124dp(f3), AndroidUtilities.m1124dp(f3), Bitmap.Config.ARGB_8888);
+        avatarDrawable.setBounds(0, 0, bitmapCreateBitmap.getWidth(), bitmapCreateBitmap.getHeight());
+        avatarDrawable.draw(new Canvas(bitmapCreateBitmap));
+        return bitmapCreateBitmap;
+    }
+
+    /* JADX WARN: Removed duplicated region for block: B:105:0x036c  */
+    /* JADX WARN: Removed duplicated region for block: B:132:0x041a  */
+    /* JADX WARN: Removed duplicated region for block: B:135:0x0425  */
+    /* JADX WARN: Removed duplicated region for block: B:138:0x042e  */
+    /* JADX WARN: Removed duplicated region for block: B:141:0x043c  */
+    /* JADX WARN: Removed duplicated region for block: B:144:0x0456  */
+    /* JADX WARN: Removed duplicated region for block: B:148:0x046a  */
+    /* JADX WARN: Removed duplicated region for block: B:153:0x0481  */
+    /* JADX WARN: Removed duplicated region for block: B:184:? A[RETURN, SYNTHETIC] */
+    /* JADX WARN: Removed duplicated region for block: B:64:0x018c  */
+    /* JADX WARN: Removed duplicated region for block: B:67:0x0194  */
+    /* JADX WARN: Removed duplicated region for block: B:68:0x019b  */
+    /* JADX WARN: Removed duplicated region for block: B:71:0x020f  */
+    /* JADX WARN: Removed duplicated region for block: B:72:0x0212  */
+    /* JADX WARN: Removed duplicated region for block: B:75:0x027e  */
+    /* JADX WARN: Removed duplicated region for block: B:76:0x0289  */
+    /* JADX WARN: Removed duplicated region for block: B:83:0x02b7  */
+    /* JADX WARN: Removed duplicated region for block: B:86:0x02c2  */
+    /* JADX WARN: Removed duplicated region for block: B:89:0x02e5  */
+    /* JADX WARN: Removed duplicated region for block: B:92:0x02f0  */
+    /* JADX WARN: Removed duplicated region for block: B:94:0x02fa  */
+    /* JADX WARN: Removed duplicated region for block: B:95:0x02fe  */
+    /* JADX WARN: Removed duplicated region for block: B:98:0x031b  */
+    @SuppressLint({"NewApi"})
+    /*
+        Code decompiled incorrectly, please refer to instructions dump.
+    */
+    private void createNotification(MessageObject messageObject, boolean z) {
+        long j;
+        Bitmap avatarBitmap;
+        Bitmap smallCover;
+        Bitmap avatarBitmap2;
+        Bitmap cover;
+        Bitmap bitmap;
+        int i;
+        Bitmap bitmap2;
+        PendingIntent pendingIntent;
+        long j2;
+        String str;
+        String str2;
+        Bitmap bitmap3;
+        int i2;
+        String musicTitle = messageObject.getMusicTitle();
+        String musicAuthor = messageObject.getMusicAuthor();
+        AudioInfo audioInfo = MediaController.getInstance().getAudioInfo();
+        Intent intent = new Intent(ApplicationLoader.applicationContext, (Class<?>) LaunchActivity.class);
+        if (messageObject.isMusic()) {
+            intent.setAction("com.tmessages.openplayer");
+            intent.addCategory("android.intent.category.LAUNCHER");
+        } else if (messageObject.isVoice() || messageObject.isRoundVideo()) {
+            intent.setAction("android.intent.action.VIEW");
+            TLRPC.Peer peer = messageObject.messageOwner.peer_id;
+            if (peer instanceof TLRPC.TL_peerUser) {
+                j = peer.user_id;
+            } else if (peer instanceof TLRPC.TL_peerChat) {
+                j = peer.chat_id;
+            } else {
+                j = peer instanceof TLRPC.TL_peerChannel ? peer.channel_id : 0L;
+            }
+            if (j != 0) {
+                if (peer instanceof TLRPC.TL_peerUser) {
+                    intent.setData(Uri.parse("tg://openmessage?user_id=" + j + "&message_id=" + messageObject.getId()));
+                } else {
+                    intent.setData(Uri.parse("tg://openmessage?chat_id=" + j + "&message_id=" + messageObject.getId()));
+                }
+            }
+        }
+        PendingIntent activity = PendingIntent.getActivity(ApplicationLoader.applicationContext, 0, intent, fixIntentFlags(33554432));
+        long duration = (long) (messageObject.getDuration() * 1000.0d);
+        if (messageObject.isMusic()) {
+            String artworkUrl = messageObject.getArtworkUrl(true);
+            String artworkUrl2 = messageObject.getArtworkUrl(false);
+            smallCover = audioInfo != null ? audioInfo.getSmallCover() : null;
+            cover = audioInfo != null ? audioInfo.getCover() : null;
+            this.loadingFilePath = null;
+            this.imageReceiver.setImageBitmap((Drawable) null);
+            if (smallCover == null && !TextUtils.isEmpty(artworkUrl)) {
+                cover = loadArtworkFromUrl(artworkUrl2, true, !z);
+                if (cover == null) {
+                    smallCover = loadArtworkFromUrl(artworkUrl, false, !z);
+                    cover = smallCover;
+                } else {
+                    smallCover = loadArtworkFromUrl(artworkUrl2, false, !z);
+                }
+            } else {
+                this.loadingFilePath = FileLoader.getInstance(UserConfig.selectedAccount).getPathToAttach(messageObject.getDocument()).getAbsolutePath();
+            }
+        } else {
+            if (messageObject.isVoice() || messageObject.isRoundVideo()) {
+                long senderId = messageObject.getSenderId();
+                if (messageObject.isFromUser()) {
+                    TLRPC.User user = MessagesController.getInstance(UserConfig.selectedAccount).getUser(Long.valueOf(senderId));
+                    if (user != null) {
+                        musicTitle = UserObject.getUserName(user);
+                        avatarBitmap = getAvatarBitmap(user, true, !z);
+                        avatarBitmap2 = getAvatarBitmap(user, false, !z);
+                    } else {
+                        avatarBitmap2 = null;
+                        avatarBitmap = null;
+                    }
+                } else {
+                    TLRPC.Chat chat = MessagesController.getInstance(UserConfig.selectedAccount).getChat(Long.valueOf(-senderId));
+                    if (chat != null) {
+                        musicTitle = chat.title;
+                        avatarBitmap = getAvatarBitmap(chat, true, !z);
+                        avatarBitmap2 = getAvatarBitmap(chat, false, !z);
+                    } else {
+                        avatarBitmap = null;
+                        smallCover = null;
+                        cover = (avatarBitmap == null || smallCover == null) ? avatarBitmap : smallCover;
+                        musicAuthor = !messageObject.isVoice() ? LocaleController.getString(C2888R.string.AttachAudio) : LocaleController.getString(C2888R.string.AttachRound);
+                    }
+                }
+                smallCover = avatarBitmap2;
+                if (avatarBitmap == null) {
+                    if (!messageObject.isVoice()) {
+                    }
+                }
+                i = Build.VERSION.SDK_INT;
+                boolean zIsMessagePaused = MediaController.getInstance().isMessagePaused();
+                boolean z2 = !zIsMessagePaused;
+                PendingIntent broadcast = PendingIntent.getBroadcast(getApplicationContext(), 0, new Intent(NOTIFY_PREVIOUS).setComponent(new ComponentName(this, (Class<?>) MusicPlayerReceiver.class)), fixIntentFlags(301989888));
+                Context applicationContext = getApplicationContext();
+                Intent intent2 = new Intent(this, getClass());
+                StringBuilder sb = new StringBuilder();
+                bitmap2 = bitmap;
+                sb.append(getPackageName());
+                sb.append(".STOP_PLAYER");
+                PendingIntent service = PendingIntent.getService(applicationContext, 0, intent2.setAction(sb.toString()), fixIntentFlags(301989888));
+                PendingIntent broadcast2 = PendingIntent.getBroadcast(getApplicationContext(), 0, new Intent(!zIsMessagePaused ? NOTIFY_PAUSE : NOTIFY_PLAY).setComponent(new ComponentName(this, (Class<?>) MusicPlayerReceiver.class)), fixIntentFlags(301989888));
+                PendingIntent broadcast3 = PendingIntent.getBroadcast(getApplicationContext(), 0, new Intent(NOTIFY_NEXT).setComponent(new ComponentName(this, (Class<?>) MusicPlayerReceiver.class)), fixIntentFlags(301989888));
+                PendingIntent.getBroadcast(getApplicationContext(), 0, new Intent(NOTIFY_SEEK).setComponent(new ComponentName(this, (Class<?>) MusicPlayerReceiver.class)), fixIntentFlags(301989888));
+                Notification.MediaStyle mediaSession = new Notification.MediaStyle().setMediaSession(this.mediaSession.getSessionToken());
+                if (messageObject.isMusic()) {
+                    pendingIntent = broadcast2;
+                    mediaSession.setShowActionsInCompactView(0, 1, 2);
+                } else {
+                    pendingIntent = broadcast2;
+                    if (messageObject.isVoice() || messageObject.isRoundVideo()) {
+                        mediaSession.setShowActionsInCompactView(0);
+                    }
+                }
+                Notification.Builder builder = new Notification.Builder(this);
+                builder.setSmallIcon(C2888R.drawable.notification).setOngoing(z2).setContentTitle(musicTitle).setContentText(musicAuthor).setSubText((audioInfo == null || !messageObject.isMusic()) ? null : audioInfo.getAlbum()).setContentIntent(activity).setDeleteIntent(service).setShowWhen(false).setCategory("transport").setPriority(2).setStyle(mediaSession);
+                if (i < 31) {
+                    builder.setColor(AppUtils.getNotificationColor());
+                }
+                if (i >= 26) {
+                    NotificationsController.checkOtherNotificationsChannel();
+                    builder.setChannelId(NotificationsController.OTHER_NOTIFICATIONS_CHANNEL);
+                }
+                if (smallCover != null) {
+                    builder.setLargeIcon(smallCover);
+                } else {
+                    builder.setLargeIcon(this.albumArtPlaceholder);
+                }
+                String string = LocaleController.getString(C2888R.string.Next);
+                String string2 = LocaleController.getString(C2888R.string.AccDescrPrevious);
+                if (MediaController.getInstance().isDownloadingCurrentMessage()) {
+                    j2 = 1000;
+                    this.playbackState.setState(6, 0L, 1.0f).setActions(0L);
+                    if (messageObject.isMusic()) {
+                        builder.addAction(new Notification.Action.Builder(C2888R.drawable.ic_action_previous, string2, broadcast).build());
+                    }
+                    builder.addAction(new Notification.Action.Builder(C2888R.drawable.loading_animation2, LocaleController.getString(C2888R.string.Loading), (PendingIntent) null).build());
+                    if (messageObject.isMusic()) {
+                        builder.addAction(new Notification.Action.Builder(C2888R.drawable.ic_action_next, string, broadcast3).build());
+                    }
+                    str = musicTitle;
+                    str2 = musicAuthor;
+                } else {
+                    j2 = 1000;
+                    str = musicTitle;
+                    str2 = musicAuthor;
+                    this.playbackState.setState(!zIsMessagePaused ? 3 : 2, ((long) MediaController.getInstance().getPlayingMessageObject().audioProgressSec) * 1000, getPlaybackSpeed(z2, messageObject)).setActions(messageObject.isMusic() ? 822L : 774L);
+                    String string3 = LocaleController.getString(!zIsMessagePaused ? C2888R.string.AccActionPause : C2888R.string.AccActionPlay);
+                    if (messageObject.isMusic()) {
+                        builder.addAction(new Notification.Action.Builder(C2888R.drawable.ic_action_previous, string2, broadcast).build());
+                    }
+                    builder.addAction(new Notification.Action.Builder(!zIsMessagePaused ? C2888R.drawable.ic_action_pause : C2888R.drawable.ic_action_play, string3, pendingIntent).build());
+                    if (messageObject.isMusic()) {
+                        builder.addAction(new Notification.Action.Builder(C2888R.drawable.ic_action_next, string, broadcast3).build());
+                    }
+                }
+                this.mediaSession.setPlaybackState(this.playbackState.build());
+                String str3 = str2;
+                String str4 = str;
+                MediaMetadata.Builder builderPutString = new MediaMetadata.Builder().putString("android.media.metadata.ALBUM_ARTIST", str3).putString("android.media.metadata.ARTIST", str3).putLong("android.media.metadata.DURATION", duration).putString("android.media.metadata.TITLE", str4).putString("android.media.metadata.ALBUM", (audioInfo == null || !messageObject.isMusic()) ? null : audioInfo.getAlbum());
+                if (bitmap2 == null || bitmap2.isRecycled()) {
+                    bitmap3 = bitmap2;
+                } else {
+                    bitmap3 = bitmap2;
+                    builderPutString.putBitmap("android.media.metadata.ALBUM_ART", bitmap3);
+                }
+                this.mediaSession.setMetadata(builderPutString.build());
+                builder.setVisibility(1);
+                Notification notificationBuild = builder.build();
+                if (i >= 31) {
+                    if (!this.foregroundServiceIsStarted) {
+                        this.foregroundServiceIsStarted = true;
+                        startForeground(5, notificationBuild);
+                    } else {
+                        ((NotificationManager) getSystemService("notification")).notify(5, notificationBuild);
+                    }
+                } else if (!zIsMessagePaused) {
+                    startForeground(5, notificationBuild);
+                } else {
+                    stopForeground(false);
+                    ((NotificationManager) getSystemService("notification")).notify(5, notificationBuild);
+                }
+                if (this.remoteControlClient != null) {
+                    int id = MediaController.getInstance().getPlayingMessageObject().getId();
+                    if (this.notificationMessageID != id) {
+                        this.notificationMessageID = id;
+                        RemoteControlClient.MetadataEditor metadataEditorEditMetadata = this.remoteControlClient.editMetadata(true);
+                        i2 = 2;
+                        metadataEditorEditMetadata.putString(2, str3);
+                        metadataEditorEditMetadata.putString(7, str4);
+                        if (audioInfo != null && !TextUtils.isEmpty(audioInfo.getAlbum())) {
+                            metadataEditorEditMetadata.putString(1, audioInfo.getAlbum());
+                        }
+                        metadataEditorEditMetadata.putLong(9, ((long) MediaController.getInstance().getPlayingMessageObject().audioPlayerDuration) * j2);
+                        if (bitmap3 != null) {
+                            try {
+                                metadataEditorEditMetadata.putBitmap(100, bitmap3);
+                            } catch (Throwable th) {
+                                FileLog.m1136e(th);
+                            }
+                        }
+                        metadataEditorEditMetadata.apply();
+                        AndroidUtilities.runOnUIThread(new Runnable() { // from class: org.telegram.messenger.MusicPlayerService.3
+                            @Override // java.lang.Runnable
+                            public void run() {
+                                if (MusicPlayerService.this.remoteControlClient == null || MediaController.getInstance().getPlayingMessageObject() == null) {
+                                    return;
+                                }
+                                if (MediaController.getInstance().getPlayingMessageObject().audioPlayerDuration == -9223372036854775807L) {
+                                    AndroidUtilities.runOnUIThread(this, 500L);
+                                    return;
+                                }
+                                RemoteControlClient.MetadataEditor metadataEditorEditMetadata2 = MusicPlayerService.this.remoteControlClient.editMetadata(false);
+                                metadataEditorEditMetadata2.putLong(9, ((long) MediaController.getInstance().getPlayingMessageObject().audioPlayerDuration) * 1000);
+                                metadataEditorEditMetadata2.apply();
+                                MusicPlayerService.this.remoteControlClient.setPlaybackState(MediaController.getInstance().isMessagePaused() ? 2 : 3, Math.max(((long) MediaController.getInstance().getPlayingMessageObject().audioProgressSec) * 1000, 100L), MediaController.getInstance().isMessagePaused() ? 0.0f : 1.0f);
+                            }
+                        }, j2);
+                    } else {
+                        i2 = 2;
+                    }
+                    if (MediaController.getInstance().isDownloadingCurrentMessage()) {
+                        this.remoteControlClient.setPlaybackState(8);
+                        return;
+                    }
+                    RemoteControlClient.MetadataEditor metadataEditorEditMetadata2 = this.remoteControlClient.editMetadata(false);
+                    metadataEditorEditMetadata2.putLong(9, ((long) MediaController.getInstance().getPlayingMessageObject().audioPlayerDuration) * 1000);
+                    metadataEditorEditMetadata2.apply();
+                    this.remoteControlClient.setPlaybackState(MediaController.getInstance().isMessagePaused() ? i2 : 3, Math.max(((long) MediaController.getInstance().getPlayingMessageObject().audioProgressSec) * 1000, 100L), MediaController.getInstance().isMessagePaused() ? 0.0f : 1.0f);
+                    return;
+                }
+                return;
+            }
+            bitmap = null;
+            smallCover = null;
+            i = Build.VERSION.SDK_INT;
+            boolean zIsMessagePaused2 = MediaController.getInstance().isMessagePaused();
+            boolean z22 = !zIsMessagePaused2;
+            PendingIntent broadcast4 = PendingIntent.getBroadcast(getApplicationContext(), 0, new Intent(NOTIFY_PREVIOUS).setComponent(new ComponentName(this, (Class<?>) MusicPlayerReceiver.class)), fixIntentFlags(301989888));
+            Context applicationContext2 = getApplicationContext();
+            Intent intent22 = new Intent(this, getClass());
+            StringBuilder sb2 = new StringBuilder();
+            bitmap2 = bitmap;
+            sb2.append(getPackageName());
+            sb2.append(".STOP_PLAYER");
+            PendingIntent service2 = PendingIntent.getService(applicationContext2, 0, intent22.setAction(sb2.toString()), fixIntentFlags(301989888));
+            PendingIntent broadcast22 = PendingIntent.getBroadcast(getApplicationContext(), 0, new Intent(!zIsMessagePaused2 ? NOTIFY_PAUSE : NOTIFY_PLAY).setComponent(new ComponentName(this, (Class<?>) MusicPlayerReceiver.class)), fixIntentFlags(301989888));
+            PendingIntent broadcast32 = PendingIntent.getBroadcast(getApplicationContext(), 0, new Intent(NOTIFY_NEXT).setComponent(new ComponentName(this, (Class<?>) MusicPlayerReceiver.class)), fixIntentFlags(301989888));
+            PendingIntent.getBroadcast(getApplicationContext(), 0, new Intent(NOTIFY_SEEK).setComponent(new ComponentName(this, (Class<?>) MusicPlayerReceiver.class)), fixIntentFlags(301989888));
+            Notification.MediaStyle mediaSession2 = new Notification.MediaStyle().setMediaSession(this.mediaSession.getSessionToken());
+            if (messageObject.isMusic()) {
+            }
+            Notification.Builder builder2 = new Notification.Builder(this);
+            builder2.setSmallIcon(C2888R.drawable.notification).setOngoing(z22).setContentTitle(musicTitle).setContentText(musicAuthor).setSubText((audioInfo == null || !messageObject.isMusic()) ? null : audioInfo.getAlbum()).setContentIntent(activity).setDeleteIntent(service2).setShowWhen(false).setCategory("transport").setPriority(2).setStyle(mediaSession2);
+            if (i < 31) {
+            }
+            if (i >= 26) {
+            }
+            if (smallCover != null) {
+            }
+            String string4 = LocaleController.getString(C2888R.string.Next);
+            String string22 = LocaleController.getString(C2888R.string.AccDescrPrevious);
+            if (MediaController.getInstance().isDownloadingCurrentMessage()) {
+            }
+            this.mediaSession.setPlaybackState(this.playbackState.build());
+            String str32 = str2;
+            String str42 = str;
+            MediaMetadata.Builder builderPutString2 = new MediaMetadata.Builder().putString("android.media.metadata.ALBUM_ARTIST", str32).putString("android.media.metadata.ARTIST", str32).putLong("android.media.metadata.DURATION", duration).putString("android.media.metadata.TITLE", str42).putString("android.media.metadata.ALBUM", (audioInfo == null || !messageObject.isMusic()) ? null : audioInfo.getAlbum());
+            if (bitmap2 == null) {
+                bitmap3 = bitmap2;
+            }
+            this.mediaSession.setMetadata(builderPutString2.build());
+            builder2.setVisibility(1);
+            Notification notificationBuild2 = builder2.build();
+            if (i >= 31) {
+            }
+            if (this.remoteControlClient != null) {
+            }
+        }
+        bitmap = cover;
+        i = Build.VERSION.SDK_INT;
+        boolean zIsMessagePaused22 = MediaController.getInstance().isMessagePaused();
+        boolean z222 = !zIsMessagePaused22;
+        PendingIntent broadcast42 = PendingIntent.getBroadcast(getApplicationContext(), 0, new Intent(NOTIFY_PREVIOUS).setComponent(new ComponentName(this, (Class<?>) MusicPlayerReceiver.class)), fixIntentFlags(301989888));
+        Context applicationContext22 = getApplicationContext();
+        Intent intent222 = new Intent(this, getClass());
+        StringBuilder sb22 = new StringBuilder();
+        bitmap2 = bitmap;
+        sb22.append(getPackageName());
+        sb22.append(".STOP_PLAYER");
+        PendingIntent service22 = PendingIntent.getService(applicationContext22, 0, intent222.setAction(sb22.toString()), fixIntentFlags(301989888));
+        PendingIntent broadcast222 = PendingIntent.getBroadcast(getApplicationContext(), 0, new Intent(!zIsMessagePaused22 ? NOTIFY_PAUSE : NOTIFY_PLAY).setComponent(new ComponentName(this, (Class<?>) MusicPlayerReceiver.class)), fixIntentFlags(301989888));
+        PendingIntent broadcast322 = PendingIntent.getBroadcast(getApplicationContext(), 0, new Intent(NOTIFY_NEXT).setComponent(new ComponentName(this, (Class<?>) MusicPlayerReceiver.class)), fixIntentFlags(301989888));
+        PendingIntent.getBroadcast(getApplicationContext(), 0, new Intent(NOTIFY_SEEK).setComponent(new ComponentName(this, (Class<?>) MusicPlayerReceiver.class)), fixIntentFlags(301989888));
+        Notification.MediaStyle mediaSession22 = new Notification.MediaStyle().setMediaSession(this.mediaSession.getSessionToken());
+        if (messageObject.isMusic()) {
+        }
+        Notification.Builder builder22 = new Notification.Builder(this);
+        builder22.setSmallIcon(C2888R.drawable.notification).setOngoing(z222).setContentTitle(musicTitle).setContentText(musicAuthor).setSubText((audioInfo == null || !messageObject.isMusic()) ? null : audioInfo.getAlbum()).setContentIntent(activity).setDeleteIntent(service22).setShowWhen(false).setCategory("transport").setPriority(2).setStyle(mediaSession22);
+        if (i < 31) {
+        }
+        if (i >= 26) {
+        }
+        if (smallCover != null) {
+        }
+        String string42 = LocaleController.getString(C2888R.string.Next);
+        String string222 = LocaleController.getString(C2888R.string.AccDescrPrevious);
+        if (MediaController.getInstance().isDownloadingCurrentMessage()) {
+        }
+        this.mediaSession.setPlaybackState(this.playbackState.build());
+        String str322 = str2;
+        String str422 = str;
+        MediaMetadata.Builder builderPutString22 = new MediaMetadata.Builder().putString("android.media.metadata.ALBUM_ARTIST", str322).putString("android.media.metadata.ARTIST", str322).putLong("android.media.metadata.DURATION", duration).putString("android.media.metadata.TITLE", str422).putString("android.media.metadata.ALBUM", (audioInfo == null || !messageObject.isMusic()) ? null : audioInfo.getAlbum());
+        if (bitmap2 == null) {
+        }
+        this.mediaSession.setMetadata(builderPutString22.build());
+        builder22.setVisibility(1);
+        Notification notificationBuild22 = builder22.build();
+        if (i >= 31) {
+        }
+        if (this.remoteControlClient != null) {
+        }
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public void updatePlaybackState(long j) {
+        boolean zIsMessagePaused = MediaController.getInstance().isMessagePaused();
+        boolean z = !zIsMessagePaused;
+        if (MediaController.getInstance().isDownloadingCurrentMessage()) {
+            this.playbackState.setState(6, 0L, 1.0f).setActions(0L);
+        } else {
+            MessageObject playingMessageObject = MediaController.getInstance().getPlayingMessageObject();
+            this.playbackState.setState(!zIsMessagePaused ? 3 : 2, j, getPlaybackSpeed(z, playingMessageObject)).setActions((playingMessageObject == null || !playingMessageObject.isMusic()) ? 774L : 822L);
+        }
+        this.mediaSession.setPlaybackState(this.playbackState.build());
+    }
+
+    private float getPlaybackSpeed(boolean z, MessageObject messageObject) {
+        if (!z) {
+            return 0.0f;
+        }
+        if (messageObject == null) {
+            return 1.0f;
+        }
+        if (messageObject.isVoice() || messageObject.isRoundVideo()) {
+            return MediaController.getInstance().getPlaybackSpeed(false);
+        }
+        return 1.0f;
+    }
+
+    public void setListeners(RemoteViews remoteViews) {
+        remoteViews.setOnClickPendingIntent(C2888R.id.player_previous, PendingIntent.getBroadcast(getApplicationContext(), 0, new Intent(NOTIFY_PREVIOUS), fixIntentFlags(167772160)));
+        remoteViews.setOnClickPendingIntent(C2888R.id.player_close, PendingIntent.getBroadcast(getApplicationContext(), 0, new Intent(NOTIFY_CLOSE), fixIntentFlags(167772160)));
+        remoteViews.setOnClickPendingIntent(C2888R.id.player_pause, PendingIntent.getBroadcast(getApplicationContext(), 0, new Intent(NOTIFY_PAUSE), fixIntentFlags(167772160)));
+        remoteViews.setOnClickPendingIntent(C2888R.id.player_next, PendingIntent.getBroadcast(getApplicationContext(), 0, new Intent(NOTIFY_NEXT), fixIntentFlags(167772160)));
+        remoteViews.setOnClickPendingIntent(C2888R.id.player_play, PendingIntent.getBroadcast(getApplicationContext(), 0, new Intent(NOTIFY_PLAY), fixIntentFlags(167772160)));
+    }
+
+    private int fixIntentFlags(int i) {
+        return (Build.VERSION.SDK_INT >= 31 || !XiaomiUtilities.isMIUI()) ? i : i & (-100663297);
+    }
+
+    @Override // android.app.Service
+    @SuppressLint({"NewApi"})
+    public void onDestroy() {
+        unregisterReceiver(this.headsetPlugReceiver);
+        super.onDestroy();
+        stopForeground(true);
+        RemoteControlClient remoteControlClient = this.remoteControlClient;
+        if (remoteControlClient != null) {
+            RemoteControlClient.MetadataEditor metadataEditorEditMetadata = remoteControlClient.editMetadata(true);
+            metadataEditorEditMetadata.clear();
+            metadataEditorEditMetadata.apply();
+            this.audioManager.unregisterRemoteControlClient(this.remoteControlClient);
+        }
+        this.mediaSession.release();
+        for (int i = 0; i < 16; i++) {
+            NotificationCenter.getInstance(i).removeObserver(this, NotificationCenter.messagePlayingDidSeek);
+            NotificationCenter.getInstance(i).removeObserver(this, NotificationCenter.messagePlayingPlayStateChanged);
+            NotificationCenter.getInstance(i).removeObserver(this, NotificationCenter.httpFileDidLoad);
+            NotificationCenter.getInstance(i).removeObserver(this, NotificationCenter.fileLoaded);
+        }
+    }
+
+    @Override // org.telegram.messenger.NotificationCenter.NotificationCenterDelegate
+    public void didReceivedNotification(int i, int i2, Object... objArr) {
+        String str;
+        String str2;
+        if (i == NotificationCenter.messagePlayingPlayStateChanged) {
+            MessageObject playingMessageObject = MediaController.getInstance().getPlayingMessageObject();
+            if (playingMessageObject != null) {
+                createNotification(playingMessageObject, false);
+                return;
+            } else {
+                stopSelf();
+                return;
+            }
+        }
+        if (i == NotificationCenter.messagePlayingDidSeek) {
+            if (MediaController.getInstance().getPlayingMessageObject() == null) {
+                return;
+            }
+            long jRound = ((long) Math.round(r3.audioPlayerDuration * ((Float) objArr[1]).floatValue())) * 1000;
+            updatePlaybackState(jRound);
+            RemoteControlClient remoteControlClient = this.remoteControlClient;
+            if (remoteControlClient != null) {
+                remoteControlClient.setPlaybackState(MediaController.getInstance().isMessagePaused() ? 2 : 3, jRound, MediaController.getInstance().isMessagePaused() ? 0.0f : 1.0f);
+                return;
+            }
+            return;
+        }
+        if (i == NotificationCenter.httpFileDidLoad) {
+            String str3 = (String) objArr[0];
+            MessageObject playingMessageObject2 = MediaController.getInstance().getPlayingMessageObject();
+            if (playingMessageObject2 == null || (str2 = this.loadingFilePath) == null || !str2.equals(str3)) {
+                return;
+            }
+            createNotification(playingMessageObject2, false);
+            return;
+        }
+        if (i == NotificationCenter.fileLoaded) {
+            String str4 = (String) objArr[0];
+            MessageObject playingMessageObject3 = MediaController.getInstance().getPlayingMessageObject();
+            if (playingMessageObject3 == null || (str = this.loadingFilePath) == null || !str.equals(str4)) {
+                return;
+            }
+            createNotification(playingMessageObject3, false);
+        }
+    }
+}

@@ -1,0 +1,1101 @@
+package org.telegram.p029ui.Components;
+
+import android.content.Context;
+import android.text.SpannableStringBuilder;
+import android.text.TextUtils;
+import android.text.style.ForegroundColorSpan;
+import android.view.MotionEvent;
+import android.view.View;
+import android.view.ViewGroup;
+import androidx.collection.LongSparseArray;
+import androidx.recyclerview.widget.RecyclerView;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import okhttp3.internal.url._UrlKt;
+import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.C2888R;
+import org.telegram.messenger.ChatObject;
+import org.telegram.messenger.ContactsController;
+import org.telegram.messenger.FileLog;
+import org.telegram.messenger.LocaleController;
+import org.telegram.messenger.MessageObject;
+import org.telegram.messenger.MessagesController;
+import org.telegram.messenger.UserConfig;
+import org.telegram.messenger.UserObject;
+import org.telegram.messenger.Utilities;
+import org.telegram.p029ui.ActionBar.BottomSheet;
+import org.telegram.p029ui.ActionBar.Theme;
+import org.telegram.p029ui.Adapters.SearchAdapterHelper;
+import org.telegram.p029ui.Cells.GraySectionCell;
+import org.telegram.p029ui.Cells.ManageChatTextCell;
+import org.telegram.p029ui.Cells.ManageChatUserCell;
+import org.telegram.p029ui.Components.RecyclerListView;
+import org.telegram.tgnet.ConnectionsManager;
+import org.telegram.tgnet.RequestDelegate;
+import org.telegram.tgnet.TLObject;
+import org.telegram.tgnet.TLRPC;
+
+/* JADX INFO: loaded from: classes7.dex */
+public class GroupVoipInviteAlert extends UsersAlertBase {
+    private int addNewRow;
+    private ArrayList contacts;
+    private boolean contactsEndReached;
+    private int contactsEndRow;
+    private int contactsHeaderRow;
+    private LongSparseArray contactsMap;
+    private int contactsStartRow;
+    private TLRPC.Chat currentChat;
+    private int delayResults;
+    private GroupVoipInviteAlertDelegate delegate;
+    private int emptyRow;
+    private boolean firstLoaded;
+    private int flickerProgressRow;
+    private LongSparseArray ignoredUsers;
+    private TLRPC.ChatFull info;
+    private HashSet invitedUsers;
+    private int lastRow;
+    private boolean loadingUsers;
+    private int membersHeaderRow;
+    private ArrayList participants;
+    private int participantsEndRow;
+    private LongSparseArray participantsMap;
+    private int participantsStartRow;
+    private int rowCount;
+    private final SearchAdapter searchAdapter;
+    private boolean showContacts;
+
+    public interface GroupVoipInviteAlertDelegate {
+        void copyInviteLink();
+
+        void inviteUser(long j);
+
+        void needOpenSearch(MotionEvent motionEvent, EditTextBoldCursor editTextBoldCursor);
+    }
+
+    @Override // org.telegram.p029ui.Components.UsersAlertBase
+    protected void updateColorKeys() {
+        this.keyScrollUp = Theme.key_voipgroup_scrollUp;
+        this.keyListSelector = Theme.key_voipgroup_listSelector;
+        this.keySearchBackground = Theme.key_voipgroup_searchBackground;
+        this.keyInviteMembersBackground = Theme.key_voipgroup_inviteMembersBackground;
+        this.keyListViewBackground = Theme.key_voipgroup_listViewBackground;
+        this.keyActionBarUnscrolled = Theme.key_voipgroup_actionBarUnscrolled;
+        this.keyNameText = Theme.key_voipgroup_nameText;
+        this.keyLastSeenText = Theme.key_voipgroup_lastSeenText;
+        this.keyLastSeenTextUnscrolled = Theme.key_voipgroup_lastSeenTextUnscrolled;
+        this.keySearchPlaceholder = Theme.key_voipgroup_searchPlaceholder;
+        this.keySearchText = Theme.key_voipgroup_searchText;
+        this.keySearchIcon = Theme.key_voipgroup_mutedIcon;
+        this.keySearchIconUnscrolled = Theme.key_voipgroup_mutedIconUnscrolled;
+    }
+
+    public GroupVoipInviteAlert(Context context, int i, TLRPC.Chat chat, TLRPC.ChatFull chatFull, LongSparseArray longSparseArray, HashSet hashSet) {
+        super(context, false, i, null);
+        this.participants = new ArrayList();
+        this.contacts = new ArrayList();
+        this.participantsMap = new LongSparseArray();
+        this.contactsMap = new LongSparseArray();
+        setDimBehindAlpha(75);
+        this.currentChat = chat;
+        this.info = chatFull;
+        this.ignoredUsers = longSparseArray;
+        this.invitedUsers = hashSet;
+        this.listView.setOnItemClickListener(new RecyclerListView.OnItemClickListener() { // from class: org.telegram.ui.Components.GroupVoipInviteAlert$$ExternalSyntheticLambda0
+            @Override // org.telegram.ui.Components.RecyclerListView.OnItemClickListener
+            public final void onItemClick(View view, int i2) {
+                this.f$0.lambda$new$0(view, i2);
+            }
+        });
+        SearchAdapter searchAdapter = new SearchAdapter(context);
+        this.searchAdapter = searchAdapter;
+        this.searchListViewAdapter = searchAdapter;
+        RecyclerListView recyclerListView = this.listView;
+        ListAdapter listAdapter = new ListAdapter(context);
+        this.listViewAdapter = listAdapter;
+        recyclerListView.setAdapter(listAdapter);
+        loadChatParticipants(0, 200);
+        updateRows();
+        setColorProgress(0.0f);
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public /* synthetic */ void lambda$new$0(View view, int i) {
+        if (i == this.addNewRow) {
+            this.delegate.copyInviteLink();
+            lambda$new$0();
+        } else if (view instanceof ManageChatUserCell) {
+            ManageChatUserCell manageChatUserCell = (ManageChatUserCell) view;
+            if (this.invitedUsers.contains(Long.valueOf(manageChatUserCell.getUserId()))) {
+                return;
+            }
+            this.delegate.inviteUser(manageChatUserCell.getUserId());
+        }
+    }
+
+    public void setDelegate(GroupVoipInviteAlertDelegate groupVoipInviteAlertDelegate) {
+        this.delegate = groupVoipInviteAlertDelegate;
+    }
+
+    private void updateRows() {
+        this.addNewRow = -1;
+        this.participantsStartRow = -1;
+        this.participantsEndRow = -1;
+        this.contactsHeaderRow = -1;
+        this.contactsStartRow = -1;
+        this.contactsEndRow = -1;
+        this.membersHeaderRow = -1;
+        this.lastRow = -1;
+        boolean z = true;
+        this.rowCount = 1;
+        this.emptyRow = 0;
+        if (ChatObject.isPublic(this.currentChat) || ChatObject.canUserDoAdminAction(this.currentChat, 3)) {
+            int i = this.rowCount;
+            this.rowCount = i + 1;
+            this.addNewRow = i;
+        }
+        if (!this.loadingUsers || this.firstLoaded) {
+            if (this.contacts.isEmpty()) {
+                z = false;
+            } else {
+                int i2 = this.rowCount;
+                int i3 = i2 + 1;
+                this.rowCount = i3;
+                this.contactsHeaderRow = i2;
+                this.contactsStartRow = i3;
+                int size = i3 + this.contacts.size();
+                this.rowCount = size;
+                this.contactsEndRow = size;
+            }
+            if (!this.participants.isEmpty()) {
+                if (z) {
+                    int i4 = this.rowCount;
+                    this.rowCount = i4 + 1;
+                    this.membersHeaderRow = i4;
+                }
+                int i5 = this.rowCount;
+                this.participantsStartRow = i5;
+                int size2 = i5 + this.participants.size();
+                this.rowCount = size2;
+                this.participantsEndRow = size2;
+            }
+        }
+        if (this.loadingUsers) {
+            int i6 = this.rowCount;
+            this.rowCount = i6 + 1;
+            this.flickerProgressRow = i6;
+        }
+        int i7 = this.rowCount;
+        this.rowCount = i7 + 1;
+        this.lastRow = i7;
+    }
+
+    private void loadChatParticipants(int i, int i2) {
+        if (this.loadingUsers) {
+            return;
+        }
+        this.contactsEndReached = false;
+        loadChatParticipants(i, i2, true);
+    }
+
+    private void fillContacts() {
+        if (this.showContacts) {
+            this.contacts.addAll(ContactsController.getInstance(this.currentAccount).contacts);
+            long j = UserConfig.getInstance(this.currentAccount).clientUserId;
+            int size = this.contacts.size();
+            int i = 0;
+            while (i < size) {
+                TLObject tLObject = (TLObject) this.contacts.get(i);
+                if (tLObject instanceof TLRPC.TL_contact) {
+                    long j2 = ((TLRPC.TL_contact) tLObject).user_id;
+                    if (j2 == j || this.ignoredUsers.indexOfKey(j2) >= 0 || this.invitedUsers.contains(Long.valueOf(j2))) {
+                        this.contacts.remove(i);
+                        i--;
+                        size--;
+                    }
+                }
+                i++;
+            }
+            final int currentTime = ConnectionsManager.getInstance(this.currentAccount).getCurrentTime();
+            final MessagesController messagesController = MessagesController.getInstance(this.currentAccount);
+            Collections.sort(this.contacts, new Comparator() { // from class: org.telegram.ui.Components.GroupVoipInviteAlert$$ExternalSyntheticLambda2
+                @Override // java.util.Comparator
+                public final int compare(Object obj, Object obj2) {
+                    return GroupVoipInviteAlert.$r8$lambda$Jxjb1g4dHVPktfHUABWJR3wxpuE(messagesController, currentTime, (TLObject) obj, (TLObject) obj2);
+                }
+            });
+        }
+    }
+
+    /* JADX WARN: Removed duplicated region for block: B:17:0x0037  */
+    /* JADX WARN: Removed duplicated region for block: B:25:0x0047  */
+    /*
+        Code decompiled incorrectly, please refer to instructions dump.
+    */
+    public static /* synthetic */ int $r8$lambda$Jxjb1g4dHVPktfHUABWJR3wxpuE(MessagesController messagesController, int i, TLObject tLObject, TLObject tLObject2) {
+        int i2;
+        int i3;
+        TLRPC.User user = tLObject2 instanceof TLRPC.TL_contact ? messagesController.getUser(Long.valueOf(((TLRPC.TL_contact) tLObject2).user_id)) : null;
+        TLRPC.User user2 = tLObject instanceof TLRPC.TL_contact ? messagesController.getUser(Long.valueOf(((TLRPC.TL_contact) tLObject).user_id)) : null;
+        if (user == null) {
+            i2 = 0;
+        } else if (user.self) {
+            i2 = i + 50000;
+        } else {
+            TLRPC.UserStatus userStatus = user.status;
+            if (userStatus != null) {
+                i2 = userStatus.expires;
+            }
+        }
+        if (user2 == null) {
+            i3 = 0;
+        } else if (user2.self) {
+            i3 = i + 50000;
+        } else {
+            TLRPC.UserStatus userStatus2 = user2.status;
+            if (userStatus2 != null) {
+                i3 = userStatus2.expires;
+            }
+        }
+        if (i2 <= 0 || i3 <= 0) {
+            if (i2 >= 0 || i3 >= 0) {
+                if (i2 < 0 && i3 > 0) {
+                    return -1;
+                }
+                if (i2 == 0 && i3 != 0) {
+                    return -1;
+                }
+                if (i3 < 0 || i2 != 0) {
+                    return 1;
+                }
+            } else {
+                if (i2 > i3) {
+                    return 1;
+                }
+                if (i2 < i3) {
+                    return -1;
+                }
+            }
+        } else {
+            if (i2 > i3) {
+                return 1;
+            }
+            if (i2 < i3) {
+                return -1;
+            }
+        }
+        return 0;
+    }
+
+    protected void loadChatParticipants(int i, int i2, boolean z) {
+        LongSparseArray longSparseArray;
+        if (!ChatObject.isChannel(this.currentChat)) {
+            this.loadingUsers = false;
+            this.participants.clear();
+            this.contacts.clear();
+            this.participantsMap.clear();
+            this.contactsMap.clear();
+            if (this.info != null) {
+                long j = UserConfig.getInstance(this.currentAccount).clientUserId;
+                int size = this.info.participants.participants.size();
+                for (int i3 = 0; i3 < size; i3++) {
+                    TLRPC.ChatParticipant chatParticipant = (TLRPC.ChatParticipant) this.info.participants.participants.get(i3);
+                    long j2 = chatParticipant.user_id;
+                    if (j2 != j && ((longSparseArray = this.ignoredUsers) == null || longSparseArray.indexOfKey(j2) < 0)) {
+                        TLRPC.User user = MessagesController.getInstance(this.currentAccount).getUser(Long.valueOf(chatParticipant.user_id));
+                        if (!UserObject.isDeleted(user) && !user.bot) {
+                            this.participants.add(chatParticipant);
+                            this.participantsMap.put(chatParticipant.user_id, chatParticipant);
+                        }
+                    }
+                }
+                if (this.participants.isEmpty()) {
+                    this.showContacts = true;
+                    fillContacts();
+                }
+            }
+            updateRows();
+            RecyclerView.Adapter adapter = this.listViewAdapter;
+            if (adapter != null) {
+                adapter.notifyDataSetChanged();
+                return;
+            }
+            return;
+        }
+        this.loadingUsers = true;
+        StickerEmptyView stickerEmptyView = this.emptyView;
+        if (stickerEmptyView != null) {
+            stickerEmptyView.showProgress(true, false);
+        }
+        RecyclerView.Adapter adapter2 = this.listViewAdapter;
+        if (adapter2 != null) {
+            adapter2.notifyDataSetChanged();
+        }
+        final TLRPC.TL_channels_getParticipants tL_channels_getParticipants = new TLRPC.TL_channels_getParticipants();
+        tL_channels_getParticipants.channel = MessagesController.getInputChannel(this.currentChat);
+        TLRPC.ChatFull chatFull = this.info;
+        if ((chatFull == null || chatFull.participants_count > 200) && !this.contactsEndReached) {
+            this.delayResults = 2;
+            tL_channels_getParticipants.filter = new TLRPC.TL_channelParticipantsContacts();
+            this.contactsEndReached = true;
+            loadChatParticipants(0, 200, false);
+        } else {
+            tL_channels_getParticipants.filter = new TLRPC.TL_channelParticipantsRecent();
+        }
+        tL_channels_getParticipants.filter.f1659q = _UrlKt.FRAGMENT_ENCODE_SET;
+        tL_channels_getParticipants.offset = i;
+        tL_channels_getParticipants.limit = i2;
+        ConnectionsManager.getInstance(this.currentAccount).sendRequest(tL_channels_getParticipants, new RequestDelegate() { // from class: org.telegram.ui.Components.GroupVoipInviteAlert$$ExternalSyntheticLambda1
+            @Override // org.telegram.tgnet.RequestDelegate
+            public final void run(TLObject tLObject, TLRPC.TL_error tL_error) {
+                this.f$0.lambda$loadChatParticipants$4(tL_channels_getParticipants, tLObject, tL_error);
+            }
+        });
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public /* synthetic */ void lambda$loadChatParticipants$4(final TLRPC.TL_channels_getParticipants tL_channels_getParticipants, final TLObject tLObject, final TLRPC.TL_error tL_error) {
+        AndroidUtilities.runOnUIThread(new Runnable() { // from class: org.telegram.ui.Components.GroupVoipInviteAlert$$ExternalSyntheticLambda3
+            @Override // java.lang.Runnable
+            public final void run() {
+                this.f$0.lambda$loadChatParticipants$3(tL_error, tLObject, tL_channels_getParticipants);
+            }
+        });
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public /* synthetic */ void lambda$loadChatParticipants$3(TLRPC.TL_error tL_error, TLObject tLObject, TLRPC.TL_channels_getParticipants tL_channels_getParticipants) {
+        int itemCount;
+        ArrayList arrayList;
+        LongSparseArray longSparseArray;
+        LongSparseArray longSparseArray2;
+        if (tL_error == null) {
+            TLRPC.TL_channels_channelParticipants tL_channels_channelParticipants = (TLRPC.TL_channels_channelParticipants) tLObject;
+            MessagesController.getInstance(this.currentAccount).putUsers(tL_channels_channelParticipants.users, false);
+            MessagesController.getInstance(this.currentAccount).putChats(tL_channels_channelParticipants.chats, false);
+            long clientUserId = UserConfig.getInstance(this.currentAccount).getClientUserId();
+            int i = 0;
+            while (true) {
+                if (i >= tL_channels_channelParticipants.participants.size()) {
+                    break;
+                }
+                if (MessageObject.getPeerId(((TLRPC.ChannelParticipant) tL_channels_channelParticipants.participants.get(i)).peer) == clientUserId) {
+                    tL_channels_channelParticipants.participants.remove(i);
+                    break;
+                }
+                i++;
+            }
+            this.delayResults--;
+            if (tL_channels_getParticipants.filter instanceof TLRPC.TL_channelParticipantsContacts) {
+                arrayList = this.contacts;
+                longSparseArray = this.contactsMap;
+            } else {
+                arrayList = this.participants;
+                longSparseArray = this.participantsMap;
+            }
+            arrayList.clear();
+            arrayList.addAll(tL_channels_channelParticipants.participants);
+            int size = tL_channels_channelParticipants.participants.size();
+            for (int i2 = 0; i2 < size; i2++) {
+                TLRPC.ChannelParticipant channelParticipant = (TLRPC.ChannelParticipant) tL_channels_channelParticipants.participants.get(i2);
+                longSparseArray.put(MessageObject.getPeerId(channelParticipant.peer), channelParticipant);
+            }
+            int size2 = this.participants.size();
+            int i3 = 0;
+            while (i3 < size2) {
+                long peerId = MessageObject.getPeerId(((TLRPC.ChannelParticipant) this.participants.get(i3)).peer);
+                boolean z = this.contactsMap.get(peerId) != null || ((longSparseArray2 = this.ignoredUsers) != null && longSparseArray2.indexOfKey(peerId) >= 0);
+                TLRPC.User user = MessagesController.getInstance(this.currentAccount).getUser(Long.valueOf(peerId));
+                if ((user != null && user.bot) || UserObject.isDeleted(user)) {
+                    z = true;
+                }
+                if (z) {
+                    this.participants.remove(i3);
+                    this.participantsMap.remove(peerId);
+                    i3--;
+                    size2--;
+                }
+                i3++;
+            }
+            try {
+                if (this.info.participants_count <= 200) {
+                    final int currentTime = ConnectionsManager.getInstance(this.currentAccount).getCurrentTime();
+                    Collections.sort(arrayList, new Comparator() { // from class: org.telegram.ui.Components.GroupVoipInviteAlert$$ExternalSyntheticLambda4
+                        @Override // java.util.Comparator
+                        public final int compare(Object obj, Object obj2) {
+                            return this.f$0.lambda$loadChatParticipants$2(currentTime, (TLObject) obj, (TLObject) obj2);
+                        }
+                    });
+                }
+            } catch (Exception e) {
+                FileLog.m1136e(e);
+            }
+        }
+        if (this.delayResults <= 0) {
+            this.loadingUsers = false;
+            this.firstLoaded = true;
+            if (this.flickerProgressRow == 1) {
+                itemCount = 1;
+            } else {
+                RecyclerView.Adapter adapter = this.listViewAdapter;
+                itemCount = adapter != null ? adapter.getItemCount() - 1 : 0;
+            }
+            showItemsAnimated(itemCount);
+            if (this.participants.isEmpty()) {
+                this.showContacts = true;
+                fillContacts();
+            }
+        }
+        updateRows();
+        RecyclerView.Adapter adapter2 = this.listViewAdapter;
+        if (adapter2 != null) {
+            adapter2.notifyDataSetChanged();
+            if (this.emptyView != null && this.listViewAdapter.getItemCount() == 0 && this.firstLoaded) {
+                this.emptyView.showProgress(false, true);
+            }
+        }
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public /* synthetic */ int lambda$loadChatParticipants$2(int i, TLObject tLObject, TLObject tLObject2) {
+        int i2;
+        int i3;
+        TLRPC.UserStatus userStatus;
+        TLRPC.UserStatus userStatus2;
+        TLRPC.User user = MessagesController.getInstance(this.currentAccount).getUser(Long.valueOf(MessageObject.getPeerId(((TLRPC.ChannelParticipant) tLObject).peer)));
+        TLRPC.User user2 = MessagesController.getInstance(this.currentAccount).getUser(Long.valueOf(MessageObject.getPeerId(((TLRPC.ChannelParticipant) tLObject2).peer)));
+        if (user == null || (userStatus2 = user.status) == null) {
+            i2 = 0;
+        } else {
+            i2 = user.self ? i + 50000 : userStatus2.expires;
+        }
+        if (user2 == null || (userStatus = user2.status) == null) {
+            i3 = 0;
+        } else {
+            i3 = user2.self ? i + 50000 : userStatus.expires;
+        }
+        if (i2 > 0 && i3 > 0) {
+            if (i2 > i3) {
+                return 1;
+            }
+            return i2 < i3 ? -1 : 0;
+        }
+        if (i2 < 0 && i3 < 0) {
+            if (i2 > i3) {
+                return 1;
+            }
+            return i2 < i3 ? -1 : 0;
+        }
+        if ((i2 >= 0 || i3 <= 0) && (i2 != 0 || i3 == 0)) {
+            return ((i3 >= 0 || i2 <= 0) && (i3 != 0 || i2 == 0)) ? 0 : 1;
+        }
+        return -1;
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    class SearchAdapter extends RecyclerListView.SelectionAdapter {
+        private int emptyRow;
+        private int globalStartRow;
+        private int groupStartRow;
+        private int lastRow;
+        private int lastSearchId;
+        private Context mContext;
+        private SearchAdapterHelper searchAdapterHelper;
+        private boolean searchInProgress;
+        private Runnable searchRunnable;
+        private int totalCount;
+
+        public SearchAdapter(Context context) {
+            this.mContext = context;
+            SearchAdapterHelper searchAdapterHelper = new SearchAdapterHelper(true);
+            this.searchAdapterHelper = searchAdapterHelper;
+            searchAdapterHelper.setDelegate(new SearchAdapterHelper.SearchAdapterHelperDelegate() { // from class: org.telegram.ui.Components.GroupVoipInviteAlert.SearchAdapter.1
+                @Override // org.telegram.ui.Adapters.SearchAdapterHelper.SearchAdapterHelperDelegate
+                public /* synthetic */ boolean canApplySearchResults(int i) {
+                    return SearchAdapterHelper.SearchAdapterHelperDelegate.CC.$default$canApplySearchResults(this, i);
+                }
+
+                @Override // org.telegram.ui.Adapters.SearchAdapterHelper.SearchAdapterHelperDelegate
+                public /* synthetic */ LongSparseArray getExcludeUsers() {
+                    return SearchAdapterHelper.SearchAdapterHelperDelegate.CC.$default$getExcludeUsers(this);
+                }
+
+                @Override // org.telegram.ui.Adapters.SearchAdapterHelper.SearchAdapterHelperDelegate
+                public /* synthetic */ void onSetHashtags(ArrayList arrayList, HashMap map) {
+                    SearchAdapterHelper.SearchAdapterHelperDelegate.CC.$default$onSetHashtags(this, arrayList, map);
+                }
+
+                @Override // org.telegram.ui.Adapters.SearchAdapterHelper.SearchAdapterHelperDelegate
+                public void onDataSetChanged(int i) {
+                    if (i < 0 || i != SearchAdapter.this.lastSearchId || SearchAdapter.this.searchInProgress) {
+                        return;
+                    }
+                    int itemCount = SearchAdapter.this.getItemCount() - 1;
+                    boolean z = GroupVoipInviteAlert.this.emptyView.getVisibility() == 0;
+                    SearchAdapter.this.notifyDataSetChanged();
+                    if (SearchAdapter.this.getItemCount() > itemCount) {
+                        GroupVoipInviteAlert.this.showItemsAnimated(itemCount);
+                    }
+                    if (SearchAdapter.this.searchAdapterHelper.isSearchInProgress() || !GroupVoipInviteAlert.this.listView.emptyViewIsVisible()) {
+                        return;
+                    }
+                    GroupVoipInviteAlert.this.emptyView.showProgress(false, z);
+                }
+
+                @Override // org.telegram.ui.Adapters.SearchAdapterHelper.SearchAdapterHelperDelegate
+                public LongSparseArray getExcludeCallParticipants() {
+                    return GroupVoipInviteAlert.this.ignoredUsers;
+                }
+            });
+        }
+
+        public void searchUsers(final String str) {
+            Runnable runnable = this.searchRunnable;
+            if (runnable != null) {
+                AndroidUtilities.cancelRunOnUIThread(runnable);
+                this.searchRunnable = null;
+            }
+            this.searchAdapterHelper.mergeResults(null);
+            this.searchAdapterHelper.queryServerSearch(null, true, false, true, false, false, GroupVoipInviteAlert.this.currentChat.f1660id, false, 2, -1);
+            if (!TextUtils.isEmpty(str)) {
+                GroupVoipInviteAlert.this.emptyView.showProgress(true, true);
+                GroupVoipInviteAlert.this.listView.setAnimateEmptyView(false, 0);
+                notifyDataSetChanged();
+                GroupVoipInviteAlert.this.listView.setAnimateEmptyView(true, 0);
+                this.searchInProgress = true;
+                final int i = this.lastSearchId + 1;
+                this.lastSearchId = i;
+                Runnable runnable2 = new Runnable() { // from class: org.telegram.ui.Components.GroupVoipInviteAlert$SearchAdapter$$ExternalSyntheticLambda1
+                    @Override // java.lang.Runnable
+                    public final void run() {
+                        this.f$0.lambda$searchUsers$0(str, i);
+                    }
+                };
+                this.searchRunnable = runnable2;
+                AndroidUtilities.runOnUIThread(runnable2, 300L);
+                RecyclerView.Adapter adapter = GroupVoipInviteAlert.this.listView.getAdapter();
+                GroupVoipInviteAlert groupVoipInviteAlert = GroupVoipInviteAlert.this;
+                RecyclerView.Adapter adapter2 = groupVoipInviteAlert.searchListViewAdapter;
+                if (adapter != adapter2) {
+                    groupVoipInviteAlert.listView.setAdapter(adapter2);
+                    return;
+                }
+                return;
+            }
+            this.lastSearchId = -1;
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public /* synthetic */ void lambda$searchUsers$0(String str, int i) {
+            if (this.searchRunnable == null) {
+                return;
+            }
+            this.searchRunnable = null;
+            processSearch(str, i);
+        }
+
+        private void processSearch(final String str, final int i) {
+            AndroidUtilities.runOnUIThread(new Runnable() { // from class: org.telegram.ui.Components.GroupVoipInviteAlert$SearchAdapter$$ExternalSyntheticLambda2
+                @Override // java.lang.Runnable
+                public final void run() {
+                    this.f$0.lambda$processSearch$2(str, i);
+                }
+            });
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public /* synthetic */ void lambda$processSearch$2(final String str, final int i) {
+            final ArrayList arrayList = null;
+            this.searchRunnable = null;
+            if (!ChatObject.isChannel(GroupVoipInviteAlert.this.currentChat) && GroupVoipInviteAlert.this.info != null) {
+                arrayList = new ArrayList(GroupVoipInviteAlert.this.info.participants.participants);
+            }
+            if (arrayList != null) {
+                Utilities.searchQueue.postRunnable(new Runnable() { // from class: org.telegram.ui.Components.GroupVoipInviteAlert$SearchAdapter$$ExternalSyntheticLambda3
+                    @Override // java.lang.Runnable
+                    public final void run() {
+                        this.f$0.lambda$processSearch$1(str, i, arrayList);
+                    }
+                });
+            } else {
+                this.searchInProgress = false;
+            }
+            this.searchAdapterHelper.queryServerSearch(str, ChatObject.canAddUsers(GroupVoipInviteAlert.this.currentChat), false, true, false, false, ChatObject.isChannel(GroupVoipInviteAlert.this.currentChat) ? GroupVoipInviteAlert.this.currentChat.f1660id : 0L, false, 2, i);
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        /* JADX WARN: Removed duplicated region for block: B:49:0x00ed  */
+        /* JADX WARN: Removed duplicated region for block: B:52:0x00f5 A[LOOP:1: B:33:0x009f->B:52:0x00f5, LOOP_END] */
+        /* JADX WARN: Removed duplicated region for block: B:61:0x00f1 A[SYNTHETIC] */
+        /*
+            Code decompiled incorrectly, please refer to instructions dump.
+        */
+        public /* synthetic */ void lambda$processSearch$1(String str, int i, ArrayList arrayList) {
+            long peerId;
+            String lowerCase = str.trim().toLowerCase();
+            if (lowerCase.length() == 0) {
+                updateSearchResults(new ArrayList(), i);
+                return;
+            }
+            String translitString = LocaleController.getInstance().getTranslitString(lowerCase);
+            if (lowerCase.equals(translitString) || translitString.length() == 0) {
+                translitString = null;
+            }
+            int i2 = 0;
+            int i3 = (translitString != null ? 1 : 0) + 1;
+            String[] strArr = new String[i3];
+            strArr[0] = lowerCase;
+            if (translitString != null) {
+                strArr[1] = translitString;
+            }
+            ArrayList arrayList2 = new ArrayList();
+            int size = arrayList.size();
+            int i4 = 0;
+            while (i4 < size) {
+                TLObject tLObject = (TLObject) arrayList.get(i4);
+                if (tLObject instanceof TLRPC.ChatParticipant) {
+                    peerId = ((TLRPC.ChatParticipant) tLObject).user_id;
+                } else if (tLObject instanceof TLRPC.ChannelParticipant) {
+                    peerId = MessageObject.getPeerId(((TLRPC.ChannelParticipant) tLObject).peer);
+                } else {
+                    i4++;
+                    i2 = 0;
+                }
+                TLRPC.User user = MessagesController.getInstance(((BottomSheet) GroupVoipInviteAlert.this).currentAccount).getUser(Long.valueOf(peerId));
+                if (!UserObject.isUserSelf(user)) {
+                    String lowerCase2 = UserObject.getUserName(user).toLowerCase();
+                    String translitString2 = LocaleController.getInstance().getTranslitString(lowerCase2);
+                    if (lowerCase2.equals(translitString2)) {
+                        translitString2 = null;
+                    }
+                    int i5 = i2;
+                    int i6 = i5;
+                    while (true) {
+                        if (i5 < i3) {
+                            String str2 = strArr[i5];
+                            if (!lowerCase2.startsWith(str2)) {
+                                if (lowerCase2.contains(" " + str2)) {
+                                    i6 = 1;
+                                    if (i6 == 0) {
+                                        arrayList2.add(tLObject);
+                                        break;
+                                    }
+                                    i5++;
+                                } else {
+                                    if (translitString2 != null) {
+                                        if (!translitString2.startsWith(str2)) {
+                                            if (translitString2.contains(" " + str2)) {
+                                            }
+                                            if (i6 == 0) {
+                                            }
+                                        }
+                                        i6 = 1;
+                                        if (i6 == 0) {
+                                        }
+                                    }
+                                    String publicUsername = UserObject.getPublicUsername(user);
+                                    if (publicUsername != null && publicUsername.startsWith(str2)) {
+                                        i6 = 2;
+                                    }
+                                    if (i6 == 0) {
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                i4++;
+                i2 = 0;
+            }
+            updateSearchResults(arrayList2, i);
+        }
+
+        private void updateSearchResults(final ArrayList arrayList, final int i) {
+            AndroidUtilities.runOnUIThread(new Runnable() { // from class: org.telegram.ui.Components.GroupVoipInviteAlert$SearchAdapter$$ExternalSyntheticLambda0
+                @Override // java.lang.Runnable
+                public final void run() {
+                    this.f$0.lambda$updateSearchResults$3(i, arrayList);
+                }
+            });
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public /* synthetic */ void lambda$updateSearchResults$3(int i, ArrayList arrayList) {
+            if (i != this.lastSearchId) {
+                return;
+            }
+            this.searchInProgress = false;
+            if (!ChatObject.isChannel(GroupVoipInviteAlert.this.currentChat)) {
+                this.searchAdapterHelper.addGroupMembers(arrayList);
+            }
+            int itemCount = getItemCount() - 1;
+            boolean z = GroupVoipInviteAlert.this.emptyView.getVisibility() == 0;
+            notifyDataSetChanged();
+            if (getItemCount() > itemCount) {
+                GroupVoipInviteAlert.this.showItemsAnimated(itemCount);
+            }
+            if (this.searchInProgress || this.searchAdapterHelper.isSearchInProgress() || !GroupVoipInviteAlert.this.listView.emptyViewIsVisible()) {
+                return;
+            }
+            GroupVoipInviteAlert.this.emptyView.showProgress(false, z);
+        }
+
+        @Override // org.telegram.ui.Components.RecyclerListView.SelectionAdapter
+        public boolean isEnabled(RecyclerView.ViewHolder viewHolder) {
+            View view = viewHolder.itemView;
+            return !((view instanceof ManageChatUserCell) && GroupVoipInviteAlert.this.invitedUsers.contains(Long.valueOf(((ManageChatUserCell) view).getUserId()))) && viewHolder.getItemViewType() == 0;
+        }
+
+        @Override // androidx.recyclerview.widget.RecyclerView.Adapter
+        public int getItemCount() {
+            return this.totalCount;
+        }
+
+        @Override // androidx.recyclerview.widget.RecyclerView.Adapter
+        public void notifyDataSetChanged() {
+            this.totalCount = 1;
+            this.emptyRow = 0;
+            int size = this.searchAdapterHelper.getGroupSearch().size();
+            if (size != 0) {
+                int i = this.totalCount;
+                this.groupStartRow = i;
+                this.totalCount = i + size + 1;
+            } else {
+                this.groupStartRow = -1;
+            }
+            int size2 = this.searchAdapterHelper.getGlobalSearch().size();
+            if (size2 != 0) {
+                int i2 = this.totalCount;
+                this.globalStartRow = i2;
+                this.totalCount = i2 + size2 + 1;
+            } else {
+                this.globalStartRow = -1;
+            }
+            int i3 = this.totalCount;
+            this.totalCount = i3 + 1;
+            this.lastRow = i3;
+            super.notifyDataSetChanged();
+        }
+
+        public TLObject getItem(int i) {
+            int i2 = this.groupStartRow;
+            if (i2 >= 0 && i > i2 && i < i2 + 1 + this.searchAdapterHelper.getGroupSearch().size()) {
+                return (TLObject) this.searchAdapterHelper.getGroupSearch().get((i - this.groupStartRow) - 1);
+            }
+            int i3 = this.globalStartRow;
+            if (i3 < 0 || i <= i3 || i >= i3 + 1 + this.searchAdapterHelper.getGlobalSearch().size()) {
+                return null;
+            }
+            return (TLObject) this.searchAdapterHelper.getGlobalSearch().get((i - this.globalStartRow) - 1);
+        }
+
+        @Override // androidx.recyclerview.widget.RecyclerView.Adapter
+        public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup viewGroup, int i) {
+            View view;
+            if (i == 0) {
+                ManageChatUserCell manageChatUserCell = new ManageChatUserCell(this.mContext, 2, 2, false);
+                manageChatUserCell.setCustomRightImage(C2888R.drawable.msg_invited);
+                manageChatUserCell.setNameColor(Theme.getColor(Theme.key_voipgroup_nameText));
+                manageChatUserCell.setStatusColors(Theme.getColor(Theme.key_voipgroup_lastSeenTextUnscrolled), Theme.getColor(Theme.key_voipgroup_listeningText));
+                manageChatUserCell.setDividerColor(Theme.key_voipgroup_listViewBackground);
+                view = manageChatUserCell;
+            } else if (i == 1) {
+                GraySectionCell graySectionCell = new GraySectionCell(this.mContext);
+                graySectionCell.setBackgroundColor(Theme.getColor(Theme.key_voipgroup_actionBarUnscrolled));
+                graySectionCell.setTextColor(Theme.key_voipgroup_searchPlaceholder);
+                view = graySectionCell;
+            } else if (i == 2) {
+                View view2 = new View(this.mContext);
+                view2.setLayoutParams(new RecyclerView.LayoutParams(-1, AndroidUtilities.m1124dp(56.0f)));
+                view = view2;
+            } else {
+                view = new View(this.mContext);
+            }
+            return new RecyclerListView.Holder(view);
+        }
+
+        @Override // androidx.recyclerview.widget.RecyclerView.Adapter
+        public void onBindViewHolder(RecyclerView.ViewHolder viewHolder, int i) {
+            TLRPC.User user;
+            boolean z;
+            String lastFoundChannel;
+            CharSequence charSequence;
+            int size;
+            int itemViewType = viewHolder.getItemViewType();
+            if (itemViewType != 0) {
+                if (itemViewType != 1) {
+                    return;
+                }
+                GraySectionCell graySectionCell = (GraySectionCell) viewHolder.itemView;
+                if (i == this.groupStartRow) {
+                    graySectionCell.setText(LocaleController.getString(C2888R.string.ChannelMembers));
+                    return;
+                } else {
+                    if (i == this.globalStartRow) {
+                        graySectionCell.setText(LocaleController.getString(C2888R.string.GlobalSearch));
+                        return;
+                    }
+                    return;
+                }
+            }
+            TLObject item = getItem(i);
+            if (item instanceof TLRPC.User) {
+                user = (TLRPC.User) item;
+            } else if (item instanceof TLRPC.ChannelParticipant) {
+                user = MessagesController.getInstance(((BottomSheet) GroupVoipInviteAlert.this).currentAccount).getUser(Long.valueOf(MessageObject.getPeerId(((TLRPC.ChannelParticipant) item).peer)));
+            } else if (!(item instanceof TLRPC.ChatParticipant)) {
+                return;
+            } else {
+                user = MessagesController.getInstance(((BottomSheet) GroupVoipInviteAlert.this).currentAccount).getUser(Long.valueOf(((TLRPC.ChatParticipant) item).user_id));
+            }
+            String publicUsername = UserObject.getPublicUsername(user);
+            int size2 = this.searchAdapterHelper.getGroupSearch().size();
+            SpannableStringBuilder spannableStringBuilder = null;
+            if (size2 == 0) {
+                z = false;
+                lastFoundChannel = null;
+            } else {
+                int i2 = size2 + 1;
+                if (i2 > i) {
+                    lastFoundChannel = this.searchAdapterHelper.getLastFoundChannel();
+                    z = true;
+                } else {
+                    i -= i2;
+                    z = false;
+                    lastFoundChannel = null;
+                }
+            }
+            if (z || publicUsername == null || (size = this.searchAdapterHelper.getGlobalSearch().size()) == 0 || size + 1 <= i) {
+                charSequence = null;
+            } else {
+                String lastFoundUsername = this.searchAdapterHelper.getLastFoundUsername();
+                if (lastFoundUsername.startsWith("@")) {
+                    lastFoundUsername = lastFoundUsername.substring(1);
+                }
+                try {
+                    SpannableStringBuilder spannableStringBuilder2 = new SpannableStringBuilder();
+                    spannableStringBuilder2.append((CharSequence) "@");
+                    spannableStringBuilder2.append((CharSequence) publicUsername);
+                    int iIndexOfIgnoreCase = AndroidUtilities.indexOfIgnoreCase(publicUsername, lastFoundUsername);
+                    if (iIndexOfIgnoreCase != -1) {
+                        int length = lastFoundUsername.length();
+                        if (iIndexOfIgnoreCase == 0) {
+                            length++;
+                        } else {
+                            iIndexOfIgnoreCase++;
+                        }
+                        spannableStringBuilder2.setSpan(new ForegroundColorSpan(Theme.getColor(Theme.key_voipgroup_listeningText)), iIndexOfIgnoreCase, length + iIndexOfIgnoreCase, 33);
+                    }
+                    charSequence = spannableStringBuilder2;
+                } catch (Exception e) {
+                    FileLog.m1136e(e);
+                    charSequence = publicUsername;
+                }
+            }
+            if (lastFoundChannel != null) {
+                String userName = UserObject.getUserName(user);
+                spannableStringBuilder = new SpannableStringBuilder(userName);
+                int iIndexOfIgnoreCase2 = AndroidUtilities.indexOfIgnoreCase(userName, lastFoundChannel);
+                if (iIndexOfIgnoreCase2 != -1) {
+                    spannableStringBuilder.setSpan(new ForegroundColorSpan(Theme.getColor(Theme.key_voipgroup_listeningText)), iIndexOfIgnoreCase2, lastFoundChannel.length() + iIndexOfIgnoreCase2, 33);
+                }
+            }
+            ManageChatUserCell manageChatUserCell = (ManageChatUserCell) viewHolder.itemView;
+            manageChatUserCell.setTag(Integer.valueOf(i));
+            manageChatUserCell.setCustomImageVisible(GroupVoipInviteAlert.this.invitedUsers.contains(Long.valueOf(user.f1825id)));
+            manageChatUserCell.setData(user, spannableStringBuilder, charSequence, false);
+        }
+
+        @Override // androidx.recyclerview.widget.RecyclerView.Adapter
+        public void onViewRecycled(RecyclerView.ViewHolder viewHolder) {
+            View view = viewHolder.itemView;
+            if (view instanceof ManageChatUserCell) {
+                ((ManageChatUserCell) view).recycle();
+            }
+        }
+
+        @Override // androidx.recyclerview.widget.RecyclerView.Adapter
+        public int getItemViewType(int i) {
+            if (i == this.emptyRow) {
+                return 2;
+            }
+            if (i == this.lastRow) {
+                return 3;
+            }
+            return (i == this.globalStartRow || i == this.groupStartRow) ? 1 : 0;
+        }
+    }
+
+    private class ListAdapter extends RecyclerListView.SelectionAdapter {
+        private Context mContext;
+
+        public ListAdapter(Context context) {
+            this.mContext = context;
+        }
+
+        @Override // org.telegram.ui.Components.RecyclerListView.SelectionAdapter
+        public boolean isEnabled(RecyclerView.ViewHolder viewHolder) {
+            View view = viewHolder.itemView;
+            if ((view instanceof ManageChatUserCell) && GroupVoipInviteAlert.this.invitedUsers.contains(Long.valueOf(((ManageChatUserCell) view).getUserId()))) {
+                return false;
+            }
+            int itemViewType = viewHolder.getItemViewType();
+            return itemViewType == 0 || itemViewType == 1;
+        }
+
+        @Override // androidx.recyclerview.widget.RecyclerView.Adapter
+        public int getItemCount() {
+            return GroupVoipInviteAlert.this.rowCount;
+        }
+
+        @Override // androidx.recyclerview.widget.RecyclerView.Adapter
+        public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup viewGroup, int i) {
+            View view;
+            View view2;
+            if (i == 0) {
+                ManageChatUserCell manageChatUserCell = new ManageChatUserCell(this.mContext, 6, 2, false);
+                manageChatUserCell.setCustomRightImage(C2888R.drawable.msg_invited);
+                manageChatUserCell.setNameColor(Theme.getColor(Theme.key_voipgroup_nameText));
+                manageChatUserCell.setStatusColors(Theme.getColor(Theme.key_voipgroup_lastSeenTextUnscrolled), Theme.getColor(Theme.key_voipgroup_listeningText));
+                manageChatUserCell.setDividerColor(Theme.key_voipgroup_actionBar);
+                view = manageChatUserCell;
+            } else {
+                if (i == 1) {
+                    ManageChatTextCell manageChatTextCell = new ManageChatTextCell(this.mContext);
+                    int i2 = Theme.key_voipgroup_listeningText;
+                    manageChatTextCell.setColors(i2, i2);
+                    manageChatTextCell.setDividerColor(Theme.key_voipgroup_actionBar);
+                    view2 = manageChatTextCell;
+                } else if (i == 2) {
+                    GraySectionCell graySectionCell = new GraySectionCell(this.mContext);
+                    graySectionCell.setBackgroundColor(Theme.getColor(Theme.key_voipgroup_actionBarUnscrolled));
+                    graySectionCell.setTextColor(Theme.key_voipgroup_searchPlaceholder);
+                    view2 = graySectionCell;
+                } else if (i == 3) {
+                    View view3 = new View(this.mContext);
+                    view3.setLayoutParams(new RecyclerView.LayoutParams(-1, AndroidUtilities.m1124dp(56.0f)));
+                    view2 = view3;
+                } else if (i == 5) {
+                    FlickerLoadingView flickerLoadingView = new FlickerLoadingView(this.mContext);
+                    flickerLoadingView.setViewType(6);
+                    flickerLoadingView.setIsSingleCell(true);
+                    flickerLoadingView.setColors(Theme.key_voipgroup_inviteMembersBackground, Theme.key_voipgroup_searchBackground, Theme.key_voipgroup_actionBarUnscrolled);
+                    view = flickerLoadingView;
+                } else {
+                    view2 = new View(this.mContext);
+                }
+                return new RecyclerListView.Holder(view2);
+            }
+            view2 = view;
+            return new RecyclerListView.Holder(view2);
+        }
+
+        @Override // androidx.recyclerview.widget.RecyclerView.Adapter
+        public void onBindViewHolder(RecyclerView.ViewHolder viewHolder, int i) {
+            int i2;
+            long peerId;
+            int itemViewType = viewHolder.getItemViewType();
+            if (itemViewType != 0) {
+                if (itemViewType == 1) {
+                    ManageChatTextCell manageChatTextCell = (ManageChatTextCell) viewHolder.itemView;
+                    if (i == GroupVoipInviteAlert.this.addNewRow) {
+                        manageChatTextCell.setText(LocaleController.getString(C2888R.string.VoipGroupCopyInviteLink), null, C2888R.drawable.msg_link, 7, (!GroupVoipInviteAlert.this.loadingUsers || GroupVoipInviteAlert.this.firstLoaded) && GroupVoipInviteAlert.this.membersHeaderRow == -1 && !GroupVoipInviteAlert.this.participants.isEmpty());
+                        return;
+                    }
+                    return;
+                }
+                if (itemViewType != 2) {
+                    return;
+                }
+                GraySectionCell graySectionCell = (GraySectionCell) viewHolder.itemView;
+                if (i == GroupVoipInviteAlert.this.membersHeaderRow) {
+                    graySectionCell.setText(LocaleController.getString(C2888R.string.ChannelOtherMembers));
+                    return;
+                } else {
+                    if (i == GroupVoipInviteAlert.this.contactsHeaderRow) {
+                        if (GroupVoipInviteAlert.this.showContacts) {
+                            graySectionCell.setText(LocaleController.getString(C2888R.string.YourContactsToInvite));
+                            return;
+                        } else {
+                            graySectionCell.setText(LocaleController.getString(C2888R.string.GroupContacts));
+                            return;
+                        }
+                    }
+                    return;
+                }
+            }
+            ManageChatUserCell manageChatUserCell = (ManageChatUserCell) viewHolder.itemView;
+            manageChatUserCell.setTag(Integer.valueOf(i));
+            TLObject item = getItem(i);
+            if (i >= GroupVoipInviteAlert.this.participantsStartRow && i < GroupVoipInviteAlert.this.participantsEndRow) {
+                i2 = GroupVoipInviteAlert.this.participantsEndRow;
+            } else {
+                i2 = GroupVoipInviteAlert.this.contactsEndRow;
+            }
+            if (item instanceof TLRPC.TL_contact) {
+                peerId = ((TLRPC.TL_contact) item).user_id;
+            } else if (item instanceof TLRPC.User) {
+                peerId = ((TLRPC.User) item).f1825id;
+            } else if (item instanceof TLRPC.ChannelParticipant) {
+                peerId = MessageObject.getPeerId(((TLRPC.ChannelParticipant) item).peer);
+            } else {
+                peerId = ((TLRPC.ChatParticipant) item).user_id;
+            }
+            TLRPC.User user = MessagesController.getInstance(((BottomSheet) GroupVoipInviteAlert.this).currentAccount).getUser(Long.valueOf(peerId));
+            if (user != null) {
+                manageChatUserCell.setCustomImageVisible(GroupVoipInviteAlert.this.invitedUsers.contains(Long.valueOf(user.f1825id)));
+                manageChatUserCell.setData(user, null, null, i != i2 - 1);
+            }
+        }
+
+        @Override // androidx.recyclerview.widget.RecyclerView.Adapter
+        public void onViewRecycled(RecyclerView.ViewHolder viewHolder) {
+            View view = viewHolder.itemView;
+            if (view instanceof ManageChatUserCell) {
+                ((ManageChatUserCell) view).recycle();
+            }
+        }
+
+        @Override // androidx.recyclerview.widget.RecyclerView.Adapter
+        public int getItemViewType(int i) {
+            if ((i >= GroupVoipInviteAlert.this.participantsStartRow && i < GroupVoipInviteAlert.this.participantsEndRow) || (i >= GroupVoipInviteAlert.this.contactsStartRow && i < GroupVoipInviteAlert.this.contactsEndRow)) {
+                return 0;
+            }
+            if (i == GroupVoipInviteAlert.this.addNewRow) {
+                return 1;
+            }
+            if (i == GroupVoipInviteAlert.this.membersHeaderRow || i == GroupVoipInviteAlert.this.contactsHeaderRow) {
+                return 2;
+            }
+            if (i == GroupVoipInviteAlert.this.emptyRow) {
+                return 3;
+            }
+            if (i == GroupVoipInviteAlert.this.lastRow) {
+                return 4;
+            }
+            return i == GroupVoipInviteAlert.this.flickerProgressRow ? 5 : 0;
+        }
+
+        public TLObject getItem(int i) {
+            if (i >= GroupVoipInviteAlert.this.participantsStartRow && i < GroupVoipInviteAlert.this.participantsEndRow) {
+                return (TLObject) GroupVoipInviteAlert.this.participants.get(i - GroupVoipInviteAlert.this.participantsStartRow);
+            }
+            if (i < GroupVoipInviteAlert.this.contactsStartRow || i >= GroupVoipInviteAlert.this.contactsEndRow) {
+                return null;
+            }
+            return (TLObject) GroupVoipInviteAlert.this.contacts.get(i - GroupVoipInviteAlert.this.contactsStartRow);
+        }
+    }
+
+    @Override // org.telegram.p029ui.Components.UsersAlertBase
+    protected void search(String str) {
+        this.searchAdapter.searchUsers(str);
+    }
+
+    @Override // org.telegram.p029ui.Components.UsersAlertBase
+    protected void onSearchViewTouched(MotionEvent motionEvent, EditTextBoldCursor editTextBoldCursor) {
+        this.delegate.needOpenSearch(motionEvent, editTextBoldCursor);
+    }
+}

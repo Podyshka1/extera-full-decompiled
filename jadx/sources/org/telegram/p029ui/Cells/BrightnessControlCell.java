@@ -1,0 +1,123 @@
+package org.telegram.p029ui.Cells;
+
+import android.content.Context;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
+import android.os.Bundle;
+import android.view.MotionEvent;
+import android.view.View;
+import android.view.accessibility.AccessibilityNodeInfo;
+import android.widget.FrameLayout;
+import android.widget.ImageView;
+import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.C2888R;
+import org.telegram.p029ui.ActionBar.Theme;
+import org.telegram.p029ui.Components.LayoutHelper;
+import org.telegram.p029ui.Components.SeekBarView;
+import org.telegram.tgnet.TLObject;
+
+/* JADX INFO: loaded from: classes6.dex */
+public abstract class BrightnessControlCell extends FrameLayout {
+    private ImageView leftImageView;
+    Theme.ResourcesProvider resourcesProvider;
+    private ImageView rightImageView;
+    public final SeekBarView seekBarView;
+    private final int size;
+    private int type;
+
+    protected abstract void didChangedValue(float f);
+
+    public BrightnessControlCell(Context context, int i) {
+        this(context, i, null);
+    }
+
+    public BrightnessControlCell(Context context, int i, Theme.ResourcesProvider resourcesProvider) {
+        super(context);
+        this.type = i;
+        this.resourcesProvider = resourcesProvider;
+        ImageView imageView = new ImageView(context);
+        this.leftImageView = imageView;
+        addView(imageView, LayoutHelper.createFrame(24, 24.0f, 51, 17.0f, 12.0f, 0.0f, 0.0f));
+        SeekBarView seekBarView = new SeekBarView(context, true, resourcesProvider) { // from class: org.telegram.ui.Cells.BrightnessControlCell.1
+            @Override // org.telegram.p029ui.Components.SeekBarView, android.view.View
+            public boolean onTouchEvent(MotionEvent motionEvent) {
+                if (motionEvent.getAction() == 0) {
+                    getParent().requestDisallowInterceptTouchEvent(true);
+                }
+                return super.onTouchEvent(motionEvent);
+            }
+        };
+        this.seekBarView = seekBarView;
+        seekBarView.setReportChanges(true);
+        seekBarView.setDelegate(new SeekBarView.SeekBarViewDelegate() { // from class: org.telegram.ui.Cells.BrightnessControlCell.2
+            @Override // org.telegram.ui.Components.SeekBarView.SeekBarViewDelegate
+            public /* synthetic */ int getStepsCount() {
+                return SeekBarView.SeekBarViewDelegate.CC.$default$getStepsCount(this);
+            }
+
+            @Override // org.telegram.ui.Components.SeekBarView.SeekBarViewDelegate
+            public /* synthetic */ boolean needVisuallyDivideSteps() {
+                return SeekBarView.SeekBarViewDelegate.CC.$default$needVisuallyDivideSteps(this);
+            }
+
+            @Override // org.telegram.ui.Components.SeekBarView.SeekBarViewDelegate
+            public void onSeekBarPressed(boolean z) {
+            }
+
+            @Override // org.telegram.ui.Components.SeekBarView.SeekBarViewDelegate
+            public void onSeekBarDrag(boolean z, float f) {
+                BrightnessControlCell.this.didChangedValue(f);
+            }
+
+            @Override // org.telegram.ui.Components.SeekBarView.SeekBarViewDelegate
+            public CharSequence getContentDescription() {
+                return " ";
+            }
+        });
+        seekBarView.setImportantForAccessibility(2);
+        addView(seekBarView, LayoutHelper.createFrame(-1, 38.0f, 51, 54.0f, 5.0f, 54.0f, 0.0f));
+        ImageView imageView2 = new ImageView(context);
+        this.rightImageView = imageView2;
+        addView(imageView2, LayoutHelper.createFrame(24, 24.0f, 53, 0.0f, 12.0f, 17.0f, 0.0f));
+        if (i == 0) {
+            this.leftImageView.setImageResource(C2888R.drawable.msg_brightness_low);
+            this.rightImageView.setImageResource(C2888R.drawable.msg_brightness_high);
+            this.size = 48;
+        } else {
+            this.leftImageView.setImageResource(C2888R.drawable.msg_brightness_high);
+            this.rightImageView.setImageResource(C2888R.drawable.msg_brightness_low);
+            this.size = 43;
+        }
+    }
+
+    @Override // android.view.ViewGroup, android.view.View
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        ImageView imageView = this.leftImageView;
+        int i = Theme.key_windowBackgroundWhiteGrayIcon;
+        int color = Theme.getColor(i, this.resourcesProvider);
+        PorterDuff.Mode mode = PorterDuff.Mode.MULTIPLY;
+        imageView.setColorFilter(new PorterDuffColorFilter(color, mode));
+        this.rightImageView.setColorFilter(new PorterDuffColorFilter(Theme.getColor(i, this.resourcesProvider), mode));
+    }
+
+    @Override // android.widget.FrameLayout, android.view.View
+    protected void onMeasure(int i, int i2) {
+        super.onMeasure(View.MeasureSpec.makeMeasureSpec(View.MeasureSpec.getSize(i), TLObject.FLAG_30), View.MeasureSpec.makeMeasureSpec(AndroidUtilities.m1124dp(this.size), TLObject.FLAG_30));
+    }
+
+    public void setProgress(float f) {
+        this.seekBarView.setProgress(f);
+    }
+
+    @Override // android.view.View
+    public void onInitializeAccessibilityNodeInfo(AccessibilityNodeInfo accessibilityNodeInfo) {
+        super.onInitializeAccessibilityNodeInfo(accessibilityNodeInfo);
+        this.seekBarView.getSeekBarAccessibilityDelegate().onInitializeAccessibilityNodeInfoInternal(this, accessibilityNodeInfo);
+    }
+
+    @Override // android.view.View
+    public boolean performAccessibilityAction(int i, Bundle bundle) {
+        return super.performAccessibilityAction(i, bundle) || this.seekBarView.getSeekBarAccessibilityDelegate().performAccessibilityActionInternal(this, i, bundle);
+    }
+}

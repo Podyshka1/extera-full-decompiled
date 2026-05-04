@@ -1,0 +1,834 @@
+package org.telegram.p029ui.Components.quickforward;
+
+import android.animation.Animator;
+import android.animation.ObjectAnimator;
+import android.graphics.Bitmap;
+import android.graphics.BitmapShader;
+import android.graphics.Canvas;
+import android.graphics.ColorFilter;
+import android.graphics.ColorMatrix;
+import android.graphics.ColorMatrixColorFilter;
+import android.graphics.LinearGradient;
+import android.graphics.Matrix;
+import android.graphics.Paint;
+import android.graphics.Path;
+import android.graphics.PointF;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
+import android.graphics.Rect;
+import android.graphics.RectF;
+import android.graphics.Shader;
+import android.graphics.drawable.Drawable;
+import android.util.Property;
+import android.view.ViewTreeObserver;
+import android.view.animation.DecelerateInterpolator;
+import android.view.animation.Interpolator;
+import android.view.animation.LinearInterpolator;
+import androidx.core.content.ContextCompat;
+import androidx.core.math.MathUtils;
+import com.android.p003dx.p006io.Opcodes;
+import java.util.List;
+import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.C2888R;
+import org.telegram.messenger.MessageObject;
+import org.telegram.messenger.Utilities;
+import org.telegram.p029ui.ActionBar.Theme;
+import org.telegram.p029ui.Cells.ChatMessageCell;
+import org.telegram.p029ui.Components.AnimationProperties;
+import org.telegram.p029ui.Components.Bulletin;
+import org.telegram.p029ui.Components.CubicBezierInterpolator;
+import org.telegram.p029ui.Components.quickforward.BlurVisibilityDrawable;
+
+/* JADX INFO: loaded from: classes7.dex */
+public class QuickShareSelectorDrawable extends Drawable implements Animator.AnimatorListener {
+    private static final Property CLOSE_FACTOR;
+    private static final Property OPEN_FACTOR;
+    private final QuickShareAvatarCell[] avatarCells;
+    private BitmapShader bitmapShader;
+    private float bubbleOffset;
+    private float bulletinImageCx;
+    private float bulletinImageCy;
+    private Bulletin.LottieLayout bulletinLayout;
+    public final ChatMessageCell cell;
+    private BlurVisibilityDrawable closeAnimationDrawable;
+    private Bitmap globalBlurBitmap;
+    private Paint globalBlurBitmapPaint;
+    private boolean isDestroyed;
+    private boolean isReady;
+    public final String key;
+    private LinearGradient linearGradient;
+    public final MessageObject messageObject;
+    private int offsetX;
+    private int offsetY;
+    private final Runnable onFinish;
+    public final QuickShareSelectorOverlayLayout parent;
+    private final Drawable shadowDrawable;
+    private static final RectF tmpRectF = new RectF();
+    private static final Rect tmpRect = new Rect();
+    private static final int[] tmpCords = new int[2];
+    private final Paint paintBubbleBg = new Paint(1);
+    private final Matrix shaderMatrix = new Matrix();
+    private final Path path = new Path();
+    private final RectF bubbleStart = new RectF();
+    private final RectF buttonCurrent = new RectF();
+    private final RectF bubbleCurrent = new RectF();
+    private final RectF ballLeft = new RectF();
+    private final RectF ballRight = new RectF();
+    private float openProgress = 0.0f;
+    private float closeProgress = 0.0f;
+    private Matrix bitmapMatrix = new Matrix();
+    private boolean openAnimationCompleted = false;
+    private boolean closeAnimationCompleted = false;
+    private boolean closeAnimationStarted = false;
+    private boolean ballsAllowed = true;
+    private int selectedIndex = -1;
+    private final ObjectAnimator openAnimation = ObjectAnimator.ofFloat(this, (Property<QuickShareSelectorDrawable, Float>) OPEN_FACTOR, 1.0f).setDuration(560L);
+    private final ObjectAnimator closeAnimation = ObjectAnimator.ofFloat(this, (Property<QuickShareSelectorDrawable, Float>) CLOSE_FACTOR, 1.0f).setDuration(240L);
+
+    private static double calculateC0(double d, double d2, double d3, double d4) {
+        return (d2 - (d4 * (d * d))) - (d3 * d);
+    }
+
+    private static double calculateC1(double d, double d2, double d3, double d4, double d5) {
+        double d6 = (d4 - (d5 * ((d3 * d3) - (d * d)))) - d2;
+        double d7 = d3 - d;
+        if (d7 == 0.0d) {
+            return 0.0d;
+        }
+        return d6 / d7;
+    }
+
+    private static double calculateC2(double d, double d2, double d3, double d4, double d5, double d6) {
+        double d7 = (d6 - (((d5 - d) * (d4 - d2)) / (d3 - d))) - d2;
+        double d8 = (((d5 * d5) - (d3 * d5)) + (d3 * d)) - (d * d5);
+        if (d8 == 0.0d) {
+            return 0.0d;
+        }
+        return d7 / d8;
+    }
+
+    private static float fromTo(float f, float f2, float f3) {
+        return f + ((f2 - f) * f3);
+    }
+
+    private static float reverseAngle(float f) {
+        return f <= 0.0f ? f + 180.0f : f - 180.0f;
+    }
+
+    @Override // android.graphics.drawable.Drawable
+    public int getOpacity() {
+        return 0;
+    }
+
+    @Override // android.animation.Animator.AnimatorListener
+    public void onAnimationCancel(Animator animator) {
+    }
+
+    @Override // android.animation.Animator.AnimatorListener
+    public void onAnimationRepeat(Animator animator) {
+    }
+
+    @Override // android.animation.Animator.AnimatorListener
+    public void onAnimationStart(Animator animator) {
+    }
+
+    @Override // android.graphics.drawable.Drawable
+    public void setAlpha(int i) {
+    }
+
+    @Override // android.graphics.drawable.Drawable
+    public void setColorFilter(ColorFilter colorFilter) {
+    }
+
+    public static class Sizes {
+        public static int AVATAR = 0;
+        public static int AVATAR_RADIUS = 21;
+        public static int BLUR_RADIUS = 10;
+        public static int BUBBLE_HEIGHT = 0;
+        public static int CLOSE_AVATAR_JUMP_HEIGHT = 15;
+        public static int GAP = 11;
+        public static int PADDING_H = 9;
+        public static int TEXT_BLUR_RADIUS = 4;
+        public static int TEXT_PADDING_EXTERNAL = 16;
+        public static int TEXT_PADDING_INTERNAL = 8;
+
+        static {
+            int i = 21 * 2;
+            AVATAR = i;
+            BUBBLE_HEIGHT = i + (7 * 2);
+        }
+    }
+
+    static {
+        String str = "openFactor";
+        OPEN_FACTOR = new AnimationProperties.FloatProperty(str) { // from class: org.telegram.ui.Components.quickforward.QuickShareSelectorDrawable.2
+            @Override // android.util.Property
+            public Float get(QuickShareSelectorDrawable quickShareSelectorDrawable) {
+                return Float.valueOf(quickShareSelectorDrawable.openProgress);
+            }
+
+            @Override // org.telegram.ui.Components.AnimationProperties.FloatProperty
+            public void setValue(QuickShareSelectorDrawable quickShareSelectorDrawable, float f) {
+                quickShareSelectorDrawable.openProgress = f;
+                quickShareSelectorDrawable.calculateOpeningAnimationPositions();
+                quickShareSelectorDrawable.invalidateSelf();
+            }
+        };
+        CLOSE_FACTOR = new AnimationProperties.FloatProperty(str) { // from class: org.telegram.ui.Components.quickforward.QuickShareSelectorDrawable.3
+            @Override // android.util.Property
+            public Float get(QuickShareSelectorDrawable quickShareSelectorDrawable) {
+                return Float.valueOf(quickShareSelectorDrawable.closeProgress);
+            }
+
+            @Override // org.telegram.ui.Components.AnimationProperties.FloatProperty
+            public void setValue(QuickShareSelectorDrawable quickShareSelectorDrawable, float f) {
+                quickShareSelectorDrawable.closeProgress = f;
+                quickShareSelectorDrawable.invalidateSelf();
+            }
+        };
+    }
+
+    public int getBubbleWidth() {
+        int i = Sizes.AVATAR;
+        int i2 = Sizes.GAP;
+        return AndroidUtilities.m1124dp((((i + i2) * this.avatarCells.length) - i2) + (Sizes.PADDING_H * 2));
+    }
+
+    public QuickShareSelectorDrawable(QuickShareSelectorOverlayLayout quickShareSelectorOverlayLayout, ChatMessageCell chatMessageCell, List list, String str, Runnable runnable) {
+        int i = 0;
+        this.onFinish = runnable;
+        this.parent = quickShareSelectorOverlayLayout;
+        this.cell = chatMessageCell;
+        this.messageObject = chatMessageCell.getMessageObject();
+        this.key = str;
+        this.avatarCells = new QuickShareAvatarCell[Math.min(5, list.size())];
+        while (true) {
+            QuickShareAvatarCell[] quickShareAvatarCellArr = this.avatarCells;
+            if (i < quickShareAvatarCellArr.length) {
+                quickShareAvatarCellArr[i] = new QuickShareAvatarCell(this, ((Long) list.get(i)).longValue());
+                i++;
+            } else {
+                this.paintBubbleBg.setStyle(Paint.Style.FILL);
+                this.shadowDrawable = ContextCompat.getDrawable(quickShareSelectorOverlayLayout.getContext(), C2888R.drawable.reactions_bubble_shadow).mutate();
+                chatMessageCell.setHideSideButtonByQuickShare(true);
+                quickShareSelectorOverlayLayout.performHapticFeedback(3, 1);
+                updateColors();
+                ObjectAnimator objectAnimator = this.openAnimation;
+                Interpolator interpolator = Interpolators.LINEAR_INTERPOLATOR;
+                objectAnimator.setInterpolator(interpolator);
+                this.openAnimation.addListener(this);
+                this.closeAnimation.setInterpolator(interpolator);
+                this.closeAnimation.addListener(this);
+                AndroidUtilities.makeGlobalBlurBitmap(new Utilities.Callback() { // from class: org.telegram.ui.Components.quickforward.QuickShareSelectorDrawable$$ExternalSyntheticLambda1
+                    @Override // org.telegram.messenger.Utilities.Callback
+                    public final void run(Object obj) {
+                        this.f$0.lambda$new$0((Bitmap) obj);
+                    }
+                }, 15.0f);
+                return;
+            }
+        }
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public /* synthetic */ void lambda$new$0(Bitmap bitmap) {
+        if (this.isDestroyed) {
+            this.globalBlurBitmap.recycle();
+            return;
+        }
+        this.globalBlurBitmap = bitmap;
+        Bitmap bitmap2 = this.globalBlurBitmap;
+        Shader.TileMode tileMode = Shader.TileMode.CLAMP;
+        this.bitmapShader = new BitmapShader(bitmap2, tileMode, tileMode);
+        Paint paint = new Paint(2);
+        this.globalBlurBitmapPaint = paint;
+        paint.setShader(this.bitmapShader);
+        ColorMatrix colorMatrix = new ColorMatrix();
+        AndroidUtilities.adjustSaturationColorMatrix(colorMatrix, Theme.isCurrentThemeDark() ? 0.08f : 1.25f);
+        AndroidUtilities.adjustBrightnessColorMatrix(colorMatrix, Theme.isCurrentThemeDark() ? 0.02f : -0.15f);
+        this.globalBlurBitmapPaint.setColorFilter(new ColorMatrixColorFilter(colorMatrix));
+        this.bitmapMatrix.reset();
+        this.bitmapMatrix.setScale(15.0f, 15.0f);
+        this.bitmapShader.setLocalMatrix(this.bitmapMatrix);
+    }
+
+    public Paint getBlurBitmapPaint() {
+        return this.globalBlurBitmapPaint;
+    }
+
+    private void calculateCords() {
+        ChatMessageCell chatMessageCell = this.cell;
+        int[] iArr = tmpCords;
+        chatMessageCell.getLocationInWindow(iArr);
+        int i = iArr[0];
+        int i2 = iArr[1];
+        this.parent.getLocationInWindow(iArr);
+        int i3 = iArr[0];
+        int i4 = iArr[1];
+        this.offsetX = i - i3;
+        this.offsetY = i2 - i4;
+        float fM1124dp = AndroidUtilities.m1124dp(16.0f);
+        float sideButtonStartX = this.offsetX + this.cell.getSideButtonStartX() + fM1124dp;
+        float sideButtonStartY = this.offsetY + this.cell.getSideButtonStartY() + fM1124dp;
+        this.bubbleStart.set(sideButtonStartX - fM1124dp, sideButtonStartY - fM1124dp, sideButtonStartX + fM1124dp, sideButtonStartY + fM1124dp);
+        float fM1124dp2 = AndroidUtilities.m1124dp(16.0f);
+        if (this.bubbleStart.right + AndroidUtilities.m1124dp(48.0f) + fM1124dp2 > this.parent.getMeasuredWidth()) {
+            this.bubbleOffset = Math.max(0.0f, (this.parent.getMeasuredWidth() - fM1124dp2) - this.bubbleStart.right);
+        } else if (((this.bubbleStart.right + AndroidUtilities.m1124dp(48.0f)) - getBubbleWidth()) - fM1124dp2 < 0.0f) {
+            this.bubbleOffset = Math.max(0.0f, (fM1124dp2 + getBubbleWidth()) - this.bubbleStart.right);
+        } else {
+            this.bubbleOffset = AndroidUtilities.m1124dp(48.0f);
+        }
+    }
+
+    private void prepare() {
+        calculateCords();
+        this.openAnimation.start();
+        this.isReady = true;
+    }
+
+    public boolean isDestroyed() {
+        return this.isDestroyed;
+    }
+
+    public void onTouchMoveEvent(float f, float f2) {
+        if (this.openAnimationCompleted) {
+            RectF rectF = this.bubbleCurrent;
+            float f3 = (f - rectF.left) + this.offsetX;
+            float f4 = (f2 - rectF.top) + this.offsetY;
+            setIndex((((float) (-AndroidUtilities.m1124dp((float) (Sizes.TEXT_PADDING_EXTERNAL + 21)))) >= f4 || f4 >= this.bubbleCurrent.height()) ? -1 : MathUtils.clamp((int) Math.floor((f3 - (AndroidUtilities.m1124dp(Sizes.PADDING_H) - (AndroidUtilities.m1124dp(Sizes.GAP) / 2.0f))) / AndroidUtilities.m1124dp(Sizes.AVATAR + Sizes.GAP)), 0, this.avatarCells.length - 1));
+        }
+    }
+
+    public void close(Bulletin bulletin) {
+        if (bulletin == null) {
+            this.selectedIndex = -1;
+            closeImpl();
+            return;
+        }
+        Bulletin.Layout layout = bulletin.getLayout();
+        if (!(layout instanceof Bulletin.LottieLayout)) {
+            closeImpl();
+            return;
+        }
+        Bulletin.LottieLayout lottieLayout = (Bulletin.LottieLayout) layout;
+        this.bulletinLayout = lottieLayout;
+        lottieLayout.imageView.setVisibility(4);
+        final ViewTreeObserver viewTreeObserver = this.bulletinLayout.getViewTreeObserver();
+        viewTreeObserver.addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() { // from class: org.telegram.ui.Components.quickforward.QuickShareSelectorDrawable.1
+            @Override // android.view.ViewTreeObserver.OnPreDrawListener
+            public boolean onPreDraw() {
+                viewTreeObserver.removeOnPreDrawListener(this);
+                QuickShareSelectorDrawable.this.initBulletin();
+                QuickShareSelectorDrawable.this.closeImpl();
+                return true;
+            }
+        });
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public void closeImpl() {
+        this.closeAnimation.start();
+        this.closeAnimationStarted = true;
+        if (this.openAnimationCompleted && !this.isDestroyed) {
+            BlurVisibilityDrawable blurVisibilityDrawable = new BlurVisibilityDrawable(new BlurVisibilityDrawable.DrawRunnable() { // from class: org.telegram.ui.Components.quickforward.QuickShareSelectorDrawable$$ExternalSyntheticLambda0
+                @Override // org.telegram.ui.Components.quickforward.BlurVisibilityDrawable.DrawRunnable
+                public final void draw(Canvas canvas, int i) {
+                    this.f$0.drawBubble(canvas, i);
+                }
+            });
+            this.closeAnimationDrawable = blurVisibilityDrawable;
+            blurVisibilityDrawable.render((int) this.bubbleCurrent.width(), (int) (this.bubbleCurrent.height() + AndroidUtilities.m1124dp(30.0f)), AndroidUtilities.m1124dp(Sizes.BLUR_RADIUS), 4.0f);
+        }
+        invalidateSelf();
+    }
+
+    public long getSelectedDialogId() {
+        int i = this.selectedIndex;
+        if (i != -1) {
+            return this.avatarCells[i].dialogId;
+        }
+        return 0L;
+    }
+
+    public void destroy() {
+        this.cell.setHideSideButtonByQuickShare(false);
+        if (this.isDestroyed) {
+            return;
+        }
+        this.isDestroyed = true;
+        Bitmap bitmap = this.globalBlurBitmap;
+        if (bitmap != null) {
+            bitmap.recycle();
+        }
+        BlurVisibilityDrawable blurVisibilityDrawable = this.closeAnimationDrawable;
+        if (blurVisibilityDrawable != null) {
+            blurVisibilityDrawable.recycle();
+        }
+        for (QuickShareAvatarCell quickShareAvatarCell : this.avatarCells) {
+            quickShareAvatarCell.recycle();
+        }
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public void initBulletin() {
+        Bulletin.LottieLayout lottieLayout = this.bulletinLayout;
+        if (lottieLayout == null) {
+            return;
+        }
+        int[] iArr = tmpCords;
+        lottieLayout.getLocationInWindow(iArr);
+        float f = iArr[0];
+        float translationY = iArr[1] - this.bulletinLayout.getTranslationY();
+        Bulletin.LottieLayout lottieLayout2 = this.bulletinLayout;
+        float topOffset = translationY + (lottieLayout2.top ? lottieLayout2.getTopOffset() : -lottieLayout2.getBottomOffset());
+        this.parent.getLocationInWindow(iArr);
+        float f2 = iArr[0];
+        float f3 = iArr[1];
+        this.bulletinImageCx = (f - f2) + this.bulletinLayout.imageView.getLeft() + (this.bulletinLayout.imageView.getMeasuredWidth() / 2.0f);
+        this.bulletinImageCy = (topOffset - f3) + this.bulletinLayout.imageView.getTop() + (this.bulletinLayout.imageView.getMeasuredHeight() / 2.0f);
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public void drawBubble(Canvas canvas, int i) {
+        canvas.save();
+        RectF rectF = this.bubbleCurrent;
+        canvas.translate(-rectF.left, (-rectF.top) + AndroidUtilities.m1124dp(30.0f));
+        draw(canvas, i, true);
+        canvas.restore();
+    }
+
+    public boolean isActive() {
+        return !this.closeAnimationStarted;
+    }
+
+    @Override // android.graphics.drawable.Drawable
+    public void draw(Canvas canvas) {
+        draw(canvas, 255, false);
+    }
+
+    public void draw(Canvas canvas, int i, boolean z) {
+        int i2;
+        float f;
+        int i3;
+        QuickShareAvatarCell quickShareAvatarCell;
+        float f2;
+        float f3;
+        boolean z2;
+        float fMin;
+        Canvas canvas2 = canvas;
+        if (!this.isReady) {
+            prepare();
+        }
+        BlurVisibilityDrawable blurVisibilityDrawable = this.closeAnimationDrawable;
+        int i4 = 2;
+        if (blurVisibilityDrawable != null && !z) {
+            RectF rectF = this.bubbleCurrent;
+            int i5 = (int) rectF.left;
+            int iM1124dp = (int) (rectF.top - AndroidUtilities.m1124dp(30.0f));
+            RectF rectF2 = this.bubbleCurrent;
+            blurVisibilityDrawable.setBounds(i5, iM1124dp, (int) rectF2.right, (int) rectF2.bottom);
+            this.closeAnimationDrawable.setAlpha((int) ((1.0f - Interpolators.closeAlpha.getInterpolation(this.closeProgress)) * 255.0f));
+            this.closeAnimationDrawable.draw(canvas2);
+            if (this.selectedIndex != -1) {
+                float interpolation = 1.0f - Interpolators.closeAvatarAlpha.getInterpolation(this.closeProgress);
+                float interpolation2 = Interpolators.closeAvatarPosition.getInterpolation(this.closeProgress);
+                float fCenterX = this.bubbleCurrent.centerX() + (AndroidUtilities.m1124dp(Sizes.AVATAR + Sizes.GAP) * (this.selectedIndex - 2));
+                float fCenterY = this.bubbleCurrent.centerY();
+                float f4 = this.bulletinImageCx;
+                float f5 = this.bulletinImageCy;
+                float f6 = (fCenterX + f4) / 2.0f;
+                Bulletin.LottieLayout lottieLayout = this.bulletinLayout;
+                if (lottieLayout != null && lottieLayout.top) {
+                    fMin = Math.max(fCenterY, f5) + AndroidUtilities.m1124dp(Sizes.CLOSE_AVATAR_JUMP_HEIGHT);
+                } else {
+                    fMin = Math.min(fCenterY, f5) - AndroidUtilities.m1124dp(Sizes.CLOSE_AVATAR_JUMP_HEIGHT);
+                }
+                this.avatarCells[this.selectedIndex].drawBlurredAvatar(canvas2, fromTo(fCenterX, f4, interpolation2), findParabola(fCenterX, fCenterY, f4, f5, f6, fMin, interpolation2), fromTo((AndroidUtilities.m1124dp(Sizes.AVATAR) / 2.0f) + AndroidUtilities.m1124dp(2.0f), AndroidUtilities.m1124dp(12.0f), interpolation2), interpolation);
+                return;
+            }
+            return;
+        }
+        float f7 = !z ? 1.0f - this.closeProgress : i / 255.0f;
+        float fFromTo = fromTo(0.3f, 0.075f, Interpolators.bgScale.getInterpolation(this.openProgress));
+        this.shaderMatrix.reset();
+        this.shaderMatrix.setScale(fFromTo, fFromTo);
+        this.shaderMatrix.postTranslate(0.0f, this.bubbleCurrent.bottom);
+        this.linearGradient.setLocalMatrix(this.shaderMatrix);
+        this.paintBubbleBg.setAlpha((int) (Interpolators.bgOpacity.getInterpolation(this.openProgress) * 255.0f * f7));
+        RectF rectF3 = tmpRectF;
+        rectF3.set(this.bubbleCurrent);
+        rectF3.inset(-AndroidUtilities.m1124dp(8.0f), -AndroidUtilities.m1124dp(8.0f));
+        Rect rect = tmpRect;
+        rectF3.round(rect);
+        this.shadowDrawable.setAlpha((int) (255.0f * f7));
+        this.shadowDrawable.setBounds(rect);
+        this.shadowDrawable.draw(canvas2);
+        if (!this.openAnimationCompleted) {
+            float interpolation3 = (Interpolators.buttonRotationUp.getInterpolation(this.openProgress) - Interpolators.buttonRotationDown.getInterpolation(this.openProgress)) * (-40.0f);
+            canvas2.save();
+            RectF rectF4 = this.buttonCurrent;
+            canvas2.translate(rectF4.left, rectF4.top);
+            canvas2.rotate(interpolation3, AndroidUtilities.m1124dp(16.0f), AndroidUtilities.m1124dp(16.0f));
+            canvas2.translate(-this.cell.getSideButtonStartX(), -this.cell.getSideButtonStartY());
+            this.cell.drawSideButton(canvas2, true);
+            canvas2.restore();
+        }
+        if (this.ballsAllowed && !this.openAnimationCompleted) {
+            canvas2.drawPath(this.path, this.paintBubbleBg);
+        } else {
+            float fMin2 = Math.min(this.bubbleCurrent.width(), this.bubbleCurrent.height()) / 2.0f;
+            float fMin3 = Math.min(this.buttonCurrent.width(), this.buttonCurrent.height()) / 2.0f;
+            canvas2.drawRoundRect(this.bubbleCurrent, fMin2, fMin2, this.paintBubbleBg);
+            if (!this.openAnimationCompleted) {
+                canvas2.drawRoundRect(this.buttonCurrent, fMin3, fMin3, this.paintBubbleBg);
+            }
+        }
+        float fM1124dp = AndroidUtilities.m1124dp(2.0f) * Interpolators.avatarOvershootCancel.getInterpolation(this.openProgress);
+        float fM1124dp2 = ((AndroidUtilities.m1124dp(Sizes.AVATAR + 2) * Interpolators.avatar1.getInterpolation(this.openProgress)) / 2.0f) - fM1124dp;
+        float fM1124dp3 = ((AndroidUtilities.m1124dp(Sizes.AVATAR + 2) * Interpolators.avatar2.getInterpolation(this.openProgress)) / 2.0f) - fM1124dp;
+        float fM1124dp4 = ((AndroidUtilities.m1124dp(Sizes.AVATAR + 2) * Interpolators.avatar3.getInterpolation(this.openProgress)) / 2.0f) - fM1124dp;
+        int i6 = 0;
+        while (i6 < i4) {
+            int i7 = 0;
+            while (true) {
+                if (i7 < this.avatarCells.length) {
+                    if (!(i6 == 0 && i7 == this.selectedIndex) && (i6 != 1 || i7 == this.selectedIndex)) {
+                        float length = i7 - ((r4.length / 2.0f) - 0.5f);
+                        float f8 = i7 == i4 ? fM1124dp2 : (i7 == 1 || i7 == 3) ? fM1124dp3 : fM1124dp4;
+                        float fCenterX2 = this.bubbleCurrent.centerX() + (AndroidUtilities.m1124dp(Sizes.AVATAR + Sizes.GAP) * length);
+                        float fCenterY2 = this.bubbleCurrent.centerY();
+                        QuickShareAvatarCell quickShareAvatarCell2 = this.avatarCells[i7];
+                        float fM1124dp5 = AndroidUtilities.m1124dp(Sizes.TEXT_PADDING_EXTERNAL);
+                        float measuredWidth = this.parent.getMeasuredWidth() - AndroidUtilities.m1124dp(Sizes.TEXT_PADDING_EXTERNAL);
+                        RectF rectF5 = this.bubbleCurrent;
+                        float f9 = rectF5.left;
+                        float f10 = rectF5.right;
+                        if (i7 == this.selectedIndex && this.closeAnimationStarted) {
+                            i2 = i7;
+                            f = fM1124dp5;
+                            i3 = i6;
+                            quickShareAvatarCell = quickShareAvatarCell2;
+                            f2 = measuredWidth;
+                            f3 = f10;
+                            z2 = true;
+                        } else {
+                            i2 = i7;
+                            f = fM1124dp5;
+                            i3 = i6;
+                            quickShareAvatarCell = quickShareAvatarCell2;
+                            f2 = measuredWidth;
+                            f3 = f10;
+                            z2 = false;
+                        }
+                        quickShareAvatarCell.draw(canvas2, f, f2, f9, f3, fCenterX2, fCenterY2, f8, f7, z2);
+                    } else {
+                        i3 = i6;
+                        i2 = i7;
+                    }
+                    i7 = i2 + 1;
+                    canvas2 = canvas;
+                    i6 = i3;
+                    i4 = 2;
+                }
+            }
+            i6++;
+            canvas2 = canvas;
+            i4 = 2;
+        }
+    }
+
+    private void updateColors() {
+        int color = Theme.getColor(Theme.key_actionBarDefaultSubmenuBackground, this.cell.getResourcesProvider());
+        this.shadowDrawable.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_chat_messagePanelShadow), PorterDuff.Mode.MULTIPLY));
+        LinearGradient linearGradient = new LinearGradient(0.0f, 0.0f, 0.0f, AndroidUtilities.m1124dp(100.0f), new int[]{color, 16777215 & color}, new float[]{0.0f, 1.0f}, Shader.TileMode.CLAMP);
+        this.linearGradient = linearGradient;
+        this.paintBubbleBg.setShader(linearGradient);
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public void calculateOpeningAnimationPositions() {
+        float interpolation = 1.0f - Interpolators.overshootCancel.getInterpolation(this.openProgress);
+        float interpolation2 = (Interpolators.buttonJumpUp.getInterpolation(this.openProgress) - Interpolators.buttonJumpDown.getInterpolation(this.openProgress)) * AndroidUtilities.m1124dp(13.0f);
+        this.buttonCurrent.set(this.bubbleStart);
+        this.buttonCurrent.offset(0.0f, -interpolation2);
+        float fFromTo = fromTo(this.buttonCurrent.height(), AndroidUtilities.m1124dp(Sizes.BUBBLE_HEIGHT) + (AndroidUtilities.m1124dp(2.0f) * interpolation), Interpolators.heightExpansion.getInterpolation(this.openProgress)) / 2.0f;
+        Interpolator interpolator = Interpolators.widthExpansion;
+        float fFromTo2 = fromTo(this.buttonCurrent.width(), getBubbleWidth() + (AndroidUtilities.m1124dp(10.0f) * interpolation), interpolator.getInterpolation(this.openProgress));
+        float f = fFromTo * 2.0f;
+        float fMax = Math.max(fFromTo2, f);
+        float fCenterX = this.bubbleStart.centerX() + fFromTo + (Math.min(AndroidUtilities.m1124dp(-12.0f) + this.bubbleOffset, (fMax - Math.max(this.buttonCurrent.width(), f)) / 2.0f) * interpolator.getInterpolation(this.openProgress));
+        float fM1124dp = ((this.bubbleStart.bottom - fFromTo) - 1.0f) - ((AndroidUtilities.m1124dp(38.0f) + (AndroidUtilities.m1124dp(6.0f) * interpolation)) * Interpolators.bubbleY.getInterpolation(this.openProgress));
+        RectF rectF = this.bubbleCurrent;
+        rectF.left = fCenterX - fMax;
+        rectF.top = fM1124dp - fFromTo;
+        rectF.right = fCenterX;
+        rectF.bottom = fM1124dp + fFromTo;
+        if (!this.ballsAllowed || this.openAnimationCompleted) {
+            return;
+        }
+        float fFromTo3 = fromTo(AndroidUtilities.m1124dp(5.0f), AndroidUtilities.m1124dp(3.0f), Interpolators.ballsRadius.getInterpolation(this.openProgress));
+        float f2 = this.bubbleCurrent.bottom + fFromTo3;
+        float fFindOtherLeg = (float) findOtherLeg((this.buttonCurrent.width() / 2.0f) + fFromTo3, Math.abs(f2 - this.buttonCurrent.centerY()));
+        float fCenterX2 = this.buttonCurrent.centerX() - fFindOtherLeg;
+        RectF rectF2 = this.bubbleCurrent;
+        boolean z = fCenterX2 < rectF2.left + (rectF2.height() / 2.0f);
+        if (z) {
+            float fCenterX3 = this.buttonCurrent.centerX();
+            float fCenterY = this.buttonCurrent.centerY();
+            float fHeight = (this.buttonCurrent.height() / 2.0f) + fFromTo3;
+            RectF rectF3 = this.bubbleCurrent;
+            PointF pointFFindIntersectionWithGravity = findIntersectionWithGravity(fCenterX3, fCenterY, fHeight, rectF3.left + (rectF3.height() / 2.0f), this.bubbleCurrent.centerY(), (this.bubbleCurrent.height() / 2.0f) + fFromTo3, true);
+            if (pointFFindIntersectionWithGravity != null) {
+                fCenterX2 = pointFFindIntersectionWithGravity.x;
+                f2 = pointFFindIntersectionWithGravity.y;
+            } else {
+                this.ballsAllowed = false;
+            }
+        }
+        this.ballLeft.set(fCenterX2 - fFromTo3, f2 - fFromTo3, fCenterX2 + fFromTo3, f2 + fFromTo3);
+        float f3 = this.bubbleCurrent.bottom + fFromTo3;
+        float fCenterX4 = this.buttonCurrent.centerX() + fFindOtherLeg;
+        RectF rectF4 = this.bubbleCurrent;
+        boolean z2 = fCenterX4 > rectF4.right - (rectF4.height() / 2.0f);
+        if (z2) {
+            float fCenterX5 = this.buttonCurrent.centerX();
+            float fCenterY2 = this.buttonCurrent.centerY();
+            float fHeight2 = (this.buttonCurrent.height() / 2.0f) + fFromTo3;
+            RectF rectF5 = this.bubbleCurrent;
+            PointF pointFFindIntersectionWithGravity2 = findIntersectionWithGravity(fCenterX5, fCenterY2, fHeight2, rectF5.right - (rectF5.height() / 2.0f), this.bubbleCurrent.centerY(), (this.bubbleCurrent.height() / 2.0f) + fFromTo3, false);
+            if (pointFFindIntersectionWithGravity2 != null) {
+                fCenterX4 = pointFFindIntersectionWithGravity2.x;
+                f3 = pointFFindIntersectionWithGravity2.y;
+            } else {
+                this.ballsAllowed = false;
+            }
+        }
+        this.ballRight.set(fCenterX4 - fFromTo3, f3 - fFromTo3, fCenterX4 + fFromTo3, f3 + fFromTo3);
+        float fAbs = Math.abs(this.ballLeft.centerX() - this.ballRight.centerX());
+        float fAbs2 = Math.abs(this.ballLeft.centerY() - this.ballRight.centerY());
+        if (Math.sqrt((fAbs * fAbs) + (fAbs2 * fAbs2)) <= (this.ballLeft.width() + this.ballRight.width()) / 2.0f && this.ballsAllowed) {
+            this.ballsAllowed = false;
+        }
+        if (this.ballsAllowed) {
+            buildPath(this.path, this.buttonCurrent, this.bubbleCurrent, this.ballLeft, this.ballRight, z, z2);
+        }
+    }
+
+    private void onOpenAnimationEnd() {
+        this.cell.setHideSideButtonByQuickShare(false);
+        this.openAnimationCompleted = true;
+        invalidateSelf();
+        if (this.closeAnimationCompleted) {
+            this.onFinish.run();
+        }
+    }
+
+    private void onCloseAnimationEnd() {
+        this.closeAnimationCompleted = true;
+        invalidateSelf();
+        Bulletin.LottieLayout lottieLayout = this.bulletinLayout;
+        if (lottieLayout != null) {
+            lottieLayout.imageView.setVisibility(0);
+        }
+        if (this.openAnimationCompleted) {
+            this.onFinish.run();
+        }
+    }
+
+    private void setIndex(int i) {
+        if (this.selectedIndex == i) {
+            return;
+        }
+        this.parent.performHapticFeedback(3, 1);
+        this.selectedIndex = i;
+        int i2 = 0;
+        while (true) {
+            QuickShareAvatarCell[] quickShareAvatarCellArr = this.avatarCells;
+            if (i2 >= quickShareAvatarCellArr.length) {
+                return;
+            }
+            quickShareAvatarCellArr[i2].setSelected(i == i2, true);
+            this.avatarCells[i2].setFullVisible(i == i2 || i == -1, true);
+            i2++;
+        }
+    }
+
+    private void buildPath(Path path, RectF rectF, RectF rectF2, RectF rectF3, RectF rectF4, boolean z, boolean z2) {
+        path.reset();
+        float fCalculateAngle = calculateAngle(rectF.centerX(), rectF.centerY(), rectF4.centerX(), rectF4.centerY());
+        float fCalculateAngle2 = calculateAngle(rectF.centerX(), rectF.centerY(), rectF3.centerX(), rectF3.centerY());
+        arcTo(path, rectF, fCalculateAngle, fCalculateAngle2, false);
+        float fCalculateAngle3 = z ? calculateAngle(rectF3.centerX(), rectF3.centerY(), rectF2.left + (rectF2.height() / 2.0f), rectF2.centerY()) : -90.0f;
+        arcTo(path, rectF3, reverseAngle(fCalculateAngle2), fCalculateAngle3, true, true);
+        if (!z) {
+            path.lineTo(rectF2.left + (rectF2.height() / 2.0f), rectF2.bottom);
+        }
+        RectF rectF5 = tmpRectF;
+        float f = rectF2.left;
+        rectF5.set(f, rectF2.top, rectF2.height() + f, rectF2.bottom);
+        arcTo(path, rectF5, reverseAngle(fCalculateAngle3), -90.0f, false);
+        path.lineTo(rectF2.right - (rectF2.height() / 2.0f), rectF2.top);
+        float fCalculateAngle4 = z2 ? calculateAngle(rectF4.centerX(), rectF4.centerY(), rectF2.right - (rectF2.height() / 2.0f), rectF2.centerY()) : -90.0f;
+        rectF5.set(rectF2.right - rectF2.height(), rectF2.top, rectF2.right, rectF2.bottom);
+        arcTo(path, rectF5, -90.0f, reverseAngle(fCalculateAngle4), false);
+        if (!z2) {
+            path.lineTo(rectF4.centerX(), rectF2.bottom);
+        }
+        arcTo(path, rectF4, fCalculateAngle4, reverseAngle(fCalculateAngle), true, true);
+        path.close();
+    }
+
+    private void arcTo(Path path, RectF rectF, float f, float f2, boolean z) {
+        arcTo(path, rectF, f, f2, z, false);
+    }
+
+    private void arcTo(Path path, RectF rectF, float f, float f2, boolean z, boolean z2) {
+        float f3 = f2 - f;
+        if (z) {
+            if (f3 > 0.0f) {
+                f3 -= 360.0f;
+            }
+        } else if (f3 < 0.0f) {
+            f3 += 360.0f;
+        }
+        if (Math.abs(f3) > 270.0f && z2) {
+            this.ballsAllowed = false;
+        }
+        path.arcTo(rectF, f, f3);
+    }
+
+    private static double findOtherLeg(double d, double d2) {
+        if (d <= d2) {
+            return 0.0d;
+        }
+        return Math.sqrt((d * d) - (d2 * d2));
+    }
+
+    public static PointF findIntersectionWithGravity(float f, float f2, float f3, float f4, float f5, float f6, boolean z) {
+        float f7 = f4 - f;
+        float f8 = f5 - f2;
+        float fSqrt = (float) Math.sqrt(Math.pow(f7, 2.0d) + Math.pow(f8, 2.0d));
+        if (fSqrt > f3 + f6 || fSqrt < Math.abs(f3 - f6)) {
+            return null;
+        }
+        float f9 = (((f3 * f3) - (f6 * f6)) + (fSqrt * fSqrt)) / (2.0f * fSqrt);
+        float fSqrt2 = (float) Math.sqrt(r8 - (f9 * f9));
+        float f10 = f + ((f9 * f7) / fSqrt);
+        float f11 = f2 + ((f9 * f8) / fSqrt);
+        float f12 = (f8 * fSqrt2) / fSqrt;
+        float f13 = f10 + f12;
+        float f14 = (fSqrt2 * f7) / fSqrt;
+        float f15 = f11 - f14;
+        float f16 = f10 - f12;
+        float f17 = f11 + f14;
+        if (f13 == f16 || f13 >= f16) {
+            if (f15 > f17) {
+                return new PointF(f13, f15);
+            }
+            return new PointF(f16, f17);
+        }
+        if (z) {
+            return new PointF(f13, f15);
+        }
+        return new PointF(f16, f17);
+    }
+
+    private static float calculateAngle(float f, float f2, float f3, float f4) {
+        return (float) Math.toDegrees((float) Math.atan2(f4 - f2, f3 - f));
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public static Interpolator interpolator(Interpolator interpolator, int i, int i2, int i3) {
+        return interpolator(interpolator, i, i2, i3, false);
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public static Interpolator interpolator(final Interpolator interpolator, int i, int i2, int i3, final boolean z) {
+        float f = i3;
+        final float f2 = i / f;
+        final float f3 = i2 / f;
+        return new Interpolator() { // from class: org.telegram.ui.Components.quickforward.QuickShareSelectorDrawable$$ExternalSyntheticLambda2
+            @Override // android.animation.TimeInterpolator
+            public final float getInterpolation(float f4) {
+                return QuickShareSelectorDrawable.m13236$r8$lambda$TFdbEg5B8rng8gyNxj41ZbRLAs(z, f2, f3, interpolator, f4);
+            }
+        };
+    }
+
+    /* JADX INFO: renamed from: $r8$lambda$TFdbEg5B8-rng8gyNxj41ZbRLAs, reason: not valid java name */
+    public static /* synthetic */ float m13236$r8$lambda$TFdbEg5B8rng8gyNxj41ZbRLAs(boolean z, float f, float f2, Interpolator interpolator, float f3) {
+        if (z) {
+            return 1.0f - interpolator.getInterpolation(1.0f - MathUtils.clamp((f3 - f) / (f2 - f), 0.0f, 1.0f));
+        }
+        return interpolator.getInterpolation(MathUtils.clamp((f3 - f) / (f2 - f), 0.0f, 1.0f));
+    }
+
+    private static float findParabola(float f, float f2, float f3, float f4, float f5, float f6, float f7) {
+        double d = f;
+        double d2 = f2;
+        double d3 = f3;
+        double d4 = f4;
+        double dCalculateC2 = calculateC2(d, d2, d3, d4, f5, f6);
+        double dCalculateC1 = calculateC1(d, d2, d3, d4, dCalculateC2);
+        double dCalculateC0 = calculateC0(d, d2, dCalculateC1, dCalculateC2);
+        double dFromTo = fromTo(f, f3, f7);
+        return (float) ((dCalculateC2 * dFromTo * dFromTo) + (dCalculateC1 * dFromTo) + dCalculateC0);
+    }
+
+    public static class Interpolators {
+        public static final Interpolator DECELERATE_INTERPOLATOR = new DecelerateInterpolator();
+        public static final Interpolator LINEAR_INTERPOLATOR;
+        public static final Interpolator avatar1;
+        public static final Interpolator avatar2;
+        public static final Interpolator avatar3;
+        public static final Interpolator avatarOvershootCancel;
+        public static final Interpolator ballsRadius;
+        public static final Interpolator bgOpacity;
+        public static final Interpolator bgScale;
+        public static final Interpolator bubbleY;
+        public static final Interpolator buttonJumpDown;
+        public static final Interpolator buttonJumpUp;
+        public static final Interpolator buttonRotationDown;
+        public static final Interpolator buttonRotationUp;
+        public static final Interpolator closeAlpha;
+        public static final Interpolator closeAvatarAlpha;
+        public static final Interpolator closeAvatarPosition;
+        public static final Interpolator heightExpansion;
+        public static final Interpolator overshootCancel;
+        public static final Interpolator widthExpansion;
+
+        static {
+            LinearInterpolator linearInterpolator = new LinearInterpolator();
+            LINEAR_INTERPOLATOR = linearInterpolator;
+            closeAlpha = QuickShareSelectorDrawable.interpolator(new DecelerateInterpolator(), 0, 240, 240);
+            closeAvatarPosition = QuickShareSelectorDrawable.interpolator(linearInterpolator, 0, 240, 240);
+            closeAvatarAlpha = QuickShareSelectorDrawable.interpolator(new DecelerateInterpolator(), Opcodes.REM_INT_LIT8, 240, 240);
+            buttonRotationUp = QuickShareSelectorDrawable.interpolator(new CubicBezierInterpolator(0.7f, -0.6f, 0.4f, 1.0f), 0, 200, 560);
+            buttonRotationDown = QuickShareSelectorDrawable.interpolator(new CubicBezierInterpolator(0.7f, -0.6f, 0.4f, 1.0f), 200, 400, 560, true);
+            buttonJumpUp = QuickShareSelectorDrawable.interpolator(new DecelerateInterpolator(), 0, 150, 560);
+            buttonJumpDown = QuickShareSelectorDrawable.interpolator(new DecelerateInterpolator(), Opcodes.MUL_INT_LIT16, 425, 560);
+            CubicBezierInterpolator cubicBezierInterpolator = CubicBezierInterpolator.EASE_OUT_QUINT;
+            bgOpacity = QuickShareSelectorDrawable.interpolator(cubicBezierInterpolator, 0, 320, 560);
+            bgScale = QuickShareSelectorDrawable.interpolator(cubicBezierInterpolator, 40, 320, 560);
+            heightExpansion = QuickShareSelectorDrawable.interpolator(new DecelerateInterpolator(), 0, 250, 560);
+            widthExpansion = QuickShareSelectorDrawable.interpolator(cubicBezierInterpolator, 0, 460, 560);
+            bubbleY = QuickShareSelectorDrawable.interpolator(cubicBezierInterpolator, 0, 325, 560);
+            ballsRadius = QuickShareSelectorDrawable.interpolator(new DecelerateInterpolator(), 150, 250, 560);
+            overshootCancel = QuickShareSelectorDrawable.interpolator(new DecelerateInterpolator(), 200, 480, 560);
+            avatar1 = QuickShareSelectorDrawable.interpolator(cubicBezierInterpolator, 60, 320, 560);
+            avatar2 = QuickShareSelectorDrawable.interpolator(cubicBezierInterpolator, 90, 380, 560);
+            avatar3 = QuickShareSelectorDrawable.interpolator(cubicBezierInterpolator, 110, 440, 560);
+            avatarOvershootCancel = QuickShareSelectorDrawable.interpolator(new DecelerateInterpolator(), 200, 460, 560);
+        }
+    }
+
+    @Override // android.animation.Animator.AnimatorListener
+    public void onAnimationEnd(Animator animator) {
+        if (animator == this.openAnimation) {
+            onOpenAnimationEnd();
+        } else if (animator == this.closeAnimation) {
+            onCloseAnimationEnd();
+        }
+    }
+}

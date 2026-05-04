@@ -1,0 +1,104 @@
+package androidx.appcompat.graphics.drawable;
+
+import android.content.res.Resources;
+import android.graphics.drawable.Drawable;
+import android.util.AttributeSet;
+import android.util.StateSet;
+import androidx.appcompat.graphics.drawable.DrawableContainerCompat;
+
+/* JADX INFO: loaded from: classes3.dex */
+public abstract class StateListDrawableCompat extends DrawableContainerCompat {
+    private boolean mMutated;
+    private StateListState mStateListState;
+
+    @Override // android.graphics.drawable.Drawable
+    protected abstract boolean onStateChange(int[] iArr);
+
+    int[] extractStateSet(AttributeSet attributeSet) {
+        int attributeCount = attributeSet.getAttributeCount();
+        int[] iArr = new int[attributeCount];
+        int i = 0;
+        for (int i2 = 0; i2 < attributeCount; i2++) {
+            int attributeNameResource = attributeSet.getAttributeNameResource(i2);
+            if (attributeNameResource != 0 && attributeNameResource != 16842960 && attributeNameResource != 16843161) {
+                int i3 = i + 1;
+                if (!attributeSet.getAttributeBooleanValue(i2, false)) {
+                    attributeNameResource = -attributeNameResource;
+                }
+                iArr[i] = attributeNameResource;
+                i = i3;
+            }
+        }
+        return StateSet.trimStateSet(iArr, i);
+    }
+
+    @Override // androidx.appcompat.graphics.drawable.DrawableContainerCompat, android.graphics.drawable.Drawable
+    public Drawable mutate() {
+        if (!this.mMutated && super.mutate() == this) {
+            this.mStateListState.mutate();
+            this.mMutated = true;
+        }
+        return this;
+    }
+
+    static class StateListState extends DrawableContainerCompat.DrawableContainerState {
+        int[][] mStateSets;
+
+        @Override // androidx.appcompat.graphics.drawable.DrawableContainerCompat.DrawableContainerState
+        abstract void mutate();
+
+        StateListState(StateListState stateListState, StateListDrawableCompat stateListDrawableCompat, Resources resources) {
+            super(stateListState, stateListDrawableCompat, resources);
+            if (stateListState != null) {
+                this.mStateSets = stateListState.mStateSets;
+            } else {
+                this.mStateSets = new int[getCapacity()][];
+            }
+        }
+
+        int addStateSet(int[] iArr, Drawable drawable) {
+            int iAddChild = addChild(drawable);
+            this.mStateSets[iAddChild] = iArr;
+            return iAddChild;
+        }
+
+        int indexOfStateSet(int[] iArr) {
+            int[][] iArr2 = this.mStateSets;
+            int childCount = getChildCount();
+            for (int i = 0; i < childCount; i++) {
+                if (StateSet.stateSetMatches(iArr2[i], iArr)) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        @Override // androidx.appcompat.graphics.drawable.DrawableContainerCompat.DrawableContainerState
+        public void growArray(int i, int i2) {
+            super.growArray(i, i2);
+            int[][] iArr = new int[i2][];
+            System.arraycopy(this.mStateSets, 0, iArr, 0, i);
+            this.mStateSets = iArr;
+        }
+    }
+
+    @Override // androidx.appcompat.graphics.drawable.DrawableContainerCompat, android.graphics.drawable.Drawable
+    public void applyTheme(Resources.Theme theme) {
+        super.applyTheme(theme);
+        onStateChange(getState());
+    }
+
+    @Override // androidx.appcompat.graphics.drawable.DrawableContainerCompat
+    void setConstantState(DrawableContainerCompat.DrawableContainerState drawableContainerState) {
+        super.setConstantState(drawableContainerState);
+        if (drawableContainerState instanceof StateListState) {
+            this.mStateListState = (StateListState) drawableContainerState;
+        }
+    }
+
+    StateListDrawableCompat(StateListState stateListState) {
+        if (stateListState != null) {
+            setConstantState(stateListState);
+        }
+    }
+}

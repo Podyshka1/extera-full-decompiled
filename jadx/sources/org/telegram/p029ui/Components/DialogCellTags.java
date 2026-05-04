@@ -1,0 +1,203 @@
+package org.telegram.p029ui.Components;
+
+import android.graphics.Canvas;
+import android.graphics.RectF;
+import android.text.SpannableStringBuilder;
+import android.view.View;
+import java.util.ArrayList;
+import okhttp3.internal.url._UrlKt;
+import org.telegram.messenger.AccountInstance;
+import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.Emoji;
+import org.telegram.messenger.LocaleController;
+import org.telegram.messenger.MessageObject;
+import org.telegram.messenger.MessagesController;
+import org.telegram.p029ui.ActionBar.Theme;
+
+/* JADX INFO: loaded from: classes3.dex */
+public class DialogCellTags {
+    private final View parentView;
+    private final ArrayList filters = new ArrayList();
+    private final ArrayList tags = new ArrayList();
+    private Tag moreTags = null;
+
+    public DialogCellTags(View view) {
+        this.parentView = view;
+    }
+
+    private static class Tag {
+        int color;
+        public int colorId;
+        public int filterId;
+        Text text;
+        private int textHeight;
+        int width;
+
+        private Tag() {
+        }
+
+        public static Tag asMore(View view, int i) {
+            Tag tag = new Tag();
+            tag.filterId = i;
+            tag.text = new Text("+" + i, 10.0f, AndroidUtilities.bold()).supportAnimatedEmojis(view);
+            tag.width = AndroidUtilities.m1124dp(9.32f) + ((int) tag.text.getCurrentWidth());
+            tag.textHeight = (int) tag.text.getHeight();
+            tag.color = Theme.getColor(Theme.key_avatar_nameInMessageBlue);
+            return tag;
+        }
+
+        public static Tag fromFilter(View view, int i, MessagesController.DialogFilter dialogFilter) {
+            Tag tag = new Tag();
+            tag.filterId = dialogFilter.f1601id;
+            tag.colorId = dialogFilter.color;
+            String str = dialogFilter.name;
+            if (str == null) {
+                str = _UrlKt.FRAGMENT_ENCODE_SET;
+            }
+            SpannableStringBuilder spannableStringBuilder = new SpannableStringBuilder(str.toUpperCase());
+            Text textSupportAnimatedEmojis = new Text(spannableStringBuilder, 10.0f, AndroidUtilities.bold()).supportAnimatedEmojis(view);
+            tag.text = textSupportAnimatedEmojis;
+            tag.text.setText(MessageObject.replaceAnimatedEmoji(Emoji.replaceEmoji(spannableStringBuilder, textSupportAnimatedEmojis.getFontMetricsInt(), false), dialogFilter.entities, tag.text.getFontMetricsInt()));
+            tag.text.setEmojiCacheType(26);
+            tag.width = AndroidUtilities.m1124dp(9.32f) + ((int) tag.text.getCurrentWidth());
+            tag.textHeight = (int) tag.text.getHeight();
+            int[] iArr = Theme.keys_avatar_nameInMessage;
+            tag.color = Theme.getColor(iArr[dialogFilter.color % iArr.length]);
+            return tag;
+        }
+
+        public void draw(Canvas canvas) {
+            Theme.dialogs_tagPaint.setColor(Theme.multAlpha(this.color, Theme.isCurrentThemeDark() ? 0.2f : 0.1f));
+            RectF rectF = AndroidUtilities.rectTmp;
+            rectF.set(0.0f, 0.0f, this.width, AndroidUtilities.m1124dp(14.66f));
+            canvas.drawRoundRect(rectF, AndroidUtilities.m1124dp(4.0f), AndroidUtilities.m1124dp(4.0f), Theme.dialogs_tagPaint);
+            this.text.draw(canvas, AndroidUtilities.m1124dp(4.66f), AndroidUtilities.m1124dp(14.66f) / 2.0f, this.color, 1.0f);
+        }
+    }
+
+    public boolean update(int i, int i2, long j) {
+        MessagesController.DialogFilter dialogFilter;
+        Tag tag;
+        MessagesController.DialogFilter dialogFilter2;
+        String str;
+        AccountInstance accountInstance = AccountInstance.getInstance(i);
+        MessagesController messagesController = MessagesController.getInstance(i);
+        if (!messagesController.folderTags || !accountInstance.getUserConfig().isPremium()) {
+            boolean zIsEmpty = this.tags.isEmpty();
+            this.tags.clear();
+            return !zIsEmpty;
+        }
+        ArrayList<MessagesController.DialogFilter> arrayList = messagesController.dialogFilters;
+        if (i2 == 7) {
+            dialogFilter = messagesController.selectedDialogFilter[0];
+        } else {
+            dialogFilter = i2 == 8 ? messagesController.selectedDialogFilter[1] : null;
+        }
+        this.filters.clear();
+        if (i2 == 0 || i2 == 7 || i2 == 8) {
+            for (int i3 = 0; i3 < arrayList.size(); i3++) {
+                MessagesController.DialogFilter dialogFilter3 = arrayList.get(i3);
+                if (dialogFilter3 != null && dialogFilter3 != dialogFilter && dialogFilter3.color >= 0 && dialogFilter3.includesDialog(accountInstance, j)) {
+                    this.filters.add(dialogFilter3);
+                }
+            }
+        }
+        int i4 = 0;
+        boolean z = false;
+        while (i4 < this.tags.size()) {
+            Tag tag2 = (Tag) this.tags.get(i4);
+            int i5 = 0;
+            while (true) {
+                if (i5 >= this.filters.size()) {
+                    dialogFilter2 = null;
+                    break;
+                }
+                if (((MessagesController.DialogFilter) this.filters.get(i5)).f1601id == tag2.filterId) {
+                    dialogFilter2 = (MessagesController.DialogFilter) this.filters.get(i5);
+                    break;
+                }
+                i5++;
+            }
+            if (dialogFilter2 == null) {
+                this.tags.remove(i4);
+                i4--;
+            } else if (dialogFilter2.color == tag2.colorId && ((str = dialogFilter2.name) == null || tag2.text == null || str.length() == tag2.text.getText().length())) {
+                i4++;
+            } else {
+                this.tags.set(i4, Tag.fromFilter(this.parentView, i, dialogFilter2));
+            }
+            z = true;
+            i4++;
+        }
+        for (int i6 = 0; i6 < this.filters.size(); i6++) {
+            MessagesController.DialogFilter dialogFilter4 = (MessagesController.DialogFilter) this.filters.get(i6);
+            int i7 = 0;
+            while (true) {
+                if (i7 >= this.tags.size()) {
+                    tag = null;
+                    break;
+                }
+                if (((Tag) this.tags.get(i7)).filterId == dialogFilter4.f1601id) {
+                    tag = (Tag) this.tags.get(i7);
+                    break;
+                }
+                i7++;
+            }
+            if (tag == null) {
+                this.tags.add(i6, Tag.fromFilter(this.parentView, i, dialogFilter4));
+                z = true;
+            }
+        }
+        this.filters.clear();
+        return z;
+    }
+
+    public boolean isEmpty() {
+        return this.tags.isEmpty();
+    }
+
+    public void draw(Canvas canvas, int i) {
+        int i2 = 0;
+        canvas.clipRect(0, 0, i, AndroidUtilities.m1124dp(14.66f));
+        RectF rectF = AndroidUtilities.rectTmp;
+        float f = i;
+        rectF.set(0.0f, 0.0f, f, AndroidUtilities.m1124dp(14.66f));
+        canvas.saveLayerAlpha(rectF, 255, 31);
+        if (LocaleController.isRTL) {
+            canvas.translate(f, 0.0f);
+        }
+        int iM1124dp = i - AndroidUtilities.m1124dp(25.0f);
+        while (i2 < this.tags.size()) {
+            Tag tag = (Tag) this.tags.get(i2);
+            iM1124dp -= tag.width + AndroidUtilities.m1124dp(4.0f);
+            if (iM1124dp < 0) {
+                break;
+            }
+            if (LocaleController.isRTL) {
+                canvas.translate(-tag.width, 0.0f);
+                tag.draw(canvas);
+                canvas.translate(-AndroidUtilities.m1124dp(4.0f), 0.0f);
+            } else {
+                tag.draw(canvas);
+                canvas.translate(tag.width + AndroidUtilities.m1124dp(4.0f), 0.0f);
+            }
+            i2++;
+        }
+        if (i2 < this.tags.size()) {
+            int size = this.tags.size() - i2;
+            Tag tag2 = this.moreTags;
+            if (tag2 == null || tag2.filterId != size) {
+                this.moreTags = Tag.asMore(this.parentView, size);
+            }
+            if (LocaleController.isRTL) {
+                canvas.translate(-this.moreTags.width, 0.0f);
+                this.moreTags.draw(canvas);
+                canvas.translate(-AndroidUtilities.m1124dp(4.0f), 0.0f);
+            } else {
+                this.moreTags.draw(canvas);
+                canvas.translate(this.moreTags.width + AndroidUtilities.m1124dp(4.0f), 0.0f);
+            }
+        }
+        canvas.restore();
+    }
+}

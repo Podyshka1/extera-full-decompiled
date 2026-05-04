@@ -1,0 +1,35 @@
+package com.google.android.gms.wallet.wobs;
+
+import android.os.Parcel;
+import android.os.Parcelable;
+import com.google.android.gms.common.internal.safeparcel.AbstractSafeParcelable;
+import com.google.android.gms.common.internal.safeparcel.SafeParcelWriter;
+
+/* JADX INFO: loaded from: classes4.dex */
+public final class WalletObjectMessage extends AbstractSafeParcelable {
+    public static final Parcelable.Creator<WalletObjectMessage> CREATOR = new zzo();
+    String zza;
+    String zzb;
+    TimeInterval zzc;
+    UriData zzd;
+    UriData zze;
+
+    @Override // android.os.Parcelable
+    public void writeToParcel(Parcel parcel, int i) {
+        int iBeginObjectHeader = SafeParcelWriter.beginObjectHeader(parcel);
+        SafeParcelWriter.writeString(parcel, 2, this.zza, false);
+        SafeParcelWriter.writeString(parcel, 3, this.zzb, false);
+        SafeParcelWriter.writeParcelable(parcel, 4, this.zzc, i, false);
+        SafeParcelWriter.writeParcelable(parcel, 5, this.zzd, i, false);
+        SafeParcelWriter.writeParcelable(parcel, 6, this.zze, i, false);
+        SafeParcelWriter.finishObjectHeader(parcel, iBeginObjectHeader);
+    }
+
+    WalletObjectMessage(String str, String str2, TimeInterval timeInterval, UriData uriData, UriData uriData2) {
+        this.zza = str;
+        this.zzb = str2;
+        this.zzc = timeInterval;
+        this.zzd = uriData;
+        this.zze = uriData2;
+    }
+}
