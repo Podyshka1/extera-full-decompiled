@@ -1,3 +1,0 @@
-.class interface abstract Lcom/google/common/base/PatternCompiler;
-.super Ljava/lang/Object;
-.source "SourceFile"

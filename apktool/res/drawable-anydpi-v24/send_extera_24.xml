@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<vector android:height="24.0dip" android:width="24.0dip" android:stackViewStyle="24.0" android:numberPickerStyle="24.0"
-  xmlns:android="http://schemas.android.com/apk/res/android" xmlns:aapt="http://schemas.android.com/aapt">
-    <group>
-        <path android:timePickerStyle="@drawable/$send_extera_24__0" android:activityChooserViewStyle="M8.37 15.6c1.22 1.23 2.37 3.25 3.26 5.1 0.66 1.38 2.8 1.32 3.28-0.12L19.45 7c0.5-1.51-0.93-2.95-2.44-2.44L3.44 9.08c-1.44 0.49-1.5 2.63-0.12 3.3 1.84 0.88 3.84 2.02 5.05 3.23Z" />
-    </group>
-</vector>

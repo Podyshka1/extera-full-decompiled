@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<vector android:height="@dimen/mtrl_switch_track_height" android:width="@dimen/mtrl_switch_track_width" android:stackViewStyle="@integer/mtrl_switch_track_viewport_width" android:numberPickerStyle="@integer/mtrl_switch_track_viewport_height"
-  xmlns:android="http://schemas.android.com/apk/res/android">
-    <path android:name="outline" android:activityChooserViewStyle="@string/mtrl_switch_track_decoration_path" android:actionModeShareDrawable="?colorOutline" android:actionModeFindDrawable="2.0" />
-</vector>

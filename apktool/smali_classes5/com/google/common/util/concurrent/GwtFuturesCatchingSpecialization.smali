@@ -1,3 +1,0 @@
-.class abstract Lcom/google/common/util/concurrent/GwtFuturesCatchingSpecialization;
-.super Ljava/lang/Object;
-.source "SourceFile"

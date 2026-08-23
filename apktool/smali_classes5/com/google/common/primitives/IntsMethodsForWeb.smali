@@ -1,3 +1,0 @@
-.class abstract Lcom/google/common/primitives/IntsMethodsForWeb;
-.super Ljava/lang/Object;
-.source "SourceFile"
