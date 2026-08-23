@@ -1,1 +1,50 @@
+name: Notify Telegram
 
+on:
+  push:
+  create:
+  delete:
+  watch:
+  fork:
+  issues:
+    types: [opened, closed, reopened]
+  pull_request:
+    types: [opened, closed, reopened]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send to Telegram Topic
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_CHAT_ID }}
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          message_thread_id: 81
+          format: markdown
+          message: |
+            ${{ github.event_name == 'push' && format('📝 Push in `{0}`
+            
+            {1}
+            
+            [View commit]({2})', github.repository, github.event.head_commit.message, github.event.head_commit.url) || '' }}${{ github.event_name == 'create' && format('✨ Created `{0}` in `{1}`
+            
+            [View on GitHub]({2})', github.event.ref, github.repository, github.event.repository.html_url) || '' }}${{ github.event_name == 'delete' && format('🗑️ Deleted `{0}` from `{1}`
+            
+            [View on GitHub]({2})', github.event.ref, github.repository, github.event.repository.html_url) || '' }}${{ github.event_name == 'watch' && format('⭐ New star on `{0}`
+            
+            Total stars: {1}
+            
+            [View on GitHub]({2})', github.repository, github.event.repository.stargazers_count, github.event.repository.html_url) || '' }}${{ github.event_name == 'fork' && format('🍴 New fork of `{0}`
+            
+            By: `{1}`
+            
+            [View fork]({2})', github.repository, github.event.forkee.owner.login, github.event.forkee.html_url) || '' }}${{ github.event_name == 'issues' && format('📌 Issue {0} in `{1}`
+            
+            {2}
+            
+            [View issue]({3})', github.event.action, github.repository, github.event.issue.title, github.event.issue.html_url) || '' }}${{ github.event_name == 'pull_request' && format('🔀 PR {0} in `{1}`
+            
+            {2}
+            
+            [View PR]({3})', github.event.action, github.repository, github.event.pull_request.title, github.event.pull_request.html_url) || '' }}
