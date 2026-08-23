@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<ripple android:color="?android:progressLayout"
-  xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto">
-    <item android:id="@android:id/stateUnspecified" android:drawable="@drawable/m3_focus_ring_framework_button_background_shape" />
-    <item>
-        <com.google.android.material.focus.FocusRingDrawable app:focusRingsInset="2.0dip" app:focusRingsRadius="2.0dip" />
-    </item>
-</ripple>

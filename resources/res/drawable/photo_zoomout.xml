@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<vector android:height="24.0dip" android:width="24.0dip" android:stackViewStyle="24.0" android:numberPickerStyle="24.0"
-  xmlns:android="http://schemas.android.com/apk/res/android">
-    <path android:activityChooserViewStyle="M20 20L15 15" android:actionModeShareDrawable="#ffffffff" android:actionModeFindDrawable="1.67" android:preferencePanelStyle="1" />
-    <path android:activityChooserViewStyle="M18.16 13.84H13.84V18.16" android:actionModeShareDrawable="#ffffffff" android:actionModeFindDrawable="1.67" android:preferencePanelStyle="1" android:preferenceHeaderPanelStyle="1" />
-    <path android:activityChooserViewStyle="M5.84 10.16H10.16V5.84" android:actionModeShareDrawable="#ffffffff" android:actionModeFindDrawable="1.67" android:preferencePanelStyle="1" android:preferenceHeaderPanelStyle="1" />
-    <path android:activityChooserViewStyle="M4 4L9.49999 9.5" android:actionModeShareDrawable="#ffffffff" android:actionModeFindDrawable="1.67" android:preferencePanelStyle="1" />
-</vector>

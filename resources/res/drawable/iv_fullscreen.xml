@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<vector android:height="24.0dip" android:width="24.0dip" android:stackViewStyle="72.0" android:numberPickerStyle="72.0"
-  xmlns:android="http://schemas.android.com/apk/res/android">
-    <path android:activityChooserViewStyle="M15 57L30.5 41.5M15 42V57H30M57 15L41.5 30.5M57 30V15L42 15" android:actionModeShareDrawable="#ffffffff" android:actionModeFindDrawable="5.0" android:preferencePanelStyle="1" android:preferenceHeaderPanelStyle="1" />
-</vector>
