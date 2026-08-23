@@ -1,0 +1,21 @@
+package com.google.android.recaptcha.internal;
+
+import kotlin.jvm.functions.Function1;
+import kotlin.jvm.internal.Lambda;
+import okhttp3.internal.url._UrlKt;
+
+/* JADX INFO: loaded from: classes5.dex */
+final class zzbw extends Lambda implements Function1 {
+    final /* synthetic */ zzca zza;
+
+    /* JADX WARN: 'super' call moved to the top of the method (can break code semantics) */
+    public zzbw(zzca zzcaVar) {
+        super(1);
+        this.zza = zzcaVar;
+    }
+
+    @Override // kotlin.jvm.functions.Function1
+    public final /* bridge */ /* synthetic */ Object invoke(Object obj) {
+        return _UrlKt.FRAGMENT_ENCODE_SET;
+    }
+}

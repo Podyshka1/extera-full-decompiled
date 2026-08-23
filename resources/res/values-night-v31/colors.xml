@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ic_background_monet">@android:color/hint_foreground_dark</color>
+    <color name="ic_foreground_monet">@android:color/search_url_text_pressed</color>
+</resources>

@@ -1,0 +1,1180 @@
+package org.telegram.ui;
+
+import android.content.Context;
+import android.graphics.Canvas;
+import android.graphics.drawable.ColorDrawable;
+import android.media.MediaMetadataRetriever;
+import android.net.Uri;
+import android.os.Bundle;
+import android.view.MotionEvent;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.FrameLayout;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+import androidx.recyclerview.widget.DefaultItemAnimator;
+import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import com.exteragram.messenger.ExteraConfig;
+import com.google.android.gms.cast.HlsSegmentFormat;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Objects;
+import kotlin.jvm.internal.LongCompanionObject;
+import okhttp3.internal.url._UrlKt;
+import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.C2573R;
+import org.telegram.messenger.DialogObject;
+import org.telegram.messenger.FileLoader;
+import org.telegram.messenger.FileLog;
+import org.telegram.messenger.ImageLocation;
+import org.telegram.messenger.ImageReceiver;
+import org.telegram.messenger.LocaleController;
+import org.telegram.messenger.MediaController;
+import org.telegram.messenger.MessageObject;
+import org.telegram.messenger.UserConfig;
+import org.telegram.messenger.Utilities;
+import org.telegram.tgnet.TLObject;
+import org.telegram.tgnet.TLRPC;
+import org.telegram.tgnet.tl.TL_stories;
+import org.telegram.ui.ActionBar.ActionBarMenu;
+import org.telegram.ui.ActionBar.ActionBarMenuItem;
+import org.telegram.ui.ActionBar.ActionBarPopupWindow;
+import org.telegram.ui.ActionBar.BackDrawable;
+import org.telegram.ui.ActionBar.BaseFragment;
+import org.telegram.ui.ActionBar.Theme;
+import org.telegram.ui.CacheControlActivity;
+import org.telegram.ui.Cells.SharedAudioCell;
+import org.telegram.ui.Cells.SharedDocumentCell;
+import org.telegram.ui.Cells.SharedPhotoVideoCell2;
+import org.telegram.ui.Components.AlertsCreator;
+import org.telegram.ui.Components.AnimatedTextView;
+import org.telegram.ui.Components.CheckBox2;
+import org.telegram.ui.Components.CombinedDrawable;
+import org.telegram.ui.Components.LayoutHelper;
+import org.telegram.ui.Components.ListView.AdapterWithDiffUtils;
+import org.telegram.ui.Components.NestedSizeNotifierLayout;
+import org.telegram.ui.Components.RecyclerListView;
+import org.telegram.ui.Components.ViewPagerFixed;
+import org.telegram.ui.PhotoViewer;
+import org.telegram.ui.Storage.CacheModel;
+import org.telegram.ui.Stories.StoriesListPlaceProvider;
+
+/* JADX INFO: loaded from: classes6.dex */
+public abstract class CachedMediaLayout extends FrameLayout implements NestedSizeNotifierLayout.ChildLayout {
+    private final LinearLayout actionModeLayout;
+    private final ArrayList<View> actionModeViews;
+    Page[] allPages;
+    private final BackDrawable backDrawable;
+    private int bottomPadding;
+    CacheModel cacheModel;
+    private final ActionBarMenuItem clearItem;
+    private final ImageView closeButton;
+    Delegate delegate;
+    private final View divider;
+    ArrayList<Page> pages;
+    BaseFragment parentFragment;
+    BasePlaceProvider placeProvider;
+    public final AnimatedTextView selectedMessagesCountTextView;
+    private final ViewPagerFixed.TabsView tabs;
+    ViewPagerFixed viewPagerFixed;
+
+    public interface Delegate {
+        void clear();
+
+        void clearSelection();
+
+        default void dismiss() {
+        }
+
+        void onItemSelected(CacheControlActivity.DialogFileEntities dialogFileEntities, CacheModel.FileInfo fileInfo, boolean z);
+    }
+
+    @Override // org.telegram.ui.Components.NestedSizeNotifierLayout.ChildLayout
+    public boolean isAttached() {
+        return true;
+    }
+
+    public void showActionMode(boolean z) {
+    }
+
+    public CachedMediaLayout(Context context, BaseFragment baseFragment) {
+        super(context);
+        this.actionModeViews = new ArrayList<>();
+        this.pages = new ArrayList<>();
+        Page[] pageArr = new Page[5];
+        this.allPages = pageArr;
+        this.parentFragment = baseFragment;
+        pageArr[0] = new Page(LocaleController.getString(C2573R.string.FilterChats), 0, new DialogsAdapter());
+        this.allPages[1] = new Page(LocaleController.getString(C2573R.string.MediaTab), 1, new MediaAdapter(false));
+        this.allPages[2] = new Page(LocaleController.getString(C2573R.string.SharedFilesTab2), 2, new DocumentsAdapter());
+        this.allPages[3] = new Page(LocaleController.getString(C2573R.string.Music), 3, new MusicAdapter());
+        int i = 0;
+        while (true) {
+            Page[] pageArr2 = this.allPages;
+            if (i < pageArr2.length) {
+                Page page = pageArr2[i];
+                if (page != null) {
+                    this.pages.add(i, page);
+                }
+                i++;
+            } else {
+                ViewPagerFixed viewPagerFixed = new ViewPagerFixed(getContext());
+                this.viewPagerFixed = viewPagerFixed;
+                viewPagerFixed.setAllowDisallowInterceptTouch(false);
+                addView(this.viewPagerFixed, LayoutHelper.createFrame(-1, -1.0f, 0, 0.0f, 48.0f, 0.0f, 0.0f));
+                ViewPagerFixed.TabsView tabsViewCreateTabsView = this.viewPagerFixed.createTabsView(true, 3);
+                this.tabs = tabsViewCreateTabsView;
+                addView(tabsViewCreateTabsView, LayoutHelper.createFrame(-1, 48.0f));
+                View view = new View(getContext()) { // from class: org.telegram.ui.CachedMediaLayout.1
+                    @Override // android.view.View
+                    public void onDraw(Canvas canvas) {
+                        canvas.drawLine(0.0f, getMeasuredHeight() - 1, getMeasuredWidth(), getMeasuredHeight() - 1, Theme.dividerPaint);
+                    }
+                };
+                this.divider = view;
+                addView(view, LayoutHelper.createFrame(-1, 1.0f, 0, 0.0f, 48.0f, 0.0f, 0.0f));
+                view.getLayoutParams().height = 1;
+                this.viewPagerFixed.setAdapter(new C29472(context, baseFragment));
+                LinearLayout linearLayout = new LinearLayout(context);
+                this.actionModeLayout = linearLayout;
+                linearLayout.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+                linearLayout.setAlpha(0.0f);
+                linearLayout.setClickable(true);
+                addView(linearLayout, LayoutHelper.createFrame(-1, 48.0f));
+                AndroidUtilities.updateViewVisibilityAnimated(linearLayout, false, 1.0f, false);
+                ImageView imageView = new ImageView(context);
+                this.closeButton = imageView;
+                imageView.setScaleType(ImageView.ScaleType.CENTER);
+                BackDrawable backDrawable = new BackDrawable(true);
+                this.backDrawable = backDrawable;
+                imageView.setImageDrawable(backDrawable);
+                int i2 = Theme.key_actionBarActionModeDefaultIcon;
+                backDrawable.setColor(Theme.getColor(i2));
+                int i3 = Theme.key_actionBarActionModeDefaultSelector;
+                imageView.setBackground(Theme.createSelectorDrawable(Theme.getColor(i3), 1));
+                imageView.setContentDescription(LocaleController.getString(C2573R.string.Close));
+                linearLayout.addView(imageView, new LinearLayout.LayoutParams(AndroidUtilities.dp(54.0f), -1));
+                this.actionModeViews.add(imageView);
+                imageView.setOnClickListener(new View.OnClickListener() { // from class: org.telegram.ui.CachedMediaLayout$$ExternalSyntheticLambda0
+                    @Override // android.view.View.OnClickListener
+                    public final void onClick(View view2) {
+                        this.f$0.lambda$new$0(view2);
+                    }
+                });
+                AnimatedTextView animatedTextView = new AnimatedTextView(context, true, true, true);
+                this.selectedMessagesCountTextView = animatedTextView;
+                animatedTextView.setTextSize(AndroidUtilities.dp(18.0f));
+                animatedTextView.setTypeface(AndroidUtilities.bold());
+                animatedTextView.setTextColor(Theme.getColor(i2));
+                linearLayout.addView(animatedTextView, LayoutHelper.createLinear(0, -1, 1.0f, 18, 0, 0, 0));
+                this.actionModeViews.add(animatedTextView);
+                ActionBarMenuItem actionBarMenuItem = new ActionBarMenuItem(context, (ActionBarMenu) null, Theme.getColor(i3), Theme.getColor(i2), false);
+                this.clearItem = actionBarMenuItem;
+                actionBarMenuItem.setIcon(C2573R.drawable.msg_clear);
+                actionBarMenuItem.setContentDescription(LocaleController.getString(C2573R.string.Delete));
+                actionBarMenuItem.setDuplicateParentStateEnabled(false);
+                linearLayout.addView(actionBarMenuItem, new LinearLayout.LayoutParams(AndroidUtilities.dp(54.0f), -1));
+                this.actionModeViews.add(actionBarMenuItem);
+                actionBarMenuItem.setOnClickListener(new View.OnClickListener() { // from class: org.telegram.ui.CachedMediaLayout$$ExternalSyntheticLambda1
+                    @Override // android.view.View.OnClickListener
+                    public final void onClick(View view2) {
+                        this.f$0.lambda$new$1(view2);
+                    }
+                });
+                return;
+            }
+        }
+    }
+
+    /* JADX INFO: renamed from: org.telegram.ui.CachedMediaLayout$2 */
+    public class C29472 extends ViewPagerFixed.Adapter {
+        private ActionBarPopupWindow popupWindow;
+        final /* synthetic */ Context val$context;
+        final /* synthetic */ BaseFragment val$parentFragment;
+
+        @Override // org.telegram.ui.Components.ViewPagerFixed.Adapter
+        public boolean hasStableId() {
+            return true;
+        }
+
+        public C29472(Context context, BaseFragment baseFragment) {
+            this.val$context = context;
+            this.val$parentFragment = baseFragment;
+        }
+
+        @Override // org.telegram.ui.Components.ViewPagerFixed.Adapter
+        public String getItemTitle(int i) {
+            return CachedMediaLayout.this.pages.get(i).title;
+        }
+
+        @Override // org.telegram.ui.Components.ViewPagerFixed.Adapter
+        public int getItemCount() {
+            return CachedMediaLayout.this.pages.size();
+        }
+
+        @Override // org.telegram.ui.Components.ViewPagerFixed.Adapter
+        public int getItemId(int i) {
+            return CachedMediaLayout.this.pages.get(i).type;
+        }
+
+        @Override // org.telegram.ui.Components.ViewPagerFixed.Adapter
+        public View createView(int i) {
+            final RecyclerListView recyclerListView = new RecyclerListView(this.val$context);
+            DefaultItemAnimator defaultItemAnimator = (DefaultItemAnimator) recyclerListView.getItemAnimator();
+            defaultItemAnimator.setDelayAnimations(false);
+            defaultItemAnimator.setSupportsChangeAnimations(false);
+            recyclerListView.setClipToPadding(false);
+            recyclerListView.setPadding(0, 0, 0, CachedMediaLayout.this.bottomPadding);
+            recyclerListView.setOnItemClickListener(new RecyclerListView.OnItemClickListener() { // from class: org.telegram.ui.CachedMediaLayout.2.1
+                @Override // org.telegram.ui.Components.RecyclerListView.OnItemClickListener
+                public void onItemClick(View view, int i2) {
+                    BaseAdapter baseAdapter = (BaseAdapter) recyclerListView.getAdapter();
+                    ItemInner itemInner = baseAdapter.itemInners.get(i2);
+                    if (view instanceof SharedPhotoVideoCell2) {
+                        MediaAdapter mediaAdapter = (MediaAdapter) baseAdapter;
+                        if (mediaAdapter.isStories) {
+                            TL_stories.TL_storyItem tL_storyItem = new TL_stories.TL_storyItem();
+                            CacheModel.FileInfo fileInfo = itemInner.file;
+                            tL_storyItem.dialogId = fileInfo.dialogId;
+                            tL_storyItem.id = Objects.hash(fileInfo.file.getAbsolutePath());
+                            tL_storyItem.attachPath = itemInner.file.file.getAbsolutePath();
+                            tL_storyItem.date = -1;
+                            C29472.this.val$parentFragment.getOrCreateStoryViewer().open(C29472.this.val$context, tL_storyItem, StoriesListPlaceProvider.of(recyclerListView));
+                            return;
+                        }
+                        CachedMediaLayout.this.openPhoto(itemInner, mediaAdapter, recyclerListView, (SharedPhotoVideoCell2) view);
+                        return;
+                    }
+                    Delegate delegate = CachedMediaLayout.this.delegate;
+                    if (delegate != null) {
+                        delegate.onItemSelected(itemInner.entities, itemInner.file, false);
+                    }
+                }
+            });
+            final BaseFragment baseFragment = this.val$parentFragment;
+            recyclerListView.setOnItemLongClickListener(new RecyclerListView.OnItemLongClickListenerExtended() { // from class: org.telegram.ui.CachedMediaLayout$2$$ExternalSyntheticLambda0
+                @Override // org.telegram.ui.Components.RecyclerListView.OnItemLongClickListenerExtended
+                public final boolean onItemClick(View view, int i2, float f, float f2) {
+                    return this.f$0.lambda$createView$5(recyclerListView, baseFragment, view, i2, f, f2);
+                }
+            });
+            return recyclerListView;
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public /* synthetic */ boolean lambda$createView$5(final RecyclerListView recyclerListView, final BaseFragment baseFragment, final View view, int i, float f, float f2) {
+            final BaseAdapter baseAdapter = (BaseAdapter) recyclerListView.getAdapter();
+            final ItemInner itemInner = baseAdapter.itemInners.get(i);
+            if ((view instanceof CacheCell) || (view instanceof SharedPhotoVideoCell2)) {
+                ActionBarPopupWindow.ActionBarPopupWindowLayout actionBarPopupWindowLayout = new ActionBarPopupWindow.ActionBarPopupWindowLayout(CachedMediaLayout.this.getContext());
+                if (view instanceof SharedPhotoVideoCell2) {
+                    ActionBarMenuItem.addItem(actionBarPopupWindowLayout, C2573R.drawable.msg_view_file, LocaleController.getString(C2573R.string.CacheOpenFile), false, null).setOnClickListener(new View.OnClickListener() { // from class: org.telegram.ui.CachedMediaLayout$2$$ExternalSyntheticLambda1
+                        @Override // android.view.View.OnClickListener
+                        public final void onClick(View view2) {
+                            this.f$0.lambda$createView$0(itemInner, baseAdapter, recyclerListView, view, view2);
+                        }
+                    });
+                } else if (((CacheCell) view).container.getChildAt(0) instanceof SharedAudioCell) {
+                    ActionBarMenuItem.addItem(actionBarPopupWindowLayout, C2573R.drawable.msg_played, LocaleController.getString(C2573R.string.PlayFile), false, null).setOnClickListener(new View.OnClickListener() { // from class: org.telegram.ui.CachedMediaLayout$2$$ExternalSyntheticLambda2
+                        @Override // android.view.View.OnClickListener
+                        public final void onClick(View view2) {
+                            this.f$0.lambda$createView$1(itemInner, view, view2);
+                        }
+                    });
+                } else {
+                    ActionBarMenuItem.addItem(actionBarPopupWindowLayout, C2573R.drawable.msg_view_file, LocaleController.getString(C2573R.string.CacheOpenFile), false, null).setOnClickListener(new View.OnClickListener() { // from class: org.telegram.ui.CachedMediaLayout$2$$ExternalSyntheticLambda3
+                        @Override // android.view.View.OnClickListener
+                        public final void onClick(View view2) {
+                            this.f$0.lambda$createView$2(itemInner, view, view2);
+                        }
+                    });
+                }
+                CacheModel.FileInfo fileInfo = itemInner.file;
+                if (fileInfo.dialogId != 0 && fileInfo.messageId != 0) {
+                    ActionBarMenuItem.addItem(actionBarPopupWindowLayout, C2573R.drawable.msg_viewintopic, LocaleController.getString(C2573R.string.ViewInChat), false, null).setOnClickListener(new View.OnClickListener() { // from class: org.telegram.ui.CachedMediaLayout$2$$ExternalSyntheticLambda4
+                        @Override // android.view.View.OnClickListener
+                        public final void onClick(View view2) {
+                            this.f$0.lambda$createView$3(itemInner, baseFragment, view2);
+                        }
+                    });
+                }
+                ActionBarMenuItem.addItem(actionBarPopupWindowLayout, C2573R.drawable.msg_select, LocaleController.getString(!CachedMediaLayout.this.cacheModel.selectedFiles.contains(itemInner.file) ? C2573R.string.Select : C2573R.string.Deselect), false, null).setOnClickListener(new View.OnClickListener() { // from class: org.telegram.ui.CachedMediaLayout$2$$ExternalSyntheticLambda5
+                    @Override // android.view.View.OnClickListener
+                    public final void onClick(View view2) {
+                        this.f$0.lambda$createView$4(itemInner, view2);
+                    }
+                });
+                this.popupWindow = AlertsCreator.createSimplePopup(baseFragment, actionBarPopupWindowLayout, view, (int) f, (int) f2);
+                CachedMediaLayout.this.getRootView().dispatchTouchEvent(MotionEvent.obtain(0L, 0L, 3, 0.0f, 0.0f, 0));
+                return true;
+            }
+            Delegate delegate = CachedMediaLayout.this.delegate;
+            if (delegate != null) {
+                delegate.onItemSelected(itemInner.entities, itemInner.file, true);
+            }
+            return true;
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public /* synthetic */ void lambda$createView$0(ItemInner itemInner, BaseAdapter baseAdapter, RecyclerListView recyclerListView, View view, View view2) {
+            CachedMediaLayout.this.openPhoto(itemInner, (MediaAdapter) baseAdapter, recyclerListView, (SharedPhotoVideoCell2) view);
+            ActionBarPopupWindow actionBarPopupWindow = this.popupWindow;
+            if (actionBarPopupWindow != null) {
+                actionBarPopupWindow.dismiss();
+            }
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public /* synthetic */ void lambda$createView$1(ItemInner itemInner, View view, View view2) {
+            CachedMediaLayout.this.openItem(itemInner.file, (CacheCell) view);
+            ActionBarPopupWindow actionBarPopupWindow = this.popupWindow;
+            if (actionBarPopupWindow != null) {
+                actionBarPopupWindow.dismiss();
+            }
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public /* synthetic */ void lambda$createView$2(ItemInner itemInner, View view, View view2) {
+            CachedMediaLayout.this.openItem(itemInner.file, (CacheCell) view);
+            ActionBarPopupWindow actionBarPopupWindow = this.popupWindow;
+            if (actionBarPopupWindow != null) {
+                actionBarPopupWindow.dismiss();
+            }
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public /* synthetic */ void lambda$createView$3(ItemInner itemInner, BaseFragment baseFragment, View view) {
+            Bundle bundle = new Bundle();
+            long j = itemInner.file.dialogId;
+            if (j > 0) {
+                bundle.putLong("user_id", j);
+            } else {
+                bundle.putLong("chat_id", -j);
+            }
+            bundle.putInt("message_id", itemInner.file.messageId);
+            baseFragment.presentFragment(new ChatActivity(bundle));
+            CachedMediaLayout.this.delegate.dismiss();
+            ActionBarPopupWindow actionBarPopupWindow = this.popupWindow;
+            if (actionBarPopupWindow != null) {
+                actionBarPopupWindow.dismiss();
+            }
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public /* synthetic */ void lambda$createView$4(ItemInner itemInner, View view) {
+            Delegate delegate = CachedMediaLayout.this.delegate;
+            if (delegate != null) {
+                delegate.onItemSelected(itemInner.entities, itemInner.file, true);
+            }
+            ActionBarPopupWindow actionBarPopupWindow = this.popupWindow;
+            if (actionBarPopupWindow != null) {
+                actionBarPopupWindow.dismiss();
+            }
+        }
+
+        @Override // org.telegram.ui.Components.ViewPagerFixed.Adapter
+        public void bindView(View view, int i, int i2) {
+            RecyclerListView recyclerListView = (RecyclerListView) view;
+            recyclerListView.setAdapter(CachedMediaLayout.this.pages.get(i).adapter);
+            if (CachedMediaLayout.this.pages.get(i).type == 1 || CachedMediaLayout.this.pages.get(i).type == 4) {
+                recyclerListView.setLayoutManager(new GridLayoutManager(view.getContext(), 3));
+            } else {
+                recyclerListView.setLayoutManager(new LinearLayoutManager(view.getContext()));
+            }
+            recyclerListView.setTag(Integer.valueOf(CachedMediaLayout.this.pages.get(i).type));
+        }
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public /* synthetic */ void lambda$new$0(View view) {
+        this.delegate.clearSelection();
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public /* synthetic */ void lambda$new$1(View view) {
+        this.delegate.clear();
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public void openPhoto(ItemInner itemInner, MediaAdapter mediaAdapter, RecyclerListView recyclerListView, SharedPhotoVideoCell2 sharedPhotoVideoCell2) {
+        PhotoViewer.getInstance().setParentActivity(this.parentFragment);
+        if (this.placeProvider == null) {
+            this.placeProvider = new BasePlaceProvider();
+        }
+        this.placeProvider.setRecyclerListView(recyclerListView);
+        if (mediaAdapter.itemInners.indexOf(itemInner) >= 0) {
+            PhotoViewer.getInstance().openPhotoForSelect(mediaAdapter.getPhotos(), mediaAdapter.itemInners.indexOf(itemInner), -1, false, this.placeProvider, null);
+        }
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public void openItem(CacheModel.FileInfo fileInfo, CacheCell cacheCell) {
+        RecyclerListView recyclerListView = (RecyclerListView) this.viewPagerFixed.getCurrentView();
+        if (cacheCell.type == 2) {
+            if (!(recyclerListView.getAdapter() instanceof DocumentsAdapter)) {
+                return;
+            }
+            PhotoViewer.getInstance().setParentActivity(this.parentFragment);
+            if (this.placeProvider == null) {
+                this.placeProvider = new BasePlaceProvider();
+            }
+            this.placeProvider.setRecyclerListView(recyclerListView);
+            if (fileIsMedia(fileInfo.file)) {
+                ArrayList<Object> arrayList = new ArrayList<>();
+                arrayList.add(new MediaController.PhotoEntry(0, 0, 0L, fileInfo.file.getPath(), 0, fileInfo.type == 1, 0, 0, 0L));
+                PhotoViewer.getInstance().openPhotoForSelect(arrayList, 0, -1, false, this.placeProvider, null);
+            } else {
+                File file = fileInfo.file;
+                AndroidUtilities.openForView(file, file.getName(), null, this.parentFragment.getParentActivity(), null, false);
+            }
+        }
+        if (cacheCell.type == 3) {
+            if (MediaController.getInstance().isPlayingMessage(fileInfo.messageObject)) {
+                if (!MediaController.getInstance().isMessagePaused()) {
+                    MediaController.getInstance().lambda$startAudioAgain$7(fileInfo.messageObject);
+                    return;
+                } else {
+                    MediaController.getInstance().playMessage(fileInfo.messageObject);
+                    return;
+                }
+            }
+            MediaController.getInstance().playMessage(fileInfo.messageObject);
+        }
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public SharedPhotoVideoCell2 getCellForIndex(int i) {
+        RecyclerListView listView = getListView();
+        for (int i2 = 0; i2 < listView.getChildCount(); i2++) {
+            View childAt = listView.getChildAt(i2);
+            if (listView.getChildAdapterPosition(childAt) == i && (childAt instanceof SharedPhotoVideoCell2)) {
+                return (SharedPhotoVideoCell2) childAt;
+            }
+        }
+        return null;
+    }
+
+    public void setCacheModel(CacheModel cacheModel) {
+        this.cacheModel = cacheModel;
+        update();
+    }
+
+    @Override // android.widget.FrameLayout, android.view.View
+    public void onMeasure(int i, int i2) {
+        super.onMeasure(i, View.MeasureSpec.makeMeasureSpec(View.MeasureSpec.getSize(i2), TLObject.FLAG_30));
+    }
+
+    public void update() {
+        ArrayList arrayList = new ArrayList();
+        arrayList.addAll(this.pages);
+        this.pages.clear();
+        if (this.cacheModel != null) {
+            int i = 0;
+            while (true) {
+                Page[] pageArr = this.allPages;
+                if (i >= pageArr.length) {
+                    break;
+                }
+                Page page = pageArr[i];
+                if (page != null) {
+                    if (page.type == 0 && !this.cacheModel.entities.isEmpty()) {
+                        this.pages.add(this.allPages[i]);
+                    } else if (this.allPages[i].type == 1 && !this.cacheModel.media.isEmpty()) {
+                        this.pages.add(this.allPages[i]);
+                    } else if (this.allPages[i].type == 2 && !this.cacheModel.documents.isEmpty()) {
+                        this.pages.add(this.allPages[i]);
+                    } else if (this.allPages[i].type == 3 && !this.cacheModel.music.isEmpty()) {
+                        this.pages.add(this.allPages[i]);
+                    } else if (this.allPages[i].type == 5 && !this.cacheModel.voice.isEmpty()) {
+                        this.pages.add(this.allPages[i]);
+                    } else if (this.allPages[i].type == 4 && !this.cacheModel.stories.isEmpty()) {
+                        this.pages.add(this.allPages[i]);
+                    }
+                }
+                i++;
+            }
+        }
+        if (this.pages.size() == 1 && this.cacheModel.isDialog) {
+            this.tabs.setVisibility(8);
+            ((ViewGroup.MarginLayoutParams) this.viewPagerFixed.getLayoutParams()).topMargin = 0;
+            ((ViewGroup.MarginLayoutParams) this.divider.getLayoutParams()).topMargin = 0;
+        }
+        if (arrayList.size() == this.pages.size()) {
+            for (int i2 = 0; i2 < arrayList.size(); i2++) {
+                if (((Page) arrayList.get(i2)).type != this.pages.get(i2).type) {
+                    this.viewPagerFixed.rebuild(true);
+                    break;
+                }
+            }
+        } else {
+            this.viewPagerFixed.rebuild(true);
+            break;
+        }
+        for (int i3 = 0; i3 < this.pages.size(); i3++) {
+            if (this.pages.get(i3).adapter != null) {
+                this.pages.get(i3).adapter.update();
+            }
+        }
+    }
+
+    @Override // org.telegram.ui.Components.NestedSizeNotifierLayout.ChildLayout
+    public RecyclerListView getListView() {
+        if (this.viewPagerFixed.getCurrentView() == null) {
+            return null;
+        }
+        return (RecyclerListView) this.viewPagerFixed.getCurrentView();
+    }
+
+    public void updateVisibleRows() {
+        for (int i = 0; i < this.viewPagerFixed.getViewPages().length; i++) {
+            AndroidUtilities.updateVisibleRows((RecyclerListView) this.viewPagerFixed.getViewPages()[i]);
+        }
+    }
+
+    public void setBottomPadding(int i) {
+        this.bottomPadding = i;
+        for (int i2 = 0; i2 < this.viewPagerFixed.getViewPages().length; i2++) {
+            RecyclerListView recyclerListView = (RecyclerListView) this.viewPagerFixed.getViewPages()[i2];
+            if (recyclerListView != null) {
+                recyclerListView.setPadding(0, 0, 0, i);
+            }
+        }
+    }
+
+    public class Page {
+        public final BaseAdapter adapter;
+        public final String title;
+        public final int type;
+
+        private Page(String str, int i, BaseAdapter baseAdapter) {
+            this.title = str;
+            this.type = i;
+            this.adapter = baseAdapter;
+        }
+    }
+
+    public abstract class BaseAdapter extends AdapterWithDiffUtils {
+        ArrayList<ItemInner> itemInners = new ArrayList<>();
+        final int type;
+
+        public abstract void update();
+
+        public BaseAdapter(int i) {
+            this.type = i;
+        }
+
+        @Override // androidx.recyclerview.widget.RecyclerView.Adapter
+        public int getItemViewType(int i) {
+            return this.itemInners.get(i).viewType;
+        }
+
+        @Override // androidx.recyclerview.widget.RecyclerView.Adapter
+        public int getItemCount() {
+            return this.itemInners.size();
+        }
+    }
+
+    public class DialogsAdapter extends BaseAdapter {
+        ArrayList<ItemInner> old;
+
+        @Override // org.telegram.ui.Components.RecyclerListView.SelectionAdapter
+        public boolean isEnabled(RecyclerView.ViewHolder viewHolder) {
+            return true;
+        }
+
+        private DialogsAdapter() {
+            super(0);
+            this.old = new ArrayList<>();
+        }
+
+        @Override // org.telegram.ui.CachedMediaLayout.BaseAdapter
+        public void update() {
+            this.old.clear();
+            this.old.addAll(this.itemInners);
+            this.itemInners.clear();
+            if (CachedMediaLayout.this.cacheModel != null) {
+                for (int i = 0; i < CachedMediaLayout.this.cacheModel.entities.size(); i++) {
+                    ArrayList<ItemInner> arrayList = this.itemInners;
+                    CachedMediaLayout cachedMediaLayout = CachedMediaLayout.this;
+                    arrayList.add(cachedMediaLayout.new ItemInner(1, cachedMediaLayout.cacheModel.entities.get(i)));
+                }
+            }
+            setItems(this.old, this.itemInners);
+        }
+
+        @Override // androidx.recyclerview.widget.RecyclerView.Adapter
+        public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup viewGroup, int i) {
+            CacheControlActivity.UserCell userCell = null;
+            if (i == 1) {
+                CacheControlActivity.UserCell userCell2 = new CacheControlActivity.UserCell(CachedMediaLayout.this.getContext(), null);
+                userCell2.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+                userCell = userCell2;
+            }
+            return new RecyclerListView.Holder(userCell);
+        }
+
+        @Override // androidx.recyclerview.widget.RecyclerView.Adapter
+        public void onBindViewHolder(RecyclerView.ViewHolder viewHolder, int i) {
+            String dialogPhotoTitle;
+            if (viewHolder.getItemViewType() != 1) {
+                return;
+            }
+            CacheControlActivity.UserCell userCell = (CacheControlActivity.UserCell) viewHolder.itemView;
+            CacheControlActivity.DialogFileEntities dialogFileEntities = this.itemInners.get(i).entities;
+            TLObject userOrChat = CachedMediaLayout.this.parentFragment.getMessagesController().getUserOrChat(dialogFileEntities.dialogId);
+            CacheControlActivity.DialogFileEntities dialogFileEntities2 = userCell.dialogFileEntities;
+            boolean z = dialogFileEntities2 != null && dialogFileEntities2.dialogId == dialogFileEntities.dialogId;
+            if (dialogFileEntities.dialogId == LongCompanionObject.MAX_VALUE) {
+                dialogPhotoTitle = LocaleController.getString(C2573R.string.CacheOtherChats);
+                userCell.getImageView().getAvatarDrawable().setAvatarType(14);
+                userCell.getImageView().setForUserOrChat(null, userCell.getImageView().getAvatarDrawable());
+            } else {
+                dialogPhotoTitle = DialogObject.setDialogPhotoTitle(userCell.getImageView(), userOrChat);
+            }
+            userCell.dialogFileEntities = dialogFileEntities;
+            userCell.getImageView().setRoundRadius(ExteraConfig.getAvatarCorners(38.0f, false, (userOrChat instanceof TLRPC.Chat) && ((TLRPC.Chat) userOrChat).forum));
+            userCell.setTextAndValue(dialogPhotoTitle, AndroidUtilities.formatFileSize(dialogFileEntities.totalSize), i < getItemCount() - 1);
+            userCell.setChecked(CachedMediaLayout.this.cacheModel.isSelected(dialogFileEntities.dialogId), z);
+        }
+    }
+
+    public abstract class BaseFilesAdapter extends BaseAdapter {
+        ArrayList<ItemInner> oldItems;
+
+        @Override // org.telegram.ui.Components.RecyclerListView.SelectionAdapter
+        public boolean isEnabled(RecyclerView.ViewHolder viewHolder) {
+            return true;
+        }
+
+        public BaseFilesAdapter(int i) {
+            super(i);
+            this.oldItems = new ArrayList<>();
+        }
+
+        @Override // org.telegram.ui.CachedMediaLayout.BaseAdapter
+        public void update() {
+            ArrayList<CacheModel.FileInfo> arrayList;
+            this.oldItems.clear();
+            this.oldItems.addAll(this.itemInners);
+            this.itemInners.clear();
+            CacheModel cacheModel = CachedMediaLayout.this.cacheModel;
+            if (cacheModel != null) {
+                int i = this.type;
+                if (i == 1) {
+                    arrayList = cacheModel.media;
+                } else if (i == 2) {
+                    arrayList = cacheModel.documents;
+                } else if (i == 3) {
+                    arrayList = cacheModel.music;
+                } else if (i == 5) {
+                    arrayList = cacheModel.voice;
+                } else {
+                    arrayList = i == 4 ? cacheModel.stories : null;
+                }
+                if (arrayList != null) {
+                    for (int i2 = 0; i2 < arrayList.size(); i2++) {
+                        this.itemInners.add(CachedMediaLayout.this.new ItemInner(2, arrayList.get(i2)));
+                    }
+                }
+            }
+            setItems(this.oldItems, this.itemInners);
+        }
+    }
+
+    public class ItemInner extends AdapterWithDiffUtils.Item {
+        CacheControlActivity.DialogFileEntities entities;
+        CacheModel.FileInfo file;
+
+        public ItemInner(int i, CacheControlActivity.DialogFileEntities dialogFileEntities) {
+            super(i, true);
+            this.entities = dialogFileEntities;
+        }
+
+        public ItemInner(int i, CacheModel.FileInfo fileInfo) {
+            super(i, true);
+            this.file = fileInfo;
+        }
+
+        public boolean equals(Object obj) {
+            CacheModel.FileInfo fileInfo;
+            CacheModel.FileInfo fileInfo2;
+            CacheControlActivity.DialogFileEntities dialogFileEntities;
+            CacheControlActivity.DialogFileEntities dialogFileEntities2;
+            if (this == obj) {
+                return true;
+            }
+            if (obj != null && getClass() == obj.getClass()) {
+                ItemInner itemInner = (ItemInner) obj;
+                int i = this.viewType;
+                if (i == itemInner.viewType) {
+                    if (i == 1 && (dialogFileEntities = this.entities) != null && (dialogFileEntities2 = itemInner.entities) != null) {
+                        return dialogFileEntities.dialogId == dialogFileEntities2.dialogId;
+                    }
+                    if (i == 2 && (fileInfo = this.file) != null && (fileInfo2 = itemInner.file) != null) {
+                        return Objects.equals(fileInfo.file, fileInfo2.file);
+                    }
+                }
+            }
+            return false;
+        }
+    }
+
+    public class MediaAdapter extends BaseFilesAdapter {
+        boolean isStories;
+        ArrayList<Object> photoEntries;
+        private SharedPhotoVideoCell2.SharedResources sharedResources;
+        CombinedDrawable thumb;
+
+        @Override // org.telegram.ui.CachedMediaLayout.BaseFilesAdapter, org.telegram.ui.Components.RecyclerListView.SelectionAdapter
+        public boolean isEnabled(RecyclerView.ViewHolder viewHolder) {
+            return false;
+        }
+
+        private MediaAdapter(boolean z) {
+            super(z ? 4 : 1);
+            this.photoEntries = new ArrayList<>();
+            this.isStories = z;
+        }
+
+        @Override // org.telegram.ui.CachedMediaLayout.BaseFilesAdapter, org.telegram.ui.CachedMediaLayout.BaseAdapter
+        public void update() {
+            super.update();
+            this.photoEntries.clear();
+            for (int i = 0; i < this.itemInners.size(); i++) {
+                this.photoEntries.add(new MediaController.PhotoEntry(0, 0, 0L, this.itemInners.get(i).file.file.getPath(), 0, this.itemInners.get(i).file.type == 1, 0, 0, 0L));
+            }
+        }
+
+        @Override // androidx.recyclerview.widget.RecyclerView.Adapter
+        public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup viewGroup, int i) {
+            if (this.sharedResources == null) {
+                this.sharedResources = new SharedPhotoVideoCell2.SharedResources(viewGroup.getContext(), null);
+            }
+            SharedPhotoVideoCell2 sharedPhotoVideoCell2 = new SharedPhotoVideoCell2(viewGroup.getContext(), this.sharedResources, CachedMediaLayout.this.parentFragment.getCurrentAccount()) { // from class: org.telegram.ui.CachedMediaLayout.MediaAdapter.1
+                @Override // org.telegram.ui.Cells.SharedPhotoVideoCell2
+                /* JADX INFO: renamed from: onCheckBoxPressed */
+                public void lambda$setStyle$1() {
+                    CachedMediaLayout.this.delegate.onItemSelected(null, (CacheModel.FileInfo) getTag(), true);
+                }
+            };
+            sharedPhotoVideoCell2.setStyle(1);
+            return new RecyclerListView.Holder(sharedPhotoVideoCell2);
+        }
+
+        @Override // androidx.recyclerview.widget.RecyclerView.Adapter
+        public void onBindViewHolder(RecyclerView.ViewHolder viewHolder, int i) {
+            if (this.thumb == null) {
+                CombinedDrawable combinedDrawable = new CombinedDrawable(new ColorDrawable(Theme.getColor(Theme.key_chat_attachPhotoBackground)), Theme.chat_attachEmptyDrawable);
+                this.thumb = combinedDrawable;
+                combinedDrawable.setFullsize(true);
+            }
+            SharedPhotoVideoCell2 sharedPhotoVideoCell2 = (SharedPhotoVideoCell2) viewHolder.itemView;
+            CacheModel.FileInfo fileInfo = this.itemInners.get(i).file;
+            boolean z = fileInfo == sharedPhotoVideoCell2.getTag();
+            sharedPhotoVideoCell2.setTag(fileInfo);
+            int iMax = (int) Math.max(100.0f, AndroidUtilities.getRealScreenSize().x / AndroidUtilities.density);
+            if (this.isStories) {
+                boolean zEndsWith = fileInfo.file.getAbsolutePath().endsWith(".mp4");
+                ImageReceiver imageReceiver = sharedPhotoVideoCell2.imageReceiver;
+                if (zEndsWith) {
+                    imageReceiver.setImage(ImageLocation.getForPath(fileInfo.file.getAbsolutePath()), iMax + "_" + iMax + "_pframe", this.thumb, null, null, 0);
+                } else {
+                    imageReceiver.setImage(ImageLocation.getForPath(fileInfo.file.getAbsolutePath()), iMax + "_" + iMax, this.thumb, null, null, 0);
+                }
+                sharedPhotoVideoCell2.storyId = Objects.hash(fileInfo.file.getAbsolutePath());
+                sharedPhotoVideoCell2.isStory = true;
+                sharedPhotoVideoCell2.setVideoText(AndroidUtilities.formatFileSize(fileInfo.size), true);
+            } else {
+                int i2 = fileInfo.type;
+                ImageReceiver imageReceiver2 = sharedPhotoVideoCell2.imageReceiver;
+                if (i2 == 1) {
+                    imageReceiver2.setImage(ImageLocation.getForPath("vthumb://0:" + fileInfo.file.getAbsolutePath()), iMax + "_" + iMax, this.thumb, null, null, 0);
+                    sharedPhotoVideoCell2.setVideoText(AndroidUtilities.formatFileSize(fileInfo.size), true);
+                } else {
+                    imageReceiver2.setImage(ImageLocation.getForPath("thumb://0:" + fileInfo.file.getAbsolutePath()), iMax + "_" + iMax, this.thumb, null, null, 0);
+                    sharedPhotoVideoCell2.setVideoText(AndroidUtilities.formatFileSize(fileInfo.size), false);
+                }
+            }
+            sharedPhotoVideoCell2.setChecked(CachedMediaLayout.this.cacheModel.isSelected(fileInfo), z);
+        }
+
+        public ArrayList<Object> getPhotos() {
+            return this.photoEntries;
+        }
+    }
+
+    public class DocumentsAdapter extends BaseFilesAdapter {
+        ArrayList<Object> photoEntries;
+
+        private DocumentsAdapter() {
+            super(2);
+            this.photoEntries = new ArrayList<>();
+        }
+
+        @Override // org.telegram.ui.CachedMediaLayout.BaseFilesAdapter, org.telegram.ui.CachedMediaLayout.BaseAdapter
+        public void update() {
+            super.update();
+            this.photoEntries.clear();
+            for (int i = 0; i < this.itemInners.size(); i++) {
+                this.photoEntries.add(new MediaController.PhotoEntry(0, 0, 0L, this.itemInners.get(i).file.file.getPath(), 0, this.itemInners.get(i).file.type == 1, 0, 0, 0L));
+            }
+        }
+
+        @Override // androidx.recyclerview.widget.RecyclerView.Adapter
+        public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup viewGroup, int i) {
+            CacheCell cacheCell = new CacheCell(viewGroup.getContext()) { // from class: org.telegram.ui.CachedMediaLayout.DocumentsAdapter.1
+                {
+                    CachedMediaLayout cachedMediaLayout = CachedMediaLayout.this;
+                }
+
+                @Override // org.telegram.ui.CachedMediaLayout.CacheCell
+                public void onCheckBoxPressed() {
+                    CachedMediaLayout.this.delegate.onItemSelected(null, (CacheModel.FileInfo) getTag(), true);
+                }
+            };
+            cacheCell.type = 2;
+            cacheCell.container.addView(new SharedDocumentCell(viewGroup.getContext(), 3, null));
+            return new RecyclerListView.Holder(cacheCell);
+        }
+
+        @Override // androidx.recyclerview.widget.RecyclerView.Adapter
+        public void onBindViewHolder(RecyclerView.ViewHolder viewHolder, int i) {
+            CacheCell cacheCell = (CacheCell) viewHolder.itemView;
+            SharedDocumentCell sharedDocumentCell = (SharedDocumentCell) cacheCell.container.getChildAt(0);
+            CacheModel.FileInfo fileInfo = this.itemInners.get(i).file;
+            boolean z = fileInfo == viewHolder.itemView.getTag();
+            boolean z2 = i != this.itemInners.size() - 1;
+            viewHolder.itemView.setTag(fileInfo);
+            sharedDocumentCell.setTextAndValueAndTypeAndThumb(fileInfo.messageType == 5 ? LocaleController.getString(C2573R.string.AttachRound) : fileInfo.file.getName(), LocaleController.formatDateAudio(fileInfo.file.lastModified() / 1000, true), Utilities.getExtension(fileInfo.file.getName()), null, 0, z2);
+            if (!z) {
+                sharedDocumentCell.setPhoto(fileInfo.file.getPath());
+            }
+            sharedDocumentCell.getImageView().setRoundRadius(AndroidUtilities.dp(fileInfo.messageType == 5 ? 20.0f : 4.0f));
+            cacheCell.drawDivider = z2;
+            cacheCell.sizeTextView.setText(AndroidUtilities.formatFileSize(fileInfo.size));
+            cacheCell.checkBox.setChecked(CachedMediaLayout.this.cacheModel.isSelected(fileInfo), z);
+        }
+    }
+
+    public class MusicAdapter extends BaseFilesAdapter {
+        private MusicAdapter() {
+            super(3);
+        }
+
+        @Override // androidx.recyclerview.widget.RecyclerView.Adapter
+        public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup viewGroup, int i) {
+            final CacheCell cacheCell = new CacheCell(viewGroup.getContext()) { // from class: org.telegram.ui.CachedMediaLayout.MusicAdapter.1
+                {
+                    CachedMediaLayout cachedMediaLayout = CachedMediaLayout.this;
+                }
+
+                @Override // org.telegram.ui.CachedMediaLayout.CacheCell
+                public void onCheckBoxPressed() {
+                    CachedMediaLayout.this.delegate.onItemSelected(null, (CacheModel.FileInfo) getTag(), true);
+                }
+            };
+            cacheCell.type = 3;
+            SharedAudioCell sharedAudioCell = new SharedAudioCell(viewGroup.getContext(), 0, null) { // from class: org.telegram.ui.CachedMediaLayout.MusicAdapter.2
+                @Override // org.telegram.ui.Cells.SharedAudioCell
+                public void didPressedButton() {
+                    CachedMediaLayout.this.openItem((CacheModel.FileInfo) cacheCell.getTag(), cacheCell);
+                }
+            };
+            sharedAudioCell.setCheckForButtonPress(true);
+            cacheCell.container.addView(sharedAudioCell);
+            return new RecyclerListView.Holder(cacheCell);
+        }
+
+        @Override // androidx.recyclerview.widget.RecyclerView.Adapter
+        public void onBindViewHolder(RecyclerView.ViewHolder viewHolder, int i) {
+            CacheCell cacheCell = (CacheCell) viewHolder.itemView;
+            SharedAudioCell sharedAudioCell = (SharedAudioCell) cacheCell.container.getChildAt(0);
+            CacheModel.FileInfo fileInfo = this.itemInners.get(i).file;
+            boolean z = fileInfo == cacheCell.getTag();
+            boolean z2 = i != this.itemInners.size() - 1;
+            cacheCell.setTag(fileInfo);
+            CachedMediaLayout.this.checkMessageObjectForAudio(fileInfo, i);
+            sharedAudioCell.setMessageObject(fileInfo.messageObject, z2);
+            sharedAudioCell.showName(!fileInfo.metadata.loading, z);
+            cacheCell.drawDivider = z2;
+            cacheCell.sizeTextView.setText(AndroidUtilities.formatFileSize(fileInfo.size));
+            cacheCell.checkBox.setChecked(CachedMediaLayout.this.cacheModel.isSelected(fileInfo), z);
+        }
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public void checkMessageObjectForAudio(final CacheModel.FileInfo fileInfo, int i) {
+        if (fileInfo.messageObject == null) {
+            TLRPC.TL_message tL_message = new TLRPC.TL_message();
+            tL_message.out = true;
+            tL_message.id = i;
+            tL_message.peer_id = new TLRPC.TL_peerUser();
+            TLRPC.TL_peerUser tL_peerUser = new TLRPC.TL_peerUser();
+            tL_message.from_id = tL_peerUser;
+            TLRPC.Peer peer = tL_message.peer_id;
+            long clientUserId = UserConfig.getInstance(this.parentFragment.getCurrentAccount()).getClientUserId();
+            tL_peerUser.user_id = clientUserId;
+            peer.user_id = clientUserId;
+            tL_message.date = (int) (System.currentTimeMillis() / 1000);
+            tL_message.message = _UrlKt.FRAGMENT_ENCODE_SET;
+            tL_message.attachPath = fileInfo.file.getPath();
+            TLRPC.TL_messageMediaDocument tL_messageMediaDocument = new TLRPC.TL_messageMediaDocument();
+            tL_message.media = tL_messageMediaDocument;
+            tL_messageMediaDocument.flags |= 3;
+            tL_messageMediaDocument.document = new TLRPC.TL_document();
+            tL_message.flags |= 768;
+            tL_message.dialog_id = fileInfo.dialogId;
+            String fileExtension = FileLoader.getFileExtension(fileInfo.file);
+            TLRPC.Document document = tL_message.media.document;
+            document.id = 0L;
+            document.access_hash = 0L;
+            document.file_reference = new byte[0];
+            document.date = tL_message.date;
+            if (fileExtension.length() <= 0) {
+                fileExtension = HlsSegmentFormat.MP3;
+            }
+            document.mime_type = "audio/".concat(fileExtension);
+            TLRPC.Document document2 = tL_message.media.document;
+            document2.size = fileInfo.size;
+            document2.dc_id = 0;
+            final TLRPC.TL_documentAttributeAudio tL_documentAttributeAudio = new TLRPC.TL_documentAttributeAudio();
+            if (fileInfo.metadata == null) {
+                CacheModel.FileInfo.FileMetadata fileMetadata = new CacheModel.FileInfo.FileMetadata();
+                fileInfo.metadata = fileMetadata;
+                fileMetadata.loading = true;
+                Utilities.globalQueue.postRunnable(new Runnable() { // from class: org.telegram.ui.CachedMediaLayout$$ExternalSyntheticLambda2
+                    @Override // java.lang.Runnable
+                    public final void run() throws Throwable {
+                        this.f$0.lambda$checkMessageObjectForAudio$3(fileInfo, tL_documentAttributeAudio);
+                    }
+                });
+            }
+            tL_documentAttributeAudio.flags |= 3;
+            tL_message.media.document.attributes.add(tL_documentAttributeAudio);
+            TLRPC.TL_documentAttributeFilename tL_documentAttributeFilename = new TLRPC.TL_documentAttributeFilename();
+            tL_documentAttributeFilename.file_name = fileInfo.file.getName();
+            tL_message.media.document.attributes.add(tL_documentAttributeFilename);
+            MessageObject messageObject = new MessageObject(this.parentFragment.getCurrentAccount(), tL_message, false, false);
+            fileInfo.messageObject = messageObject;
+            messageObject.mediaExists = true;
+        }
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    /* JADX WARN: Removed duplicated region for block: B:44:0x003c A[EXC_TOP_SPLITTER, SYNTHETIC] */
+    /*
+        Code decompiled incorrectly, please refer to instructions dump.
+    */
+    public /* synthetic */ void lambda$checkMessageObjectForAudio$3(final CacheModel.FileInfo fileInfo, final TLRPC.TL_documentAttributeAudio tL_documentAttributeAudio) throws Throwable {
+        Throwable th;
+        String str;
+        final String str2;
+        MediaMetadataRetriever mediaMetadataRetriever;
+        String strExtractMetadata;
+        String strExtractMetadata2 = _UrlKt.FRAGMENT_ENCODE_SET;
+        MediaMetadataRetriever mediaMetadataRetriever2 = null;
+        try {
+            try {
+                mediaMetadataRetriever = new MediaMetadataRetriever();
+            } catch (Throwable th2) {
+                th = th2;
+            }
+            try {
+                try {
+                    mediaMetadataRetriever.setDataSource(getContext(), Uri.fromFile(fileInfo.file));
+                    strExtractMetadata = mediaMetadataRetriever.extractMetadata(7);
+                } catch (Exception e) {
+                    e = e;
+                    mediaMetadataRetriever2 = mediaMetadataRetriever;
+                    str = _UrlKt.FRAGMENT_ENCODE_SET;
+                    FileLog.m898e(e);
+                    if (mediaMetadataRetriever2 != null) {
+                        try {
+                            mediaMetadataRetriever2.release();
+                        } catch (Throwable unused) {
+                        }
+                    }
+                    str2 = str;
+                    final String str3 = strExtractMetadata2;
+                    AndroidUtilities.runOnUIThread(new Runnable() { // from class: org.telegram.ui.CachedMediaLayout$$ExternalSyntheticLambda3
+                        @Override // java.lang.Runnable
+                        public final void run() {
+                            this.f$0.lambda$checkMessageObjectForAudio$2(fileInfo, tL_documentAttributeAudio, str2, str3);
+                        }
+                    });
+                }
+                try {
+                    strExtractMetadata2 = mediaMetadataRetriever.extractMetadata(2);
+                    try {
+                        mediaMetadataRetriever.release();
+                    } catch (Throwable unused2) {
+                    }
+                    str2 = strExtractMetadata;
+                } catch (Exception e2) {
+                    e = e2;
+                    str = strExtractMetadata;
+                    mediaMetadataRetriever2 = mediaMetadataRetriever;
+                    FileLog.m898e(e);
+                    if (mediaMetadataRetriever2 != null) {
+                    }
+                    str2 = str;
+                }
+            } catch (Throwable th3) {
+                th = th3;
+                mediaMetadataRetriever2 = mediaMetadataRetriever;
+                if (mediaMetadataRetriever2 != null) {
+                    try {
+                        mediaMetadataRetriever2.release();
+                        throw th;
+                    } catch (Throwable unused3) {
+                        throw th;
+                    }
+                }
+                throw th;
+            }
+        } catch (Exception e3) {
+            e = e3;
+        }
+        final String str32 = strExtractMetadata2;
+        AndroidUtilities.runOnUIThread(new Runnable() { // from class: org.telegram.ui.CachedMediaLayout$$ExternalSyntheticLambda3
+            @Override // java.lang.Runnable
+            public final void run() {
+                this.f$0.lambda$checkMessageObjectForAudio$2(fileInfo, tL_documentAttributeAudio, str2, str32);
+            }
+        });
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public /* synthetic */ void lambda$checkMessageObjectForAudio$2(CacheModel.FileInfo fileInfo, TLRPC.TL_documentAttributeAudio tL_documentAttributeAudio, String str, String str2) {
+        CacheModel.FileInfo.FileMetadata fileMetadata = fileInfo.metadata;
+        fileMetadata.loading = false;
+        fileMetadata.title = str;
+        tL_documentAttributeAudio.title = str;
+        fileMetadata.author = str2;
+        tL_documentAttributeAudio.performer = str2;
+        updateRow(fileInfo, 3);
+    }
+
+    private void updateRow(CacheModel.FileInfo fileInfo, int i) {
+        for (int i2 = 0; i2 < this.viewPagerFixed.getViewPages().length; i2++) {
+            RecyclerListView recyclerListView = (RecyclerListView) this.viewPagerFixed.getViewPages()[i2];
+            if (recyclerListView != null && ((BaseAdapter) recyclerListView.getAdapter()).type == i) {
+                BaseAdapter baseAdapter = (BaseAdapter) recyclerListView.getAdapter();
+                int i3 = 0;
+                while (true) {
+                    if (i3 >= baseAdapter.itemInners.size()) {
+                        break;
+                    }
+                    if (baseAdapter.itemInners.get(i3).file == fileInfo) {
+                        baseAdapter.notifyItemChanged(i3);
+                        break;
+                    }
+                    i3++;
+                }
+            }
+        }
+    }
+
+    public void setDelegate(Delegate delegate) {
+        this.delegate = delegate;
+    }
+
+    public class BasePlaceProvider extends PhotoViewer.EmptyPhotoViewerProvider {
+        RecyclerListView recyclerListView;
+
+        private BasePlaceProvider() {
+        }
+
+        public void setRecyclerListView(RecyclerListView recyclerListView) {
+            this.recyclerListView = recyclerListView;
+        }
+
+        @Override // org.telegram.ui.PhotoViewer.EmptyPhotoViewerProvider, org.telegram.ui.PhotoViewer.PhotoViewerProvider
+        public PhotoViewer.PlaceProviderObject getPlaceForPhoto(MessageObject messageObject, TLRPC.FileLocation fileLocation, int i, boolean z, boolean z2) {
+            SharedPhotoVideoCell2 cellForIndex = CachedMediaLayout.this.getCellForIndex(i);
+            if (cellForIndex == null) {
+                return null;
+            }
+            int[] iArr = new int[2];
+            cellForIndex.getLocationInWindow(iArr);
+            PhotoViewer.PlaceProviderObject placeProviderObject = new PhotoViewer.PlaceProviderObject();
+            placeProviderObject.viewX = iArr[0];
+            placeProviderObject.viewY = iArr[1];
+            placeProviderObject.parentView = this.recyclerListView;
+            ImageReceiver imageReceiver = cellForIndex.imageReceiver;
+            placeProviderObject.imageReceiver = imageReceiver;
+            placeProviderObject.thumb = imageReceiver.getBitmapSafe();
+            placeProviderObject.scale = cellForIndex.getScaleX();
+            return placeProviderObject;
+        }
+    }
+
+    public class CacheCell extends FrameLayout {
+        CheckBox2 checkBox;
+        FrameLayout container;
+        boolean drawDivider;
+        TextView sizeTextView;
+        int type;
+
+        public abstract void onCheckBoxPressed();
+
+        public CacheCell(Context context) {
+            super(context);
+            CheckBox2 checkBox2 = new CheckBox2(context, 21);
+            this.checkBox = checkBox2;
+            checkBox2.setDrawBackgroundAsArc(14);
+            this.checkBox.setColor(Theme.key_checkbox, Theme.key_radioBackground, Theme.key_checkboxCheck);
+            View view = new View(getContext());
+            view.setOnClickListener(new View.OnClickListener() { // from class: org.telegram.ui.CachedMediaLayout$CacheCell$$ExternalSyntheticLambda0
+                @Override // android.view.View.OnClickListener
+                public final void onClick(View view2) {
+                    this.f$0.lambda$new$0(view2);
+                }
+            });
+            this.container = new FrameLayout(context);
+            TextView textView = new TextView(context);
+            this.sizeTextView = textView;
+            textView.setTextSize(1, 16.0f);
+            this.sizeTextView.setGravity(5);
+            this.sizeTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText));
+            boolean z = LocaleController.isRTL;
+            CheckBox2 checkBox22 = this.checkBox;
+            if (z) {
+                addView(checkBox22, LayoutHelper.createFrame(24, 24.0f, 21, 0.0f, 0.0f, 18.0f, 0.0f));
+                addView(view, LayoutHelper.createFrame(40, 40.0f, 21, 0.0f, 0.0f, 0.0f, 0.0f));
+                addView(this.container, LayoutHelper.createFrame(-1, -2.0f, 0, 90.0f, 0.0f, 40.0f, 0.0f));
+                addView(this.sizeTextView, LayoutHelper.createFrame(69, -2.0f, 19, 0.0f, 0.0f, 0.0f, 0.0f));
+                return;
+            }
+            addView(checkBox22, LayoutHelper.createFrame(24, 24.0f, 19, 18.0f, 0.0f, 0.0f, 0.0f));
+            addView(view, LayoutHelper.createFrame(40, 40.0f, 19, 0.0f, 0.0f, 0.0f, 0.0f));
+            addView(this.container, LayoutHelper.createFrame(-1, -2.0f, 0, 48.0f, 0.0f, 90.0f, 0.0f));
+            addView(this.sizeTextView, LayoutHelper.createFrame(69, -2.0f, 21, 0.0f, 0.0f, 21.0f, 0.0f));
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public /* synthetic */ void lambda$new$0(View view) {
+            onCheckBoxPressed();
+        }
+
+        @Override // android.view.ViewGroup, android.view.View
+        public void dispatchDraw(Canvas canvas) {
+            super.dispatchDraw(canvas);
+            if (this.drawDivider) {
+                if (LocaleController.isRTL) {
+                    canvas.drawLine(0.0f, getMeasuredHeight() - 1, getMeasuredWidth() - AndroidUtilities.dp(48.0f), getMeasuredHeight() - 1, Theme.dividerPaint);
+                } else {
+                    canvas.drawLine(getMeasuredWidth() - AndroidUtilities.dp(90.0f), getMeasuredHeight() - 1, getMeasuredWidth(), getMeasuredHeight() - 1, Theme.dividerPaint);
+                }
+            }
+        }
+    }
+
+    public static boolean fileIsMedia(File file) {
+        String lowerCase = file.getName().toLowerCase();
+        return file.getName().endsWith("mp4") || file.getName().endsWith(".jpg") || lowerCase.endsWith(".jpeg") || lowerCase.endsWith(".png") || lowerCase.endsWith(".gif");
+    }
+}

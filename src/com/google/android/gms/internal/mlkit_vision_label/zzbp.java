@@ -1,0 +1,40 @@
+package com.google.android.gms.internal.mlkit_vision_label;
+
+import java.util.AbstractMap;
+import java.util.Collection;
+import java.util.Set;
+import javax.annotation.CheckForNull;
+
+/* JADX INFO: loaded from: classes4.dex */
+abstract class zzbp extends AbstractMap {
+
+    @CheckForNull
+    private transient Set zza;
+
+    @CheckForNull
+    private transient Collection zzc;
+
+    @Override // java.util.AbstractMap, java.util.Map
+    public final Set entrySet() {
+        Set set = this.zza;
+        if (set != null) {
+            return set;
+        }
+        Set setZza = zza();
+        this.zza = setZza;
+        return setZza;
+    }
+
+    @Override // java.util.AbstractMap, java.util.Map
+    public final Collection values() {
+        Collection collection = this.zzc;
+        if (collection != null) {
+            return collection;
+        }
+        zzbo zzboVar = new zzbo(this);
+        this.zzc = zzboVar;
+        return zzboVar;
+    }
+
+    public abstract Set zza();
+}

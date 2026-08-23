@@ -1,0 +1,27 @@
+package com.google.android.gms.internal.mlkit_vision_label;
+
+import android.content.Context;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
+/* JADX INFO: loaded from: classes4.dex */
+public final class zzni implements zzno {
+    final List zza;
+
+    public zzni(Context context, zznh zznhVar) {
+        ArrayList arrayList = new ArrayList();
+        this.zza = arrayList;
+        if (zznhVar.zzc()) {
+            arrayList.add(new zznx(context, zznhVar));
+        }
+    }
+
+    @Override // com.google.android.gms.internal.mlkit_vision_label.zzno
+    public final void zza(zznf zznfVar) {
+        Iterator it = this.zza.iterator();
+        while (it.hasNext()) {
+            ((zzno) it.next()).zza(zznfVar);
+        }
+    }
+}

@@ -1,0 +1,225 @@
+package com.google.android.recaptcha.internal;
+
+import okio.AsyncTimeout$$ExternalSyntheticBUOutline0;
+
+/* JADX INFO: loaded from: classes5.dex */
+final class zzma {
+    private static final zzlx zza;
+
+    static {
+        if (zzlv.zzx() && zzlv.zzy()) {
+            int i = zzgi.zza;
+        }
+        zza = new zzly();
+    }
+
+    public static /* bridge */ /* synthetic */ int zza(byte[] bArr, int i, int i2) {
+        int i3 = i2 - i;
+        byte b2 = bArr[i - 1];
+        if (i3 == 0) {
+            if (b2 <= -12) {
+                return b2;
+            }
+            return -1;
+        }
+        if (i3 == 1) {
+            byte b3 = bArr[i];
+            if (b2 > -12 || b3 > -65) {
+                return -1;
+            }
+            return (b3 << 8) ^ b2;
+        }
+        if (i3 != 2) {
+            AsyncTimeout$$ExternalSyntheticBUOutline0.m832m();
+            return 0;
+        }
+        byte b4 = bArr[i];
+        byte b5 = bArr[i + 1];
+        if (b2 > -12 || b4 > -65 || b5 > -65) {
+            return -1;
+        }
+        return (b5 << 16) ^ ((b4 << 8) ^ b2);
+    }
+
+    public static int zzb(CharSequence charSequence, byte[] bArr, int i, int i2) {
+        int i3;
+        int i4;
+        int i5;
+        char cCharAt;
+        int length = charSequence.length();
+        int i6 = 0;
+        while (true) {
+            i3 = i + i2;
+            if (i6 >= length || (i5 = i6 + i) >= i3 || (cCharAt = charSequence.charAt(i6)) >= 128) {
+                break;
+            }
+            bArr[i5] = (byte) cCharAt;
+            i6++;
+        }
+        if (i6 == length) {
+            return i + length;
+        }
+        int i7 = i + i6;
+        while (i6 < length) {
+            char cCharAt2 = charSequence.charAt(i6);
+            if (cCharAt2 < 128 && i7 < i3) {
+                bArr[i7] = (byte) cCharAt2;
+                i7++;
+            } else if (cCharAt2 < 2048 && i7 <= i3 - 2) {
+                bArr[i7] = (byte) ((cCharAt2 >>> 6) | 960);
+                bArr[i7 + 1] = (byte) ((cCharAt2 & '?') | 128);
+                i7 += 2;
+            } else {
+                if ((cCharAt2 >= 55296 && cCharAt2 <= 57343) || i7 > i3 - 3) {
+                    if (i7 > i3 - 4) {
+                        if (cCharAt2 >= 55296 && cCharAt2 <= 57343 && ((i4 = i6 + 1) == charSequence.length() || !Character.isSurrogatePair(cCharAt2, charSequence.charAt(i4)))) {
+                            throw new zzlz(i6, length);
+                        }
+                        zzma$$ExternalSyntheticBUOutline0.m443m(cCharAt2, i7);
+                        return 0;
+                    }
+                    int i8 = i6 + 1;
+                    if (i8 != charSequence.length()) {
+                        char cCharAt3 = charSequence.charAt(i8);
+                        if (Character.isSurrogatePair(cCharAt2, cCharAt3)) {
+                            int i9 = i7 + 3;
+                            int codePoint = Character.toCodePoint(cCharAt2, cCharAt3);
+                            bArr[i7] = (byte) ((codePoint >>> 18) | 240);
+                            bArr[i7 + 1] = (byte) (((codePoint >>> 12) & 63) | 128);
+                            bArr[i7 + 2] = (byte) (((codePoint >>> 6) & 63) | 128);
+                            i7 += 4;
+                            bArr[i9] = (byte) ((codePoint & 63) | 128);
+                            i6 = i8;
+                        } else {
+                            i6 = i8;
+                        }
+                    }
+                    throw new zzlz(i6 - 1, length);
+                }
+                bArr[i7] = (byte) ((cCharAt2 >>> '\f') | 480);
+                bArr[i7 + 1] = (byte) (((cCharAt2 >>> 6) & 63) | 128);
+                bArr[i7 + 2] = (byte) ((cCharAt2 & '?') | 128);
+                i7 += 3;
+            }
+            i6++;
+        }
+        return i7;
+    }
+
+    public static int zzc(CharSequence charSequence) {
+        int length = charSequence.length();
+        int i = 0;
+        int i2 = 0;
+        while (i2 < length && charSequence.charAt(i2) < 128) {
+            i2++;
+        }
+        int i3 = length;
+        while (true) {
+            if (i2 >= length) {
+                break;
+            }
+            char cCharAt = charSequence.charAt(i2);
+            if (cCharAt < 2048) {
+                i3 += (127 - cCharAt) >>> 31;
+                i2++;
+            } else {
+                int length2 = charSequence.length();
+                while (i2 < length2) {
+                    char cCharAt2 = charSequence.charAt(i2);
+                    if (cCharAt2 < 2048) {
+                        i += (127 - cCharAt2) >>> 31;
+                    } else {
+                        i += 2;
+                        if (cCharAt2 >= 55296 && cCharAt2 <= 57343) {
+                            if (Character.codePointAt(charSequence, i2) < 65536) {
+                                throw new zzlz(i2, length2);
+                            }
+                            i2++;
+                        }
+                    }
+                    i2++;
+                }
+                i3 += i;
+            }
+        }
+        if (i3 >= length) {
+            return i3;
+        }
+        throw new IllegalArgumentException("UTF-8 length does not fit in int: " + (((long) i3) + 4294967296L));
+    }
+
+    public static String zzd(byte[] bArr, int i, int i2) throws zzje {
+        int i3;
+        int length = bArr.length;
+        if ((((length - i) - i2) | i | i2) < 0) {
+            throw new ArrayIndexOutOfBoundsException(String.format("buffer length=%d, index=%d, size=%d", Integer.valueOf(length), Integer.valueOf(i), Integer.valueOf(i2)));
+        }
+        int i4 = i + i2;
+        char[] cArr = new char[i2];
+        int i5 = 0;
+        while (i < i4) {
+            byte b2 = bArr[i];
+            if (!zzlw.zzd(b2)) {
+                break;
+            }
+            i++;
+            cArr[i5] = (char) b2;
+            i5++;
+        }
+        int i6 = i5;
+        while (i < i4) {
+            int i7 = i + 1;
+            byte b3 = bArr[i];
+            if (zzlw.zzd(b3)) {
+                cArr[i6] = (char) b3;
+                i6++;
+                i = i7;
+                while (i < i4) {
+                    byte b4 = bArr[i];
+                    if (zzlw.zzd(b4)) {
+                        i++;
+                        cArr[i6] = (char) b4;
+                        i6++;
+                    }
+                }
+            } else {
+                if (b3 < -32) {
+                    if (i7 >= i4) {
+                        throw zzje.zzd();
+                    }
+                    i3 = i6 + 1;
+                    i += 2;
+                    zzlw.zzc(b3, bArr[i7], cArr, i6);
+                } else if (b3 < -16) {
+                    if (i7 >= i4 - 1) {
+                        throw zzje.zzd();
+                    }
+                    i3 = i6 + 1;
+                    int i8 = i + 2;
+                    i += 3;
+                    zzlw.zzb(b3, bArr[i7], bArr[i8], cArr, i6);
+                } else {
+                    if (i7 >= i4 - 2) {
+                        throw zzje.zzd();
+                    }
+                    byte b5 = bArr[i7];
+                    int i9 = i + 3;
+                    byte b6 = bArr[i + 2];
+                    i += 4;
+                    zzlw.zza(b3, b5, b6, bArr[i9], cArr, i6);
+                    i6 += 2;
+                }
+                i6 = i3;
+            }
+        }
+        return new String(cArr, 0, i6);
+    }
+
+    public static boolean zze(byte[] bArr) {
+        return zza.zzb(bArr, 0, bArr.length);
+    }
+
+    public static boolean zzf(byte[] bArr, int i, int i2) {
+        return zza.zzb(bArr, i, i2);
+    }
+}

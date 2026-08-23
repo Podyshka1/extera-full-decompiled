@@ -1,0 +1,17 @@
+package com.sun.jna;
+
+/* JADX INFO: renamed from: com.sun.jna.R */
+/* JADX INFO: loaded from: classes5.dex */
+public final class C1954R {
+
+    /* JADX INFO: renamed from: com.sun.jna.R$string */
+    public static final class string {
+        public static int jna_library_appname = 2131832352;
+
+        private string() {
+        }
+    }
+
+    private C1954R() {
+    }
+}

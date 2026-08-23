@@ -1,0 +1,14 @@
+package com.google.android.exoplayer2.ext.flac;
+
+import com.google.android.exoplayer2.decoder.DecoderException;
+
+/* JADX INFO: loaded from: classes4.dex */
+public final class FlacDecoderException extends DecoderException {
+    public FlacDecoderException(String str) {
+        super(str);
+    }
+
+    public FlacDecoderException(String str, Throwable th) {
+        super(str, th);
+    }
+}

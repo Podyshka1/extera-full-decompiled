@@ -1,0 +1,29 @@
+package com.yandex.mapkit.directions.driving;
+
+/* JADX INFO: loaded from: classes5.dex */
+public enum DirectionSignImage {
+    FREEWAY_IMAGE,
+    BRIDGE_IMAGE,
+    TUNNEL_IMAGE,
+    FERRY_IMAGE,
+    SUBWAY_STATION_IMAGE,
+    RAILWAY_STATION_IMAGE,
+    AIRPORT_IMAGE,
+    HOSPITAL_IMAGE,
+    RAILWAY_CROSSING_IMAGE,
+    SKI_SLOPE_IMAGE,
+    STADIUM_IMAGE,
+    BRIDGE_TR_IMAGE,
+    SUBWAY_STATION_TR_IMAGE,
+    HOSPITAL_H_IMAGE,
+    BEACH_IMAGE,
+    BURJ_KHALIFA_IMAGE,
+    GAS_IMAGE,
+    HOTEL_IMAGE,
+    KAABA_IMAGE,
+    MALL_IMAGE,
+    MOSQUE_IMAGE,
+    SUBWAY_U_A_E_IMAGE,
+    TRAM_U_A_E_IMAGE,
+    UNIVERSITY_IMAGE
+}

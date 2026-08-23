@@ -1,0 +1,153 @@
+package androidx.credentials.playservices.controllers.identityauth;
+
+import android.app.Activity;
+import android.app.PendingIntent;
+import android.content.Intent;
+import android.content.IntentSender;
+import android.os.Bundle;
+import android.os.ResultReceiver;
+import android.util.Log;
+import androidx.credentials.playservices.controllers.CredentialProviderBaseController;
+import kotlin.Metadata;
+import okhttp3.internal.url._UrlKt;
+import org.scilab.forge.jlatexmath.TeXSymbolParser;
+
+/* JADX INFO: loaded from: classes3.dex */
+@Metadata(d1 = {"\u0000F\n\u0002\u0018\u0002\n\u0002\u0018\u0002\n\u0002\b\u0003\n\u0002\u0018\u0002\n\u0000\n\u0002\u0010\u000b\n\u0000\n\u0002\u0010\u0002\n\u0000\n\u0002\u0018\u0002\n\u0002\b\u0003\n\u0002\u0010\u000e\n\u0002\b\u0007\n\u0002\u0018\u0002\n\u0002\b\u0003\n\u0002\u0010\b\n\u0002\b\u0002\n\u0002\u0018\u0002\n\u0002\b\u0002\b\u0017\u0018\u0000 \u001f2\u00020\u0001:\u0001\u001fB\u0007¢\u0006\u0004\b\u0002\u0010\u0003J\u0012\u0010\b\u001a\u00020\t2\b\u0010\n\u001a\u0004\u0018\u00010\u000bH\u0014J\u0012\u0010\f\u001a\u00020\t2\b\u0010\n\u001a\u0004\u0018\u00010\u000bH\u0002J \u0010\r\u001a\u00020\t2\u0006\u0010\u0004\u001a\u00020\u00052\u0006\u0010\u000e\u001a\u00020\u000f2\u0006\u0010\u0010\u001a\u00020\u000fH\u0002J\u0010\u0010\u0011\u001a\u00020\t2\u0006\u0010\u0012\u001a\u00020\u000bH\u0014J\u0010\u0010\u0013\u001a\u00020\t2\u0006\u0010\u0014\u001a\u00020\u000fH\u0002J\u0018\u0010\u0015\u001a\u00020\t2\u0006\u0010\u0014\u001a\u00020\u000f2\u0006\u0010\u0016\u001a\u00020\u0017H\u0002J\u0010\u0010\u0018\u001a\u00020\t2\u0006\u0010\u0014\u001a\u00020\u000fH\u0002J\"\u0010\u0019\u001a\u00020\t2\u0006\u0010\u001a\u001a\u00020\u001b2\u0006\u0010\u001c\u001a\u00020\u001b2\b\u0010\u001d\u001a\u0004\u0018\u00010\u001eH\u0014R\u0010\u0010\u0004\u001a\u0004\u0018\u00010\u0005X\u0082\u000e¢\u0006\u0002\n\u0000R\u000e\u0010\u0006\u001a\u00020\u0007X\u0082\u000e¢\u0006\u0002\n\u0000¨\u0006 "}, d2 = {"Landroidx/credentials/playservices/controllers/identityauth/HiddenActivity;", "Landroid/app/Activity;", "<init>", "()V", "resultReceiver", "Landroid/os/ResultReceiver;", "mWaitingForActivityResult", _UrlKt.FRAGMENT_ENCODE_SET, "onCreate", _UrlKt.FRAGMENT_ENCODE_SET, "savedInstanceState", "Landroid/os/Bundle;", "restoreState", "setupFailure", "errName", _UrlKt.FRAGMENT_ENCODE_SET, "errMsg", "onSaveInstanceState", "outState", "handleCredentialFlow", TeXSymbolParser.TYPE_ATTR, "setupIntentSenderFailureByType", "e", "Landroid/content/IntentSender$SendIntentException;", "setupPendingIntentFailureByType", "onActivityResult", "requestCode", _UrlKt.FRAGMENT_ENCODE_SET, "resultCode", "data", "Landroid/content/Intent;", "Companion", "credentials-play-services-auth"}, m754k = 1, mv = {2, 1, 0}, xi = 48)
+public class HiddenActivity extends Activity {
+    private boolean mWaitingForActivityResult;
+    private ResultReceiver resultReceiver;
+
+    @Override // android.app.Activity
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        overridePendingTransition(0, 0);
+        String stringExtra = getIntent().getStringExtra("TYPE");
+        ResultReceiver resultReceiver = (ResultReceiver) getIntent().getParcelableExtra("RESULT_RECEIVER");
+        this.resultReceiver = resultReceiver;
+        if (resultReceiver == null) {
+            finish();
+        }
+        restoreState(savedInstanceState);
+        if (this.mWaitingForActivityResult) {
+            return;
+        }
+        if (stringExtra == null) {
+            Log.w("HiddenActivity", "Activity handed an unsupported type");
+            finish();
+        } else {
+            handleCredentialFlow(stringExtra);
+        }
+    }
+
+    private final void restoreState(Bundle savedInstanceState) {
+        if (savedInstanceState != null) {
+            this.mWaitingForActivityResult = savedInstanceState.getBoolean("androidx.credentials.playservices.AWAITING_RESULT", false);
+        }
+    }
+
+    private final void setupFailure(ResultReceiver resultReceiver, String errName, String errMsg) {
+        CredentialProviderBaseController.INSTANCE.reportError$credentials_play_services_auth(resultReceiver, errName, errMsg);
+        finish();
+    }
+
+    @Override // android.app.Activity
+    public void onSaveInstanceState(Bundle outState) {
+        outState.putBoolean("androidx.credentials.playservices.AWAITING_RESULT", this.mWaitingForActivityResult);
+        super.onSaveInstanceState(outState);
+    }
+
+    private final void handleCredentialFlow(String type) {
+        HiddenActivity hiddenActivity;
+        PendingIntent pendingIntent = (PendingIntent) getIntent().getParcelableExtra("EXTRA_FLOW_PENDING_INTENT");
+        int intExtra = getIntent().getIntExtra("ACTIVITY_REQUEST_CODE", 1);
+        if (pendingIntent != null) {
+            try {
+                this.mWaitingForActivityResult = true;
+                hiddenActivity = this;
+                try {
+                    hiddenActivity.startIntentSenderForResult(pendingIntent.getIntentSender(), intExtra, null, 0, 0, 0, null);
+                } catch (IntentSender.SendIntentException e) {
+                    e = e;
+                    hiddenActivity.setupIntentSenderFailureByType(type, e);
+                }
+            } catch (IntentSender.SendIntentException e2) {
+                e = e2;
+                hiddenActivity = this;
+            }
+        } else {
+            setupPendingIntentFailureByType(type);
+        }
+    }
+
+    /* JADX WARN: Failed to restore switch over string. Please report as a decompilation issue */
+    private final void setupIntentSenderFailureByType(String type, IntentSender.SendIntentException e) {
+        switch (type.hashCode()) {
+            case -441061071:
+                if (type.equals("BEGIN_SIGN_IN")) {
+                    setupFailure(this.resultReceiver, "GET_UNKNOWN", "During begin sign in, one tap ui intent sender failure: " + e.getMessage());
+                    break;
+                }
+                break;
+            case 15545322:
+                if (type.equals("CREATE_PUBLIC_KEY_CREDENTIAL")) {
+                    setupFailure(this.resultReceiver, "CREATE_UNKNOWN", "During public key credential, found IntentSender failure on public key creation: " + e.getMessage());
+                    break;
+                }
+                break;
+            case 1246634622:
+                if (type.equals("CREATE_PASSWORD")) {
+                    setupFailure(this.resultReceiver, "CREATE_UNKNOWN", "During save password, found UI intent sender failure: " + e.getMessage());
+                    break;
+                }
+                break;
+            case 1980564212:
+                if (type.equals("SIGN_IN_INTENT")) {
+                    setupFailure(this.resultReceiver, "GET_UNKNOWN", "During get sign-in intent, one tap ui intent sender failure: " + e.getMessage());
+                    break;
+                }
+                break;
+        }
+    }
+
+    /* JADX WARN: Failed to restore switch over string. Please report as a decompilation issue */
+    private final void setupPendingIntentFailureByType(String type) {
+        switch (type.hashCode()) {
+            case -441061071:
+                if (type.equals("BEGIN_SIGN_IN")) {
+                    setupFailure(this.resultReceiver, "GET_UNKNOWN", "internal error during the begin sign in operation");
+                    break;
+                }
+                break;
+            case 15545322:
+                if (type.equals("CREATE_PUBLIC_KEY_CREDENTIAL")) {
+                    setupFailure(this.resultReceiver, "CREATE_UNKNOWN", "internal error during public key credential creation");
+                    break;
+                }
+                break;
+            case 1246634622:
+                if (type.equals("CREATE_PASSWORD")) {
+                    setupFailure(this.resultReceiver, "CREATE_UNKNOWN", "internal error during password creation");
+                    break;
+                }
+                break;
+            case 1980564212:
+                if (type.equals("SIGN_IN_INTENT")) {
+                    setupFailure(this.resultReceiver, "GET_UNKNOWN", "internal error during the sign-in intent operation");
+                    break;
+                }
+                break;
+        }
+    }
+
+    @Override // android.app.Activity
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        ResultReceiver resultReceiver = this.resultReceiver;
+        if (resultReceiver != null) {
+            CredentialProviderBaseController.INSTANCE.reportResult$credentials_play_services_auth(resultReceiver, requestCode, resultCode, data);
+        }
+        this.mWaitingForActivityResult = false;
+        finish();
+    }
+}

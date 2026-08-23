@@ -1,0 +1,25 @@
+package org.telegram.messenger.utils;
+
+import android.graphics.ColorMatrix;
+import android.graphics.ColorMatrixColorFilter;
+import android.graphics.RenderEffect;
+
+/* JADX INFO: loaded from: classes.dex */
+public abstract class RenderNodeEffects {
+    private static RenderEffect saturationUpX3Effect;
+
+    public static RenderEffect getSaturationX3RenderEffect() {
+        if (saturationUpX3Effect == null) {
+            ColorMatrix colorMatrix = new ColorMatrix();
+            colorMatrix.setSaturation(3.0f);
+            saturationUpX3Effect = RenderEffect.createColorFilterEffect(new ColorMatrixColorFilter(colorMatrix));
+        }
+        return saturationUpX3Effect;
+    }
+
+    public static RenderEffect createSaturationXRenderEffect(float f) {
+        ColorMatrix colorMatrix = new ColorMatrix();
+        colorMatrix.setSaturation(f);
+        return RenderEffect.createColorFilterEffect(new ColorMatrixColorFilter(colorMatrix));
+    }
+}

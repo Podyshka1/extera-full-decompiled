@@ -1,0 +1,72 @@
+package kotlinx.serialization.modules;
+
+import android.support.v4.media.session.MediaSessionCompat$$ExternalSyntheticThrowCCEIfNotNull0;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import kotlin.LazyKt__LazyJVMKt$$ExternalSyntheticBUOutline0;
+import kotlin.Metadata;
+import kotlin.jvm.JvmField;
+import kotlin.jvm.functions.Function1;
+import kotlin.jvm.internal.SourceDebugExtension;
+import kotlin.jvm.internal.TypeIntrinsics;
+import kotlin.reflect.KClass;
+import kotlinx.serialization.DeserializationStrategy;
+import kotlinx.serialization.KSerializer;
+import kotlinx.serialization.SerializationStrategy;
+import okhttp3.internal.url._UrlKt;
+
+/* JADX INFO: loaded from: classes.dex */
+@Metadata(d1 = {"\u0000`\n\u0002\u0018\u0002\n\u0002\u0018\u0002\n\u0002\u0010$\n\u0002\u0018\u0002\n\u0002\u0010\u0000\n\u0000\n\u0002\u0018\u0002\n\u0000\n\u0002\u0018\u0002\n\u0002\u0018\u0002\n\u0002\u0018\u0002\n\u0000\n\u0002\u0010\u000e\n\u0000\n\u0002\u0018\u0002\n\u0002\b\u0002\n\u0002\u0018\u0002\n\u0002\u0018\u0002\n\u0000\n\u0002\u0010\u000b\n\u0002\b\u0005\n\u0002\u0010 \n\u0002\b\u0003\n\u0002\u0018\u0002\n\u0000\n\u0002\u0010\u0002\n\u0002\b\u0007\b\u0000\u0018\u00002\u00020\u0001Bî\u0001\u0012\u0016\u0010\u0005\u001a\u0012\u0012\b\u0012\u0006\u0012\u0002\b\u00030\u0003\u0012\u0004\u0012\u00020\u00040\u0002\u0012*\u0010\u0007\u001a&\u0012\b\u0012\u0006\u0012\u0002\b\u00030\u0003\u0012\u0018\u0012\u0016\u0012\b\u0012\u0006\u0012\u0002\b\u00030\u0003\u0012\b\u0012\u0006\u0012\u0002\b\u00030\u00060\u00020\u0002\u0012.\u0010\u000b\u001a*\u0012\b\u0012\u0006\u0012\u0002\b\u00030\u0003\u0012\u001c\u0012\u001a\u0012\u0002\b\u0003\u0012\n\u0012\b\u0012\u0002\b\u0003\u0018\u00010\t0\bj\u0006\u0012\u0002\b\u0003`\n0\u0002\u0012&\u0010\r\u001a\"\u0012\b\u0012\u0006\u0012\u0002\b\u00030\u0003\u0012\u0014\u0012\u0012\u0012\u0004\u0012\u00020\f\u0012\b\u0012\u0006\u0012\u0002\b\u00030\u00060\u00020\u0002\u0012A\u0010\u0013\u001a=\u0012\b\u0012\u0006\u0012\u0002\b\u00030\u0003\u0012/\u0012-\u0012\u0015\u0012\u0013\u0018\u00010\f¢\u0006\f\b\u000e\u0012\b\b\u000f\u0012\u0004\b\b(\u0010\u0012\n\u0012\b\u0012\u0002\b\u0003\u0018\u00010\u00110\bj\u0006\u0012\u0002\b\u0003`\u00120\u0002\u0012\u0006\u0010\u0015\u001a\u00020\u0014¢\u0006\u0004\b\u0016\u0010\u0017JA\u0010\u001c\u001a\n\u0012\u0004\u0012\u00028\u0000\u0018\u00010\u0006\"\b\b\u0000\u0010\u0018*\u00020\u00042\f\u0010\u0019\u001a\b\u0012\u0004\u0012\u00028\u00000\u00032\u0010\u0010\u001b\u001a\f\u0012\b\u0012\u0006\u0012\u0002\b\u00030\u00060\u001aH\u0016¢\u0006\u0004\b\u001c\u0010\u001dJ\u0017\u0010!\u001a\u00020 2\u0006\u0010\u001f\u001a\u00020\u001eH\u0016¢\u0006\u0004\b!\u0010\"R$\u0010\u0005\u001a\u0012\u0012\b\u0012\u0006\u0012\u0002\b\u00030\u0003\u0012\u0004\u0012\u00020\u00040\u00028\u0002X\u0082\u0004¢\u0006\u0006\n\u0004\b\u0005\u0010#R8\u0010\u0007\u001a&\u0012\b\u0012\u0006\u0012\u0002\b\u00030\u0003\u0012\u0018\u0012\u0016\u0012\b\u0012\u0006\u0012\u0002\b\u00030\u0003\u0012\b\u0012\u0006\u0012\u0002\b\u00030\u00060\u00020\u00028\u0006X\u0087\u0004¢\u0006\u0006\n\u0004\b\u0007\u0010#R<\u0010\u000b\u001a*\u0012\b\u0012\u0006\u0012\u0002\b\u00030\u0003\u0012\u001c\u0012\u001a\u0012\u0002\b\u0003\u0012\n\u0012\b\u0012\u0002\b\u0003\u0018\u00010\t0\bj\u0006\u0012\u0002\b\u0003`\n0\u00028\u0002X\u0082\u0004¢\u0006\u0006\n\u0004\b\u000b\u0010#R4\u0010\r\u001a\"\u0012\b\u0012\u0006\u0012\u0002\b\u00030\u0003\u0012\u0014\u0012\u0012\u0012\u0004\u0012\u00020\f\u0012\b\u0012\u0006\u0012\u0002\b\u00030\u00060\u00020\u00028\u0002X\u0082\u0004¢\u0006\u0006\n\u0004\b\r\u0010#RO\u0010\u0013\u001a=\u0012\b\u0012\u0006\u0012\u0002\b\u00030\u0003\u0012/\u0012-\u0012\u0015\u0012\u0013\u0018\u00010\f¢\u0006\f\b\u000e\u0012\b\b\u000f\u0012\u0004\b\b(\u0010\u0012\n\u0012\b\u0012\u0002\b\u0003\u0018\u00010\u00110\bj\u0006\u0012\u0002\b\u0003`\u00120\u00028\u0002X\u0082\u0004¢\u0006\u0006\n\u0004\b\u0013\u0010#R\u001a\u0010\u0015\u001a\u00020\u00148\u0010X\u0090\u0004¢\u0006\f\n\u0004\b\u0015\u0010$\u001a\u0004\b%\u0010&¨\u0006'"}, d2 = {"Lkotlinx/serialization/modules/SerialModuleImpl;", "Lkotlinx/serialization/modules/SerializersModule;", _UrlKt.FRAGMENT_ENCODE_SET, "Lkotlin/reflect/KClass;", _UrlKt.FRAGMENT_ENCODE_SET, "class2ContextualFactory", "Lkotlinx/serialization/KSerializer;", "polyBase2Serializers", "Lkotlin/Function1;", "Lkotlinx/serialization/SerializationStrategy;", "Lkotlinx/serialization/modules/PolymorphicSerializerProvider;", "polyBase2DefaultSerializerProvider", _UrlKt.FRAGMENT_ENCODE_SET, "polyBase2NamedSerializers", "Lkotlin/ParameterName;", "name", "className", "Lkotlinx/serialization/DeserializationStrategy;", "Lkotlinx/serialization/modules/PolymorphicDeserializerProvider;", "polyBase2DefaultDeserializerProvider", _UrlKt.FRAGMENT_ENCODE_SET, "hasInterfaceContextualSerializers", "<init>", "(Ljava/util/Map;Ljava/util/Map;Ljava/util/Map;Ljava/util/Map;Ljava/util/Map;Z)V", "T", "kClass", _UrlKt.FRAGMENT_ENCODE_SET, "typeArgumentsSerializers", "getContextual", "(Lkotlin/reflect/KClass;Ljava/util/List;)Lkotlinx/serialization/KSerializer;", "Lkotlinx/serialization/modules/SerializersModuleCollector;", "collector", _UrlKt.FRAGMENT_ENCODE_SET, "dumpTo", "(Lkotlinx/serialization/modules/SerializersModuleCollector;)V", "Ljava/util/Map;", "Z", "getHasInterfaceContextualSerializers$kotlinx_serialization_core", "()Z", "kotlinx-serialization-core"}, m754k = 1, mv = {2, 3, 0}, xi = 48)
+@SourceDebugExtension({"SMAP\nSerializersModule.kt\nKotlin\n*S Kotlin\n*F\n+ 1 SerializersModule.kt\nkotlinx/serialization/modules/SerialModuleImpl\n+ 2 _Maps.kt\nkotlin/collections/MapsKt___MapsKt\n+ 3 Platform.common.kt\nkotlinx/serialization/internal/Platform_commonKt\n*L\n1#1,245:1\n221#2,2:246\n221#2:248\n221#2:249\n222#2:251\n222#2:252\n221#2,2:253\n221#2,2:255\n78#3:250\n*S KotlinDebug\n*F\n+ 1 SerializersModule.kt\nkotlinx/serialization/modules/SerialModuleImpl\n*L\n186#1:246,2\n196#1:248\n197#1:249\n197#1:251\n196#1:252\n206#1:253,2\n210#1:255,2\n201#1:250\n*E\n"})
+public final class SerialModuleImpl extends SerializersModule {
+    private final Map<KClass<?>, Object> class2ContextualFactory;
+    private final boolean hasInterfaceContextualSerializers;
+    private final Map<KClass<?>, Function1<String, DeserializationStrategy<?>>> polyBase2DefaultDeserializerProvider;
+    private final Map<KClass<?>, Function1<?, SerializationStrategy<?>>> polyBase2DefaultSerializerProvider;
+    private final Map<KClass<?>, Map<String, KSerializer<?>>> polyBase2NamedSerializers;
+
+    @JvmField
+    public final Map<KClass<?>, Map<KClass<?>, KSerializer<?>>> polyBase2Serializers;
+
+    /* JADX WARN: Multi-variable type inference failed */
+    public SerialModuleImpl(Map<KClass<?>, Object> map, Map<KClass<?>, ? extends Map<KClass<?>, ? extends KSerializer<?>>> map2, Map<KClass<?>, ? extends Function1<?, ? extends SerializationStrategy<?>>> map3, Map<KClass<?>, ? extends Map<String, ? extends KSerializer<?>>> map4, Map<KClass<?>, ? extends Function1<? super String, ? extends DeserializationStrategy<?>>> map5, boolean z) {
+        super(null);
+        this.class2ContextualFactory = map;
+        this.polyBase2Serializers = map2;
+        this.polyBase2DefaultSerializerProvider = map3;
+        this.polyBase2NamedSerializers = map4;
+        this.polyBase2DefaultDeserializerProvider = map5;
+        this.hasInterfaceContextualSerializers = z;
+    }
+
+    @Override // kotlinx.serialization.modules.SerializersModule
+    public <T> KSerializer<T> getContextual(KClass<T> kClass, List<? extends KSerializer<?>> typeArgumentsSerializers) {
+        MediaSessionCompat$$ExternalSyntheticThrowCCEIfNotNull0.m2m(this.class2ContextualFactory.get(kClass));
+        return null;
+    }
+
+    @Override // kotlinx.serialization.modules.SerializersModule
+    public void dumpTo(SerializersModuleCollector collector) {
+        Iterator<Map.Entry<KClass<?>, Object>> it = this.class2ContextualFactory.entrySet().iterator();
+        if (it.hasNext()) {
+            Map.Entry<KClass<?>, Object> next = it.next();
+            next.getKey();
+            MediaSessionCompat$$ExternalSyntheticThrowCCEIfNotNull0.m2m(next.getValue());
+            LazyKt__LazyJVMKt$$ExternalSyntheticBUOutline0.m753m();
+            return;
+        }
+        for (Map.Entry<KClass<?>, Map<KClass<?>, KSerializer<?>>> entry : this.polyBase2Serializers.entrySet()) {
+            KClass<?> key = entry.getKey();
+            for (Map.Entry<KClass<?>, KSerializer<?>> entry2 : entry.getValue().entrySet()) {
+                collector.polymorphic(key, entry2.getKey(), entry2.getValue());
+            }
+        }
+        for (Map.Entry<KClass<?>, Function1<?, SerializationStrategy<?>>> entry3 : this.polyBase2DefaultSerializerProvider.entrySet()) {
+            collector.polymorphicDefaultSerializer(entry3.getKey(), (Function1) TypeIntrinsics.beforeCheckcastToFunctionOfArity(entry3.getValue(), 1));
+        }
+        for (Map.Entry<KClass<?>, Function1<String, DeserializationStrategy<?>>> entry4 : this.polyBase2DefaultDeserializerProvider.entrySet()) {
+            collector.polymorphicDefaultDeserializer(entry4.getKey(), (Function1) TypeIntrinsics.beforeCheckcastToFunctionOfArity(entry4.getValue(), 1));
+        }
+    }
+}

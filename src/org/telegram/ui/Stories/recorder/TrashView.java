@@ -1,0 +1,107 @@
+package org.telegram.ui.Stories.recorder;
+
+import android.content.Context;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
+import android.graphics.drawable.Drawable;
+import android.view.View;
+import okhttp3.internal.url._UrlKt;
+import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.C2573R;
+import org.telegram.messenger.LocaleController;
+import org.telegram.tgnet.TLObject;
+import org.telegram.ui.Components.AnimatedFloat;
+import org.telegram.ui.Components.AnimatedTextView;
+import org.telegram.ui.Components.ButtonBounce;
+import org.telegram.ui.Components.CubicBezierInterpolator;
+import org.telegram.ui.Components.RLottieDrawable;
+
+/* JADX INFO: loaded from: classes7.dex */
+public class TrashView extends View {
+    private final ButtonBounce bounce;
+    private final Paint circlePaint;
+    private boolean dragged;
+    private final AnimatedFloat draggedT;
+    private final RLottieDrawable drawable;
+    private final Paint greyPaint;
+    private final AnimatedTextView.AnimatedTextDrawable textDrawable;
+
+    public TrashView(Context context) {
+        super(context);
+        Paint paint = new Paint(1);
+        this.circlePaint = paint;
+        Paint paint2 = new Paint(1);
+        this.greyPaint = paint2;
+        this.bounce = new ButtonBounce(this);
+        CubicBezierInterpolator cubicBezierInterpolator = CubicBezierInterpolator.EASE_OUT_QUINT;
+        this.draggedT = new AnimatedFloat(this, 0L, 240L, cubicBezierInterpolator);
+        paint.setColor(-1);
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeWidth(AndroidUtilities.dpf2(2.66f));
+        paint.setShadowLayer(AndroidUtilities.dpf2(3.0f), 0.0f, AndroidUtilities.dp(1.66f), 805306368);
+        paint2.setColor(855638016);
+        RLottieDrawable rLottieDrawable = new RLottieDrawable(C2573R.raw.group_pip_delete_icon, _UrlKt.FRAGMENT_ENCODE_SET + C2573R.raw.group_pip_delete_icon, AndroidUtilities.dp(48.0f), AndroidUtilities.dp(48.0f), true, null);
+        this.drawable = rLottieDrawable;
+        rLottieDrawable.setMasterParent(this);
+        rLottieDrawable.setColorFilter(new PorterDuffColorFilter(-1, PorterDuff.Mode.MULTIPLY));
+        rLottieDrawable.setPlayInDirectionOfCustomEndFrame(true);
+        rLottieDrawable.setCustomEndFrame(0);
+        rLottieDrawable.setAllowDecodeSingleFrame(true);
+        rLottieDrawable.start();
+        AnimatedTextView.AnimatedTextDrawable animatedTextDrawable = new AnimatedTextView.AnimatedTextDrawable(true, true, false);
+        this.textDrawable = animatedTextDrawable;
+        animatedTextDrawable.setAnimationProperties(0.3f, 0L, 250L, cubicBezierInterpolator);
+        animatedTextDrawable.setOverrideFullWidth(AndroidUtilities.displaySize.x);
+        animatedTextDrawable.setTextSize(AndroidUtilities.dp(14.0f));
+        animatedTextDrawable.setTextColor(-1);
+        animatedTextDrawable.setShadowLayer(AndroidUtilities.dpf2(1.33f), 0.0f, AndroidUtilities.dp(1.0f), TLObject.FLAG_30);
+        animatedTextDrawable.setText(LocaleController.getString(C2573R.string.TrashHintDrag));
+        animatedTextDrawable.setGravity(17);
+    }
+
+    @Override // android.view.View
+    public boolean verifyDrawable(Drawable drawable) {
+        return drawable == this.textDrawable || super.verifyDrawable(drawable);
+    }
+
+    @Override // android.view.View
+    public void dispatchDraw(Canvas canvas) {
+        float fDp = AndroidUtilities.dp(30.0f);
+        float width = getWidth() / 2.0f;
+        float height = getHeight() / 2.0f;
+        float fDp2 = (AndroidUtilities.dp(3.0f) * this.draggedT.set(this.dragged)) + fDp;
+        canvas.drawCircle(width, height, fDp2, this.greyPaint);
+        canvas.drawCircle(width, height, fDp2, this.circlePaint);
+        float fDp3 = AndroidUtilities.dp(48.0f) / 2.0f;
+        this.drawable.setBounds((int) (width - fDp3), (int) (height - fDp3), (int) (width + fDp3), (int) (fDp3 + height));
+        this.drawable.draw(canvas);
+        this.textDrawable.setBounds(0, (int) (height + fDp + AndroidUtilities.dp(7.0f)), getWidth(), getHeight());
+        this.textDrawable.draw(canvas);
+    }
+
+    @Override // android.view.View
+    public void onMeasure(int i, int i2) {
+        setMeasuredDimension(i, AndroidUtilities.dp(120.0f));
+    }
+
+    public void onDragInfo(boolean z, boolean z2) {
+        this.bounce.setPressed(z);
+        this.textDrawable.setText(LocaleController.getString((z || z2) ? C2573R.string.TrashHintRelease : C2573R.string.TrashHintDrag));
+        boolean z3 = z && !z2;
+        this.dragged = z3;
+        RLottieDrawable rLottieDrawable = this.drawable;
+        if (z3) {
+            if (rLottieDrawable.getCurrentFrame() > 34) {
+                this.drawable.setCurrentFrame(0, false);
+            }
+            this.drawable.setCustomEndFrame(33);
+            this.drawable.start();
+        } else {
+            rLottieDrawable.setCustomEndFrame(z2 ? 66 : 0);
+            this.drawable.start();
+        }
+        invalidate();
+    }
+}

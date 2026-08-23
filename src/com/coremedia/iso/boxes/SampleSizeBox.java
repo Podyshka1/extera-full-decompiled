@@ -1,0 +1,105 @@
+package com.coremedia.iso.boxes;
+
+import com.coremedia.iso.IsoTypeReader;
+import com.coremedia.iso.IsoTypeWriter;
+import com.googlecode.mp4parser.AbstractFullBox;
+import com.googlecode.mp4parser.RequiresParseDetailAspect;
+import com.googlecode.mp4parser.util.CastUtils;
+import java.nio.ByteBuffer;
+import okhttp3.internal.url._UrlKt;
+import org.aspectj.lang.JoinPoint;
+import org.aspectj.runtime.reflect.Factory;
+
+/* JADX INFO: loaded from: classes4.dex */
+public class SampleSizeBox extends AbstractFullBox {
+    private static final /* synthetic */ JoinPoint.StaticPart ajc$tjp_0 = null;
+    private static final /* synthetic */ JoinPoint.StaticPart ajc$tjp_1 = null;
+    private static final /* synthetic */ JoinPoint.StaticPart ajc$tjp_2 = null;
+    private static final /* synthetic */ JoinPoint.StaticPart ajc$tjp_3 = null;
+    private static final /* synthetic */ JoinPoint.StaticPart ajc$tjp_4 = null;
+    private static final /* synthetic */ JoinPoint.StaticPart ajc$tjp_5 = null;
+    private static final /* synthetic */ JoinPoint.StaticPart ajc$tjp_6 = null;
+    int sampleCount;
+    private long sampleSize;
+    private long[] sampleSizes;
+
+    static {
+        ajc$preClinit();
+    }
+
+    private static /* synthetic */ void ajc$preClinit() {
+        Factory factory = new Factory("SampleSizeBox.java", SampleSizeBox.class);
+        ajc$tjp_0 = factory.makeSJP("method-execution", factory.makeMethodSig("1", "getSampleSize", "com.coremedia.iso.boxes.SampleSizeBox", _UrlKt.FRAGMENT_ENCODE_SET, _UrlKt.FRAGMENT_ENCODE_SET, _UrlKt.FRAGMENT_ENCODE_SET, "long"), 50);
+        ajc$tjp_1 = factory.makeSJP("method-execution", factory.makeMethodSig("1", "setSampleSize", "com.coremedia.iso.boxes.SampleSizeBox", "long", "sampleSize", _UrlKt.FRAGMENT_ENCODE_SET, "void"), 54);
+        ajc$tjp_2 = factory.makeSJP("method-execution", factory.makeMethodSig("1", "getSampleSizeAtIndex", "com.coremedia.iso.boxes.SampleSizeBox", "int", "index", _UrlKt.FRAGMENT_ENCODE_SET, "long"), 59);
+        ajc$tjp_3 = factory.makeSJP("method-execution", factory.makeMethodSig("1", "getSampleCount", "com.coremedia.iso.boxes.SampleSizeBox", _UrlKt.FRAGMENT_ENCODE_SET, _UrlKt.FRAGMENT_ENCODE_SET, _UrlKt.FRAGMENT_ENCODE_SET, "long"), 67);
+        ajc$tjp_4 = factory.makeSJP("method-execution", factory.makeMethodSig("1", "getSampleSizes", "com.coremedia.iso.boxes.SampleSizeBox", _UrlKt.FRAGMENT_ENCODE_SET, _UrlKt.FRAGMENT_ENCODE_SET, _UrlKt.FRAGMENT_ENCODE_SET, "[J"), 76);
+        ajc$tjp_5 = factory.makeSJP("method-execution", factory.makeMethodSig("1", "setSampleSizes", "com.coremedia.iso.boxes.SampleSizeBox", "[J", "sampleSizes", _UrlKt.FRAGMENT_ENCODE_SET, "void"), 80);
+        ajc$tjp_6 = factory.makeSJP("method-execution", factory.makeMethodSig("1", "toString", "com.coremedia.iso.boxes.SampleSizeBox", _UrlKt.FRAGMENT_ENCODE_SET, _UrlKt.FRAGMENT_ENCODE_SET, _UrlKt.FRAGMENT_ENCODE_SET, "java.lang.String"), 119);
+    }
+
+    public SampleSizeBox() {
+        super("stsz");
+        this.sampleSizes = new long[0];
+    }
+
+    public long getSampleSize() {
+        RequiresParseDetailAspect.aspectOf().before(Factory.makeJP(ajc$tjp_0, this, this));
+        return this.sampleSize;
+    }
+
+    public long getSampleCount() {
+        int length;
+        RequiresParseDetailAspect.aspectOf().before(Factory.makeJP(ajc$tjp_3, this, this));
+        if (this.sampleSize > 0) {
+            length = this.sampleCount;
+        } else {
+            length = this.sampleSizes.length;
+        }
+        return length;
+    }
+
+    public void setSampleSizes(long[] jArr) {
+        RequiresParseDetailAspect.aspectOf().before(Factory.makeJP(ajc$tjp_5, this, this, jArr));
+        this.sampleSizes = jArr;
+    }
+
+    @Override // com.googlecode.mp4parser.AbstractBox
+    public long getContentSize() {
+        return (this.sampleSize == 0 ? this.sampleSizes.length * 4 : 0) + 12;
+    }
+
+    @Override // com.googlecode.mp4parser.AbstractBox
+    public void _parseDetails(ByteBuffer byteBuffer) {
+        parseVersionAndFlags(byteBuffer);
+        this.sampleSize = IsoTypeReader.readUInt32(byteBuffer);
+        int iL2i = CastUtils.l2i(IsoTypeReader.readUInt32(byteBuffer));
+        this.sampleCount = iL2i;
+        if (this.sampleSize == 0) {
+            this.sampleSizes = new long[iL2i];
+            for (int i = 0; i < this.sampleCount; i++) {
+                this.sampleSizes[i] = IsoTypeReader.readUInt32(byteBuffer);
+            }
+        }
+    }
+
+    @Override // com.googlecode.mp4parser.AbstractBox
+    public void getContent(ByteBuffer byteBuffer) {
+        writeVersionAndFlags(byteBuffer);
+        IsoTypeWriter.writeUInt32(byteBuffer, this.sampleSize);
+        if (this.sampleSize == 0) {
+            IsoTypeWriter.writeUInt32(byteBuffer, this.sampleSizes.length);
+            long[] jArr = this.sampleSizes;
+            for (long j : jArr) {
+                IsoTypeWriter.writeUInt32(byteBuffer, j);
+            }
+            return;
+        }
+        IsoTypeWriter.writeUInt32(byteBuffer, this.sampleCount);
+    }
+
+    public String toString() {
+        RequiresParseDetailAspect.aspectOf().before(Factory.makeJP(ajc$tjp_6, this, this));
+        return "SampleSizeBox[sampleSize=" + getSampleSize() + ";sampleCount=" + getSampleCount() + "]";
+    }
+}

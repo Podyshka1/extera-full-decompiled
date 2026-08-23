@@ -1,0 +1,79 @@
+package org.telegram.messenger;
+
+import android.view.Window;
+import java.util.HashMap;
+
+/* JADX INFO: loaded from: classes.dex */
+public class FlagSecureReason {
+    private static HashMap<Window, Integer> currentSecureReasons;
+    private final FlagSecureCondition condition;
+    private final Window window;
+    private boolean attached = false;
+    private boolean value = false;
+
+    public interface FlagSecureCondition {
+        boolean run();
+    }
+
+    public FlagSecureReason(Window window, FlagSecureCondition flagSecureCondition) {
+        this.window = window;
+        this.condition = flagSecureCondition;
+    }
+
+    public void invalidate() {
+        FlagSecureCondition flagSecureCondition;
+        boolean z = this.attached && (flagSecureCondition = this.condition) != null && flagSecureCondition.run();
+        if (z != this.value) {
+            this.value = z;
+            update(z ? 1 : -1);
+        }
+    }
+
+    public void attach() {
+        if (this.attached) {
+            return;
+        }
+        this.attached = true;
+        invalidate();
+    }
+
+    public void detach() {
+        if (this.attached) {
+            this.attached = false;
+            invalidate();
+        }
+    }
+
+    private void update(int i) {
+        if (currentSecureReasons == null) {
+            currentSecureReasons = new HashMap<>();
+        }
+        Integer num = currentSecureReasons.get(this.window);
+        int iMax = Math.max(0, (num == null ? 0 : num.intValue()) + i);
+        Window window = this.window;
+        if (iMax <= 0) {
+            currentSecureReasons.remove(window);
+        } else {
+            currentSecureReasons.put(window, Integer.valueOf(iMax));
+        }
+        updateWindowSecure(this.window);
+    }
+
+    private static void updateWindowSecure(Window window) {
+        if (window == null) {
+            return;
+        }
+        if (isSecuredNow(window)) {
+            window.addFlags(8192);
+            AndroidUtilities.logFlagSecure();
+        } else {
+            window.clearFlags(8192);
+            AndroidUtilities.logFlagSecure();
+        }
+    }
+
+    public static boolean isSecuredNow(Window window) {
+        HashMap<Window, Integer> map = currentSecureReasons;
+        return (map == null || map.get(window) == null) ? false : true;
+    }
+}

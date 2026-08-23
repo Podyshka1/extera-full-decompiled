@@ -1,0 +1,28 @@
+package androidx.room.util;
+
+import android.annotation.SuppressLint;
+import java.io.IOException;
+import java.nio.channels.FileChannel;
+import java.nio.channels.ReadableByteChannel;
+import kotlin.Metadata;
+import kotlin.jvm.JvmName;
+import kotlin.jvm.internal.LongCompanionObject;
+import kotlin.jvm.internal.SourceDebugExtension;
+import okhttp3.internal.url._UrlKt;
+
+/* JADX INFO: loaded from: classes3.dex */
+@Metadata(d1 = {"\u0000\u0014\n\u0000\n\u0002\u0010\u0002\n\u0000\n\u0002\u0018\u0002\n\u0000\n\u0002\u0018\u0002\n\u0000\u001a\u0018\u0010\u0000\u001a\u00020\u00012\u0006\u0010\u0002\u001a\u00020\u00032\u0006\u0010\u0004\u001a\u00020\u0005H\u0007¨\u0006\u0006"}, d2 = {"copy", _UrlKt.FRAGMENT_ENCODE_SET, "input", "Ljava/nio/channels/ReadableByteChannel;", "output", "Ljava/nio/channels/FileChannel;", "room-runtime"}, m754k = 2, mv = {2, 1, 0}, xi = 48)
+@JvmName(name = "FileUtil")
+@SourceDebugExtension({"SMAP\nFileUtil.android.kt\nKotlin\n*S Kotlin\n*F\n+ 1 FileUtil.android.kt\nandroidx/room/util/FileUtil\n+ 2 fake.kt\nkotlin/jvm/internal/FakeKt\n*L\n1#1,59:1\n1#2:60\n*E\n"})
+public abstract class FileUtil {
+    @SuppressLint({"LambdaLast"})
+    public static final void copy(ReadableByteChannel readableByteChannel, FileChannel fileChannel) throws IOException {
+        try {
+            fileChannel.transferFrom(readableByteChannel, 0L, LongCompanionObject.MAX_VALUE);
+            fileChannel.force(false);
+        } finally {
+            readableByteChannel.close();
+            fileChannel.close();
+        }
+    }
+}
