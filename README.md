@@ -1,1 +1,1 @@
-extera-full-decompiled это репозиторий содержащий в себе максимально, насколько это возможно, декомпилированный ExteraGram  (клиент телеграма). Ветки с версиями: 12.5.1, 12.9.0
+extera-full-decompiled это репозиторий содержащий в себе максимально, насколько это возможно, декомпилированный ExteraGram  (клиент телеграма). Ветки с версиями: [12.5.1](https://github.com/Podyshka1/extera-full-decompiled/blob/12.5.1), [12.9.0](https://github.com/Podyshka1/extera-full-decompiled/blob/12.9.0)
