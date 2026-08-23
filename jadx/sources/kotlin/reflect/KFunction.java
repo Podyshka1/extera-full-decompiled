@@ -1,7 +1,0 @@
-package kotlin.reflect;
-
-import kotlin.Function;
-
-/* JADX INFO: loaded from: classes.dex */
-public interface KFunction extends KCallable, Function {
-}
