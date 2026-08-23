@@ -1,0 +1,27 @@
+package com.yandex.mapkit.road_events;
+
+/* JADX INFO: loaded from: classes5.dex */
+public enum EventTag {
+    OTHER,
+    FEEDBACK,
+    CHAT,
+    LOCAL_CHAT,
+    DRAWBRIDGE,
+    CLOSED,
+    RECONSTRUCTION,
+    ACCIDENT,
+    DANGER,
+    SCHOOL,
+    OVERTAKING_DANGER,
+    PEDESTRIAN_DANGER,
+    CROSS_ROAD_DANGER,
+    POLICE,
+    LANE_CONTROL,
+    ROAD_MARKING_CONTROL,
+    CROSS_ROAD_CONTROL,
+    NO_STOPPING_CONTROL,
+    MOBILE_CONTROL,
+    SPEED_CONTROL,
+    TRAFFIC_CONTROL,
+    POLICE_PATROL
+}

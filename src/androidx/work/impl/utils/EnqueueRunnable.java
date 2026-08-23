@@ -1,0 +1,217 @@
+package androidx.work.impl.utils;
+
+import android.text.TextUtils;
+import androidx.work.ExistingWorkPolicy;
+import androidx.work.Logger;
+import androidx.work.WorkInfo$State;
+import androidx.work.WorkRequest;
+import androidx.work.impl.Schedulers;
+import androidx.work.impl.WorkContinuationImpl;
+import androidx.work.impl.WorkDatabase;
+import androidx.work.impl.WorkManagerImpl;
+import androidx.work.impl.model.Dependency;
+import androidx.work.impl.model.DependencyDao;
+import androidx.work.impl.model.WorkName;
+import androidx.work.impl.model.WorkSpec;
+import androidx.work.impl.model.WorkSpecDao;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+
+/* JADX INFO: loaded from: classes4.dex */
+public abstract class EnqueueRunnable {
+    private static final String TAG = Logger.tagWithPrefix("EnqueueRunnable");
+
+    public static void enqueue(WorkContinuationImpl workContinuationImpl) {
+        if (workContinuationImpl.hasCycles()) {
+            throw new IllegalStateException("WorkContinuation has cycles (" + workContinuationImpl + ")");
+        }
+        if (addToDatabase(workContinuationImpl)) {
+            scheduleWorkInBackground(workContinuationImpl);
+        }
+    }
+
+    public static boolean addToDatabase(WorkContinuationImpl workContinuationImpl) {
+        WorkManagerImpl workManagerImpl = workContinuationImpl.getWorkManagerImpl();
+        WorkDatabase workDatabase = workManagerImpl.getWorkDatabase();
+        workDatabase.beginTransaction();
+        try {
+            EnqueueUtilsKt.checkContentUriTriggerWorkerLimits(workDatabase, workManagerImpl.getConfiguration(), workContinuationImpl);
+            boolean zProcessContinuation = processContinuation(workContinuationImpl);
+            workDatabase.setTransactionSuccessful();
+            return zProcessContinuation;
+        } finally {
+            workDatabase.endTransaction();
+        }
+    }
+
+    public static void scheduleWorkInBackground(WorkContinuationImpl workContinuationImpl) {
+        WorkManagerImpl workManagerImpl = workContinuationImpl.getWorkManagerImpl();
+        Schedulers.schedule(workManagerImpl.getConfiguration(), workManagerImpl.getWorkDatabase(), workManagerImpl.getSchedulers());
+    }
+
+    private static boolean processContinuation(WorkContinuationImpl workContinuationImpl) {
+        List<WorkContinuationImpl> parents = workContinuationImpl.getParents();
+        boolean zProcessContinuation = false;
+        if (parents != null) {
+            for (WorkContinuationImpl workContinuationImpl2 : parents) {
+                if (!workContinuationImpl2.isEnqueued()) {
+                    zProcessContinuation |= processContinuation(workContinuationImpl2);
+                } else {
+                    Logger.get().warning(TAG, "Already enqueued work ids (" + TextUtils.join(", ", workContinuationImpl2.getIds()) + ")");
+                }
+            }
+        }
+        return enqueueContinuation(workContinuationImpl) | zProcessContinuation;
+    }
+
+    private static boolean enqueueContinuation(WorkContinuationImpl workContinuationImpl) {
+        boolean zEnqueueWorkWithPrerequisites = enqueueWorkWithPrerequisites(workContinuationImpl.getWorkManagerImpl(), workContinuationImpl.getWork(), (String[]) WorkContinuationImpl.prerequisitesFor(workContinuationImpl).toArray(new String[0]), workContinuationImpl.getName(), workContinuationImpl.getExistingWorkPolicy());
+        workContinuationImpl.markEnqueued();
+        return zEnqueueWorkWithPrerequisites;
+    }
+
+    /* JADX WARN: Removed duplicated region for block: B:84:0x0154  */
+    /*
+        Code decompiled incorrectly, please refer to instructions dump.
+    */
+    private static boolean enqueueWorkWithPrerequisites(WorkManagerImpl workManagerImpl, List list, String[] strArr, String str, ExistingWorkPolicy existingWorkPolicy) {
+        boolean z;
+        boolean z2;
+        boolean z3;
+        WorkManagerImpl workManagerImpl2;
+        WorkDatabase workDatabase;
+        boolean z4;
+        WorkDatabase workDatabase2;
+        String[] strArr2 = strArr;
+        long jCurrentTimeMillis = workManagerImpl.getConfiguration().getClock().currentTimeMillis();
+        WorkDatabase workDatabase3 = workManagerImpl.getWorkDatabase();
+        boolean z5 = strArr2 != null && strArr2.length > 0;
+        if (z5) {
+            z = false;
+            z2 = false;
+            z3 = true;
+            for (String str2 : strArr2) {
+                WorkSpec workSpec = workDatabase3.workSpecDao().getWorkSpec(str2);
+                if (workSpec == null) {
+                    Logger.get().error(TAG, "Prerequisite " + str2 + " doesn't exist; not enqueuing");
+                    return false;
+                }
+                WorkInfo$State workInfo$State = workSpec.state;
+                z3 &= workInfo$State == WorkInfo$State.SUCCEEDED;
+                if (workInfo$State == WorkInfo$State.FAILED) {
+                    z2 = true;
+                } else if (workInfo$State == WorkInfo$State.CANCELLED) {
+                    z = true;
+                }
+            }
+        } else {
+            z = false;
+            z2 = false;
+            z3 = true;
+        }
+        boolean zIsEmpty = TextUtils.isEmpty(str);
+        if (zIsEmpty || z5) {
+            workManagerImpl2 = workManagerImpl;
+            workDatabase = workDatabase3;
+            z4 = false;
+        } else {
+            List<WorkSpec.IdAndState> workSpecIdAndStatesForName = workDatabase3.workSpecDao().getWorkSpecIdAndStatesForName(str);
+            if (!workSpecIdAndStatesForName.isEmpty()) {
+                if (existingWorkPolicy == ExistingWorkPolicy.APPEND || existingWorkPolicy == ExistingWorkPolicy.APPEND_OR_REPLACE) {
+                    workManagerImpl2 = workManagerImpl;
+                    DependencyDao dependencyDao = workDatabase3.dependencyDao();
+                    List arrayList = new ArrayList();
+                    for (WorkSpec.IdAndState idAndState : workSpecIdAndStatesForName) {
+                        if (dependencyDao.hasDependents(idAndState.f77id)) {
+                            workDatabase2 = workDatabase3;
+                        } else {
+                            WorkInfo$State workInfo$State2 = idAndState.state;
+                            workDatabase2 = workDatabase3;
+                            boolean z6 = (workInfo$State2 == WorkInfo$State.SUCCEEDED) & z3;
+                            if (workInfo$State2 == WorkInfo$State.FAILED) {
+                                z2 = true;
+                            } else if (workInfo$State2 == WorkInfo$State.CANCELLED) {
+                                z = true;
+                            }
+                            arrayList.add(idAndState.f77id);
+                            z3 = z6;
+                        }
+                        workDatabase3 = workDatabase2;
+                    }
+                    workDatabase = workDatabase3;
+                    if (existingWorkPolicy == ExistingWorkPolicy.APPEND_OR_REPLACE && (z || z2)) {
+                        WorkSpecDao workSpecDao = workDatabase.workSpecDao();
+                        Iterator it = workSpecDao.getWorkSpecIdAndStatesForName(str).iterator();
+                        while (it.hasNext()) {
+                            workSpecDao.delete(((WorkSpec.IdAndState) it.next()).f77id);
+                        }
+                        arrayList = Collections.EMPTY_LIST;
+                        z = false;
+                        z2 = false;
+                    }
+                    strArr2 = (String[]) arrayList.toArray(strArr2);
+                    z5 = strArr2.length > 0;
+                } else {
+                    if (existingWorkPolicy == ExistingWorkPolicy.KEEP) {
+                        Iterator it2 = workSpecIdAndStatesForName.iterator();
+                        while (it2.hasNext()) {
+                            WorkInfo$State workInfo$State3 = ((WorkSpec.IdAndState) it2.next()).state;
+                            if (workInfo$State3 == WorkInfo$State.ENQUEUED || workInfo$State3 == WorkInfo$State.RUNNING) {
+                                return false;
+                            }
+                        }
+                    }
+                    workManagerImpl2 = workManagerImpl;
+                    CancelWorkRunnable.forNameInline(str, workManagerImpl2);
+                    WorkSpecDao workSpecDao2 = workDatabase3.workSpecDao();
+                    Iterator it3 = workSpecIdAndStatesForName.iterator();
+                    while (it3.hasNext()) {
+                        workSpecDao2.delete(((WorkSpec.IdAndState) it3.next()).f77id);
+                    }
+                    workDatabase = workDatabase3;
+                    z4 = true;
+                }
+            }
+            z4 = false;
+        }
+        Iterator it4 = list.iterator();
+        while (it4.hasNext()) {
+            WorkRequest workRequest = (WorkRequest) it4.next();
+            WorkSpec workSpec2 = workRequest.getWorkSpec();
+            if (!z5 || z3) {
+                workSpec2.lastEnqueueTime = jCurrentTimeMillis;
+            } else if (z2) {
+                workSpec2.state = WorkInfo$State.FAILED;
+            } else if (z) {
+                workSpec2.state = WorkInfo$State.CANCELLED;
+            } else {
+                workSpec2.state = WorkInfo$State.BLOCKED;
+            }
+            if (workSpec2.state == WorkInfo$State.ENQUEUED) {
+                z4 = true;
+            }
+            workDatabase.workSpecDao().insertWorkSpec(EnqueueUtilsKt.wrapWorkSpecIfNeeded(workManagerImpl2.getSchedulers(), workSpec2));
+            if (z5) {
+                int length = strArr2.length;
+                int i = 0;
+                while (i < length) {
+                    workDatabase.dependencyDao().insertDependency(new Dependency(workRequest.getStringId(), strArr2[i]));
+                    i++;
+                    it4 = it4;
+                    strArr2 = strArr2;
+                }
+            }
+            String[] strArr3 = strArr2;
+            Iterator it5 = it4;
+            workDatabase.workTagDao().insertTags(workRequest.getStringId(), workRequest.getTags());
+            if (!zIsEmpty) {
+                workDatabase.workNameDao().insert(new WorkName(str, workRequest.getStringId()));
+            }
+            it4 = it5;
+            strArr2 = strArr3;
+        }
+        return z4;
+    }
+}

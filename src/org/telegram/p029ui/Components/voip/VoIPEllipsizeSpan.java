@@ -1,0 +1,45 @@
+package org.telegram.p029ui.Components.voip;
+
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.os.SystemClock;
+import android.text.style.ReplacementSpan;
+import android.view.View;
+import org.telegram.messenger.AndroidUtilities;
+import org.telegram.p029ui.Components.CubicBezierInterpolator;
+
+/* JADX INFO: loaded from: classes7.dex */
+public class VoIPEllipsizeSpan extends ReplacementSpan {
+    private final CubicBezierInterpolator interpolator = new CubicBezierInterpolator(0.33d, 0.0d, 0.67d, 1.0d);
+    private final View[] parents;
+
+    public VoIPEllipsizeSpan(View... viewArr) {
+        this.parents = viewArr;
+    }
+
+    @Override // android.text.style.ReplacementSpan
+    public int getSize(Paint paint, CharSequence charSequence, int i, int i2, Paint.FontMetricsInt fontMetricsInt) {
+        return AndroidUtilities.m1124dp(20.0f);
+    }
+
+    @Override // android.text.style.ReplacementSpan
+    public void draw(Canvas canvas, CharSequence charSequence, int i, int i2, float f, int i3, int i4, int i5, Paint paint) {
+        float interpolation;
+        canvas.save();
+        canvas.translate(f + AndroidUtilities.m1124dp(4.0f), i4 / 2.0f);
+        long jUptimeMillis = (SystemClock.uptimeMillis() % 250) + 500;
+        for (int i6 = 0; i6 < 3; i6++) {
+            float fMin = Math.min(1.0f, (((((long) i6) * 250) + jUptimeMillis) % 750) / 667.0f);
+            if (fMin <= 0.425f) {
+                interpolation = this.interpolator.getInterpolation(fMin / 0.425f);
+            } else {
+                interpolation = 1.0f - this.interpolator.getInterpolation((fMin - 0.425f) / 0.575f);
+            }
+            canvas.drawCircle(AndroidUtilities.dpf2((this.interpolator.getInterpolation(fMin) * 16.0f) + 1.667f), AndroidUtilities.m1124dp(3.0f), AndroidUtilities.dpf2(interpolation * 2.0f), paint);
+        }
+        canvas.restore();
+        for (View view : this.parents) {
+            view.invalidate();
+        }
+    }
+}

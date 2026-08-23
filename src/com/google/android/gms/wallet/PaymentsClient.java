@@ -1,0 +1,35 @@
+package com.google.android.gms.wallet;
+
+import android.content.Context;
+import com.google.android.gms.common.api.GoogleApi;
+import com.google.android.gms.common.api.internal.RemoteCall;
+import com.google.android.gms.common.api.internal.TaskApiCall;
+import com.google.android.gms.internal.wallet.zzy;
+import com.google.android.gms.tasks.Task;
+import com.google.android.gms.tasks.TaskCompletionSource;
+import com.google.android.gms.wallet.Wallet;
+
+/* JADX INFO: loaded from: classes4.dex */
+public class PaymentsClient extends GoogleApi {
+    public Task isReadyToPay(final IsReadyToPayRequest isReadyToPayRequest) {
+        return doRead(TaskApiCall.builder().setMethodKey(23705).run(new RemoteCall() { // from class: com.google.android.gms.wallet.zzah
+            @Override // com.google.android.gms.common.api.internal.RemoteCall
+            public final void accept(Object obj, Object obj2) {
+                ((zzy) obj).zzs(isReadyToPayRequest, (TaskCompletionSource) obj2);
+            }
+        }).build());
+    }
+
+    public Task loadPaymentData(final PaymentDataRequest paymentDataRequest) {
+        return doWrite(TaskApiCall.builder().run(new RemoteCall() { // from class: com.google.android.gms.wallet.zzag
+            @Override // com.google.android.gms.common.api.internal.RemoteCall
+            public final void accept(Object obj, Object obj2) {
+                ((zzy) obj).zzt(paymentDataRequest, (TaskCompletionSource) obj2);
+            }
+        }).setFeatures(zzk.zzc).setAutoResolveMissingFeatures(true).setMethodKey(23707).build());
+    }
+
+    PaymentsClient(Context context, Wallet.WalletOptions walletOptions) {
+        super(context, Wallet.API, walletOptions, GoogleApi.Settings.DEFAULT_SETTINGS);
+    }
+}

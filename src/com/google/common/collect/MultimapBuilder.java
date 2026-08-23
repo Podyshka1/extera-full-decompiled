@@ -1,0 +1,92 @@
+package com.google.common.collect;
+
+import com.google.common.base.Preconditions;
+import com.google.common.base.Supplier;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+
+/* JADX INFO: loaded from: classes5.dex */
+public abstract class MultimapBuilder {
+    private MultimapBuilder() {
+    }
+
+    public static MultimapBuilderWithKeys hashKeys() {
+        return hashKeys(8);
+    }
+
+    public static MultimapBuilderWithKeys hashKeys(final int i) {
+        CollectPreconditions.checkNonnegative(i, "expectedKeys");
+        return new MultimapBuilderWithKeys() { // from class: com.google.common.collect.MultimapBuilder.1
+            @Override // com.google.common.collect.MultimapBuilder.MultimapBuilderWithKeys
+            Map createMap() {
+                return Platform.newHashMapWithExpectedSize(i);
+            }
+        };
+    }
+
+    public static MultimapBuilderWithKeys treeKeys() {
+        return treeKeys(Ordering.natural());
+    }
+
+    public static MultimapBuilderWithKeys treeKeys(final Comparator comparator) {
+        Preconditions.checkNotNull(comparator);
+        return new MultimapBuilderWithKeys() { // from class: com.google.common.collect.MultimapBuilder.3
+            @Override // com.google.common.collect.MultimapBuilder.MultimapBuilderWithKeys
+            Map createMap() {
+                return new TreeMap(comparator);
+            }
+        };
+    }
+
+    private static final class ArrayListSupplier implements Supplier, Serializable {
+        private final int expectedValuesPerKey;
+
+        ArrayListSupplier(int i) {
+            this.expectedValuesPerKey = CollectPreconditions.checkNonnegative(i, "expectedValuesPerKey");
+        }
+
+        @Override // com.google.common.base.Supplier
+        public List get() {
+            return new ArrayList(this.expectedValuesPerKey);
+        }
+    }
+
+    public static abstract class MultimapBuilderWithKeys {
+        abstract Map createMap();
+
+        MultimapBuilderWithKeys() {
+        }
+
+        public ListMultimapBuilder arrayListValues() {
+            return arrayListValues(2);
+        }
+
+        public ListMultimapBuilder arrayListValues(final int i) {
+            CollectPreconditions.checkNonnegative(i, "expectedValuesPerKey");
+            return new ListMultimapBuilder(this) { // from class: com.google.common.collect.MultimapBuilder.MultimapBuilderWithKeys.1
+                final /* synthetic */ MultimapBuilderWithKeys this$0;
+
+                {
+                    this.this$0 = this;
+                }
+
+                @Override // com.google.common.collect.MultimapBuilder.ListMultimapBuilder
+                public ListMultimap build() {
+                    return Multimaps.newListMultimap(this.this$0.createMap(), new ArrayListSupplier(i));
+                }
+            };
+        }
+    }
+
+    public static abstract class ListMultimapBuilder extends MultimapBuilder {
+        public abstract ListMultimap build();
+
+        ListMultimapBuilder() {
+            super();
+        }
+    }
+}

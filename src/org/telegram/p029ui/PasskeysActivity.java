@@ -1,0 +1,554 @@
+package org.telegram.p029ui;
+
+import android.content.Context;
+import android.content.DialogInterface;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
+import android.text.TextUtils;
+import android.view.View;
+import android.widget.FrameLayout;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+import androidx.annotation.Keep;
+import com.exteragram.messenger.utils.PasskeysUtil;
+import java.util.ArrayList;
+import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.BotForumHelper$$ExternalSyntheticLambda2;
+import org.telegram.messenger.C2888R;
+import org.telegram.messenger.LocaleController;
+import org.telegram.messenger.MessagesController;
+import org.telegram.messenger.PasskeysController;
+import org.telegram.messenger.Utilities;
+import org.telegram.messenger.browser.Browser;
+import org.telegram.p029ui.ActionBar.ActionBar;
+import org.telegram.p029ui.ActionBar.AlertDialog;
+import org.telegram.p029ui.ActionBar.BaseFragment;
+import org.telegram.p029ui.ActionBar.BottomSheet;
+import org.telegram.p029ui.ActionBar.Theme;
+import org.telegram.p029ui.Components.AnimatedEmojiDrawable;
+import org.telegram.p029ui.Components.BackupImageView;
+import org.telegram.p029ui.Components.BulletinFactory;
+import org.telegram.p029ui.Components.ItemOptions;
+import org.telegram.p029ui.Components.LayoutHelper;
+import org.telegram.p029ui.Components.RLottieImageView;
+import org.telegram.p029ui.Components.RecyclerListView;
+import org.telegram.p029ui.Components.TextHelper;
+import org.telegram.p029ui.Components.UItem;
+import org.telegram.p029ui.Components.UniversalAdapter;
+import org.telegram.p029ui.Components.UniversalRecyclerView;
+import org.telegram.p029ui.Stars.ExplainStarsSheet;
+import org.telegram.p029ui.Stories.recorder.ButtonWithCounterView;
+import org.telegram.tgnet.ConnectionsManager;
+import org.telegram.tgnet.TLObject;
+import org.telegram.tgnet.TLRPC;
+import org.telegram.tgnet.p028tl.TL_account;
+
+/* JADX INFO: loaded from: classes6.dex */
+public class PasskeysActivity extends BaseFragment {
+
+    @Keep
+    public int addPasskeyRow;
+    private UniversalRecyclerView listView;
+    private ArrayList passkeys;
+
+    @Override // org.telegram.p029ui.ActionBar.BaseFragment
+    public boolean isSupportEdgeToEdge() {
+        return true;
+    }
+
+    public PasskeysActivity(ArrayList arrayList) {
+        this.passkeys = arrayList;
+    }
+
+    @Override // org.telegram.p029ui.ActionBar.BaseFragment
+    public View createView(Context context) {
+        this.actionBar.setBackButtonImage(C2888R.drawable.ic_ab_back);
+        this.actionBar.setAllowOverlayTitle(true);
+        this.actionBar.setTitle(LocaleController.getString(C2888R.string.Passkey));
+        this.actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() { // from class: org.telegram.ui.PasskeysActivity.1
+            @Override // org.telegram.ui.ActionBar.ActionBar.ActionBarMenuOnItemClick
+            public void onItemClick(int i) {
+                if (i == -1) {
+                    PasskeysActivity.this.finishFragment();
+                }
+            }
+        });
+        FrameLayout frameLayout = new FrameLayout(context);
+        frameLayout.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray));
+        UniversalRecyclerView universalRecyclerView = new UniversalRecyclerView(this, new Utilities.Callback2() { // from class: org.telegram.ui.PasskeysActivity$$ExternalSyntheticLambda0
+            @Override // org.telegram.messenger.Utilities.Callback2
+            public final void run(Object obj, Object obj2) {
+                this.f$0.fillItems((ArrayList) obj, (UniversalAdapter) obj2);
+            }
+        }, new Utilities.Callback5() { // from class: org.telegram.ui.PasskeysActivity$$ExternalSyntheticLambda1
+            @Override // org.telegram.messenger.Utilities.Callback5
+            public final void run(Object obj, Object obj2, Object obj3, Object obj4, Object obj5) {
+                this.f$0.onItemClick((UItem) obj, (View) obj2, ((Integer) obj3).intValue(), ((Float) obj4).floatValue(), ((Float) obj5).floatValue());
+            }
+        }, null);
+        this.listView = universalRecyclerView;
+        universalRecyclerView.setSections();
+        this.listView.adapter.setApplyBackground(false);
+        frameLayout.addView(this.listView, LayoutHelper.createFrame(-1, -1.0f));
+        this.actionBar.setAdaptiveBackground(this.listView);
+        this.fragmentView = frameLayout;
+        return frameLayout;
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public void fillItems(ArrayList arrayList, UniversalAdapter universalAdapter) {
+        this.addPasskeyRow = -1;
+        arrayList.add(UItem.asTopView(LocaleController.getString(C2888R.string.PasskeyTopInfo), C2888R.raw.passkey));
+        for (int i = 0; i < this.passkeys.size(); i++) {
+            arrayList.add(PasskeyCell.Factory.m1291of((TL_account.Passkey) this.passkeys.get(i), new View.OnClickListener() { // from class: org.telegram.ui.PasskeysActivity$$ExternalSyntheticLambda3
+                @Override // android.view.View.OnClickListener
+                public final void onClick(View view) {
+                    this.f$0.openMenu(view);
+                }
+            }));
+        }
+        if (this.passkeys.size() + 1 <= getMessagesController().config.passkeysAccountPasskeysMax.get()) {
+            this.addPasskeyRow = arrayList.size();
+            arrayList.add(UItem.asButton(-1, C2888R.drawable.menu_passkey_add, LocaleController.getString(C2888R.string.PasskeyAdd)).accent());
+        }
+        arrayList.add(UItem.asShadow(AndroidUtilities.replaceArrows(AndroidUtilities.replaceSingleTag(LocaleController.getString(C2888R.string.PasskeyInfo), new Runnable() { // from class: org.telegram.ui.PasskeysActivity$$ExternalSyntheticLambda4
+            @Override // java.lang.Runnable
+            public final void run() {
+                this.f$0.lambda$fillItems$0();
+            }
+        }), true)));
+        arrayList.add(UItem.asButton(-2, C2888R.drawable.msg_settings, LocaleController.getString(C2888R.string.Settings)));
+        arrayList.add(UItem.asShadow(AndroidUtilities.replaceMultipleTags(LocaleController.getString(C2888R.string.PasskeyInfo2), new Runnable() { // from class: org.telegram.ui.PasskeysActivity$$ExternalSyntheticLambda5
+            @Override // java.lang.Runnable
+            public final void run() {
+                this.f$0.lambda$fillItems$1();
+            }
+        }, new Runnable() { // from class: org.telegram.ui.PasskeysActivity$$ExternalSyntheticLambda6
+            @Override // java.lang.Runnable
+            public final void run() {
+                this.f$0.lambda$fillItems$2();
+            }
+        })));
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public /* synthetic */ void lambda$fillItems$0() {
+        showLearnSheet(getContext(), this.currentAccount, this.resourceProvider, this.passkeys.size() + 1 <= getMessagesController().config.passkeysAccountPasskeysMax.get());
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public /* synthetic */ void lambda$fillItems$1() {
+        Browser.openUrl(getContext(), "https://github.com/bitwarden/android");
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public /* synthetic */ void lambda$fillItems$2() {
+        Browser.openUrl(getContext(), "https://github.com/Kunzisoft/KeePassDX");
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public void openMenu(View view) {
+        boolean z = view instanceof ImageView;
+        View parent = view;
+        if (z) {
+            parent = view.getParent();
+        }
+        PasskeyCell passkeyCell = (PasskeyCell) parent;
+        final String str = passkeyCell.f2130id;
+        final int i = 0;
+        while (true) {
+            if (i >= this.passkeys.size()) {
+                i = -1;
+                break;
+            } else if (str.equals(((TL_account.Passkey) this.passkeys.get(i)).f1837id)) {
+                break;
+            } else {
+                i++;
+            }
+        }
+        if (i < 0 || i >= this.passkeys.size()) {
+            return;
+        }
+        final TL_account.Passkey passkey = (TL_account.Passkey) this.passkeys.get(i);
+        ItemOptions.makeOptions(this, passkeyCell).add(C2888R.drawable.msg_delete, (CharSequence) LocaleController.getString(C2888R.string.Delete), true, new Runnable() { // from class: org.telegram.ui.PasskeysActivity$$ExternalSyntheticLambda7
+            @Override // java.lang.Runnable
+            public final void run() {
+                this.f$0.lambda$openMenu$5(passkey, str, i);
+            }
+        }).setScrimViewBackground(this.listView.getClipBackground(passkeyCell)).show();
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public /* synthetic */ void lambda$openMenu$5(final TL_account.Passkey passkey, final String str, final int i) {
+        new AlertDialog.Builder(getContext()).setTitle(LocaleController.getString(C2888R.string.PasskeyDeleteTitle)).setMessage(LocaleController.getString(C2888R.string.PasskeyDeleteText)).setPositiveButton(LocaleController.getString(C2888R.string.Delete), new AlertDialog.OnButtonClickListener() { // from class: org.telegram.ui.PasskeysActivity$$ExternalSyntheticLambda9
+            @Override // org.telegram.ui.ActionBar.AlertDialog.OnButtonClickListener
+            public final void onClick(AlertDialog alertDialog, int i2) {
+                this.f$0.lambda$openMenu$4(passkey, str, i, alertDialog, i2);
+            }
+        }).setNegativeButton(LocaleController.getString(C2888R.string.Cancel), null).makeRed(-1).show();
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public /* synthetic */ void lambda$openMenu$4(final TL_account.Passkey passkey, String str, final int i, AlertDialog alertDialog, int i2) {
+        this.passkeys.remove(passkey);
+        this.listView.adapter.update(true);
+        TL_account.deletePasskey deletepasskey = new TL_account.deletePasskey();
+        deletepasskey.f1838id = str;
+        ConnectionsManager.getInstance(this.currentAccount).sendRequestTyped(deletepasskey, new BotForumHelper$$ExternalSyntheticLambda2(), new Utilities.Callback2() { // from class: org.telegram.ui.PasskeysActivity$$ExternalSyntheticLambda13
+            @Override // org.telegram.messenger.Utilities.Callback2
+            public final void run(Object obj, Object obj2) {
+                this.f$0.lambda$openMenu$3(i, passkey, (TLRPC.Bool) obj, (TLRPC.TL_error) obj2);
+            }
+        });
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public /* synthetic */ void lambda$openMenu$3(int i, TL_account.Passkey passkey, TLRPC.Bool bool, TLRPC.TL_error tL_error) {
+        if (bool instanceof TLRPC.TL_boolFalse) {
+            BulletinFactory.m1246of(this).showForError("FALSE");
+            ArrayList arrayList = this.passkeys;
+            arrayList.add(Utilities.clamp(i, arrayList.size(), 0), passkey);
+            this.listView.adapter.update(true);
+            return;
+        }
+        if (tL_error != null) {
+            BulletinFactory.m1246of(this).showForError(tL_error);
+            ArrayList arrayList2 = this.passkeys;
+            arrayList2.add(Utilities.clamp(i, arrayList2.size(), 0), passkey);
+            this.listView.adapter.update(true);
+        }
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public void onItemClick(UItem uItem, View view, int i, float f, float f2) {
+        int i2 = uItem.f2105id;
+        if (i2 == -1) {
+            PasskeysController.create(getContext(), this.currentAccount, new Utilities.Callback2() { // from class: org.telegram.ui.PasskeysActivity$$ExternalSyntheticLambda2
+                @Override // org.telegram.messenger.Utilities.Callback2
+                public final void run(Object obj, Object obj2) {
+                    this.f$0.lambda$onItemClick$6((TL_account.Passkey) obj, (String) obj2);
+                }
+            });
+        } else if (i2 == -2) {
+            PasskeysUtil.openSettings(getParentActivity());
+        } else if (uItem.object != null) {
+            openMenu(view);
+        }
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public /* synthetic */ void lambda$onItemClick$6(TL_account.Passkey passkey, String str) {
+        if (str == null) {
+            if (passkey != null) {
+                MessagesController.getInstance(this.currentAccount).removeSuggestion(0L, "SETUP_PASSKEY");
+                added(passkey);
+                return;
+            }
+            return;
+        }
+        if ("CANCELLED".equalsIgnoreCase(str)) {
+            return;
+        }
+        if ("EMPTY".equalsIgnoreCase(str)) {
+            new AlertDialog.Builder(getContext()).setTitle(LocaleController.getString(C2888R.string.PasskeyNoOptionsTitle)).setMessage(LocaleController.getString(C2888R.string.PasskeyNoOptionsText)).setPositiveButton(LocaleController.getString(C2888R.string.f1606OK), null).show();
+            return;
+        }
+        BulletinFactory bulletinFactoryM1246of = BulletinFactory.m1246of(this);
+        if (str.startsWith("No create options")) {
+            PasskeysUtil.showUnsupportedBulletin(bulletinFactoryM1246of);
+        } else {
+            bulletinFactoryM1246of.showForError(str, true);
+        }
+    }
+
+    public void added(TL_account.Passkey passkey) {
+        UniversalAdapter universalAdapter;
+        this.passkeys.add(passkey);
+        UniversalRecyclerView universalRecyclerView = this.listView;
+        if (universalRecyclerView != null && (universalAdapter = universalRecyclerView.adapter) != null) {
+            universalAdapter.update(true);
+        }
+        BulletinFactory.m1246of(this).createSimpleBulletin(C2888R.raw.passcode_lock_close, LocaleController.getString(C2888R.string.PasskeyAddedTitle), LocaleController.formatString(C2888R.string.PasskeyAddedText, passkey.name)).setDuration(5000).show(true);
+    }
+
+    public static class PasskeyCell extends FrameLayout {
+        private final int currentAccount;
+
+        /* JADX INFO: renamed from: id */
+        public String f2130id;
+        private final FrameLayout imageBackgroundView;
+        private final BackupImageView imageView;
+        private boolean needDivider;
+        private final ImageView optionsView;
+        private final Theme.ResourcesProvider resourcesProvider;
+        private final TextView subtitleView;
+        private final TextView titleView;
+
+        public PasskeyCell(Context context, int i, Theme.ResourcesProvider resourcesProvider) {
+            super(context);
+            this.currentAccount = i;
+            this.resourcesProvider = resourcesProvider;
+            FrameLayout frameLayout = new FrameLayout(context);
+            this.imageBackgroundView = frameLayout;
+            addView(frameLayout, LayoutHelper.createFrame(36, 36.0f, 19, 18.5f, 0.0f, 0.0f, 0.0f));
+            BackupImageView backupImageView = new BackupImageView(context);
+            this.imageView = backupImageView;
+            backupImageView.setImageResource(C2888R.drawable.msg2_permissions);
+            int i2 = Theme.key_windowBackgroundWhiteBlackText;
+            int iMultAlpha = Theme.multAlpha(Theme.getColor(i2, resourcesProvider), 0.3f);
+            PorterDuff.Mode mode = PorterDuff.Mode.SRC_IN;
+            backupImageView.setColorFilter(new PorterDuffColorFilter(iMultAlpha, mode));
+            frameLayout.addView(backupImageView, LayoutHelper.createFrame(36, 36, 17));
+            TextView textViewMakeTextView = TextHelper.makeTextView(context, 15.0f, i2, true);
+            this.titleView = textViewMakeTextView;
+            textViewMakeTextView.setSingleLine();
+            TextUtils.TruncateAt truncateAt = TextUtils.TruncateAt.END;
+            textViewMakeTextView.setEllipsize(truncateAt);
+            addView(textViewMakeTextView, LayoutHelper.createFrame(-1, -2.0f, 55, 72.0f, 8.0f, 46.0f, 0.0f));
+            int i3 = Theme.key_windowBackgroundWhiteGrayText;
+            TextView textViewMakeTextView2 = TextHelper.makeTextView(context, 13.0f, i3, false);
+            this.subtitleView = textViewMakeTextView2;
+            textViewMakeTextView2.setSingleLine();
+            textViewMakeTextView2.setEllipsize(truncateAt);
+            addView(textViewMakeTextView2, LayoutHelper.createFrame(-1, -2.0f, 55, 72.0f, 31.0f, 46.0f, 0.0f));
+            ImageView imageView = new ImageView(context);
+            this.optionsView = imageView;
+            imageView.setScaleType(ImageView.ScaleType.CENTER);
+            imageView.setImageResource(C2888R.drawable.ic_ab_other);
+            imageView.setColorFilter(new PorterDuffColorFilter(Theme.getColor(i3), mode));
+            imageView.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector, resourcesProvider)));
+            addView(imageView, LayoutHelper.createFrame(32, 32.0f, 21, 0.0f, 0.0f, 13.0f, 0.0f));
+        }
+
+        public void set(TL_account.Passkey passkey, View.OnClickListener onClickListener, boolean z) {
+            this.f2130id = passkey.f1837id;
+            long j = passkey.software_emoji_id;
+            if (j != 0) {
+                this.imageView.setAnimatedEmojiDrawable(AnimatedEmojiDrawable.make(this.currentAccount, 3, j));
+                this.imageBackgroundView.setBackground(null);
+                this.imageView.setColorFilter(null);
+                this.imageView.setScaleX(1.0f);
+                this.imageView.setScaleY(1.0f);
+            } else {
+                FrameLayout frameLayout = this.imageBackgroundView;
+                int iM1124dp = AndroidUtilities.m1124dp(4.0f);
+                int i = Theme.key_windowBackgroundWhiteBlackText;
+                frameLayout.setBackground(Theme.createRoundRectDrawable(iM1124dp, Theme.multAlpha(Theme.getColor(i, this.resourcesProvider), 0.04f)));
+                this.imageView.setColorFilter(new PorterDuffColorFilter(Theme.multAlpha(Theme.getColor(i, this.resourcesProvider), 0.3f), PorterDuff.Mode.SRC_IN));
+                this.imageView.setImageResource(C2888R.drawable.msg2_permissions);
+                this.imageView.setScaleX(0.666f);
+                this.imageView.setScaleY(0.666f);
+                this.imageView.setAnimatedEmojiDrawable(null);
+            }
+            if (TextUtils.isEmpty(passkey.name)) {
+                this.titleView.setText(LocaleController.getString(C2888R.string.PasskeyUnknown));
+            } else {
+                this.titleView.setText(passkey.name);
+            }
+            int i2 = passkey.last_usage_date;
+            if (i2 != 0) {
+                this.subtitleView.setText(LocaleController.formatString(C2888R.string.PasskeyLastUsedOn, LocaleController.formatDateTime(i2, false)));
+            } else {
+                this.subtitleView.setText(LocaleController.formatString(C2888R.string.PasskeyCreatedOn, LocaleController.formatDateTime(passkey.date, false)));
+            }
+            this.optionsView.setOnClickListener(onClickListener);
+            this.needDivider = z;
+            setWillNotDraw(!z);
+        }
+
+        @Override // android.view.View
+        protected void onDraw(Canvas canvas) {
+            super.onDraw(canvas);
+            if (this.needDivider) {
+                Paint themePaint = Theme.getThemePaint("paintDivider", this.resourcesProvider);
+                if (themePaint == null) {
+                    themePaint = Theme.dividerPaint;
+                }
+                canvas.drawRect(AndroidUtilities.m1124dp(LocaleController.isRTL ? 0.0f : 72.0f), getMeasuredHeight() - 1, getWidth() - AndroidUtilities.m1124dp(LocaleController.isRTL ? 72.0f : 0.0f), getMeasuredHeight(), themePaint);
+            }
+        }
+
+        @Override // android.widget.FrameLayout, android.view.View
+        protected void onMeasure(int i, int i2) {
+            super.onMeasure(View.MeasureSpec.makeMeasureSpec(View.MeasureSpec.getSize(i), TLObject.FLAG_30), View.MeasureSpec.makeMeasureSpec(AndroidUtilities.m1124dp(56.0f), TLObject.FLAG_30));
+        }
+
+        public static class Factory extends UItem.UItemFactory {
+            static {
+                UItem.UItemFactory.setup(new Factory());
+            }
+
+            @Override // org.telegram.ui.Components.UItem.UItemFactory
+            public PasskeyCell createView(Context context, RecyclerListView recyclerListView, int i, int i2, Theme.ResourcesProvider resourcesProvider) {
+                return new PasskeyCell(context, i, resourcesProvider);
+            }
+
+            @Override // org.telegram.ui.Components.UItem.UItemFactory
+            public void bindView(View view, UItem uItem, boolean z, UniversalAdapter universalAdapter, UniversalRecyclerView universalRecyclerView) {
+                ((PasskeyCell) view).set((TL_account.Passkey) uItem.object, uItem.clickCallback, z);
+            }
+
+            /* JADX INFO: renamed from: of */
+            public static UItem m1291of(TL_account.Passkey passkey, View.OnClickListener onClickListener) {
+                UItem uItemOfFactory = UItem.ofFactory(Factory.class);
+                uItemOfFactory.object = passkey;
+                uItemOfFactory.clickCallback = onClickListener;
+                return uItemOfFactory;
+            }
+        }
+    }
+
+    public static void showLearnSheet(final Context context, final int i, Theme.ResourcesProvider resourcesProvider, boolean z) {
+        BottomSheet.Builder builder = new BottomSheet.Builder(context, false, resourcesProvider);
+        LinearLayout linearLayout = new LinearLayout(context);
+        linearLayout.setOrientation(1);
+        linearLayout.setPadding(AndroidUtilities.m1124dp(16.0f), 0, AndroidUtilities.m1124dp(16.0f), AndroidUtilities.m1124dp(8.0f));
+        builder.setCustomView(linearLayout);
+        RLottieImageView rLottieImageView = new RLottieImageView(context);
+        rLottieImageView.setAnimation(C2888R.raw.passkey, AndroidUtilities.m1124dp(115.0f), AndroidUtilities.m1124dp(115.0f));
+        rLottieImageView.playAnimation();
+        linearLayout.addView(rLottieImageView, LayoutHelper.createLinear(115, 115, 17, 0, 0, 0, 9));
+        int i2 = Theme.key_dialogTextBlack;
+        TextView textViewMakeTextView = TextHelper.makeTextView(context, 18.0f, i2, true, resourcesProvider);
+        textViewMakeTextView.setGravity(17);
+        textViewMakeTextView.setText(LocaleController.getString(C2888R.string.PasskeyFeatureTitle));
+        linearLayout.addView(textViewMakeTextView, LayoutHelper.createLinear(-1, -2, 32.0f, 0.0f, 32.0f, 6.0f));
+        TextView textViewMakeTextView2 = TextHelper.makeTextView(context, 14.0f, i2, false, resourcesProvider);
+        textViewMakeTextView2.setGravity(17);
+        textViewMakeTextView2.setText(LocaleController.getString(C2888R.string.PasskeyFeatureSubtitle));
+        linearLayout.addView(textViewMakeTextView2, LayoutHelper.createLinear(-1, -2, 32.0f, 0.0f, 32.0f, 24.0f));
+        ExplainStarsSheet.FeatureCell featureCell = new ExplainStarsSheet.FeatureCell(context, 1, resourcesProvider);
+        featureCell.set(C2888R.drawable.msg2_permissions, LocaleController.getString(C2888R.string.PasskeyFeature1Title), LocaleController.getString(C2888R.string.PasskeyFeature1Subtitle));
+        linearLayout.addView(featureCell, LayoutHelper.createLinear(-1, -2, 0.0f, 0.0f, 0.0f, 8.0f));
+        ExplainStarsSheet.FeatureCell featureCell2 = new ExplainStarsSheet.FeatureCell(context, 1, resourcesProvider);
+        featureCell2.set(C2888R.drawable.menu_face, LocaleController.getString(C2888R.string.PasskeyFeature2Title), LocaleController.getString(C2888R.string.PasskeyFeature2Subtitle));
+        linearLayout.addView(featureCell2, LayoutHelper.createLinear(-1, -2, 0.0f, 0.0f, 0.0f, 8.0f));
+        ExplainStarsSheet.FeatureCell featureCell3 = new ExplainStarsSheet.FeatureCell(context, 1, resourcesProvider);
+        featureCell3.set(C2888R.drawable.menu_privacy, LocaleController.getString(C2888R.string.PasskeyFeature3Title), LocaleController.getString(C2888R.string.PasskeyFeature3Subtitle));
+        linearLayout.addView(featureCell3, LayoutHelper.createLinear(-1, -2, 0.0f, 0.0f, 0.0f, 8.0f));
+        final BottomSheet bottomSheetCreate = builder.create();
+        final ButtonWithCounterView round = new ButtonWithCounterView(context, resourcesProvider).setRound();
+        round.setText(LocaleController.getString(C2888R.string.PasskeyFeatureButton), false);
+        round.setOnClickListener(new View.OnClickListener() { // from class: org.telegram.ui.PasskeysActivity$$ExternalSyntheticLambda8
+            @Override // android.view.View.OnClickListener
+            public final void onClick(View view) {
+                PasskeysActivity.$r8$lambda$8DyVmp96C3qdZI3nL65SRH0qpZc(round, context, i, bottomSheetCreate, view);
+            }
+        });
+        if (z) {
+            linearLayout.addView(round, LayoutHelper.createLinear(-1, 48, 0.0f, 16.0f, 0.0f, 8.0f));
+        }
+        bottomSheetCreate.fixNavigationBar();
+        bottomSheetCreate.show();
+    }
+
+    public static /* synthetic */ void $r8$lambda$8DyVmp96C3qdZI3nL65SRH0qpZc(final ButtonWithCounterView buttonWithCounterView, final Context context, final int i, final BottomSheet bottomSheet, View view) {
+        if (buttonWithCounterView.isLoading()) {
+            return;
+        }
+        buttonWithCounterView.setLoading(true);
+        PasskeysController.create(context, i, new Utilities.Callback2() { // from class: org.telegram.ui.PasskeysActivity$$ExternalSyntheticLambda10
+            @Override // org.telegram.messenger.Utilities.Callback2
+            public final void run(Object obj, Object obj2) {
+                PasskeysActivity.$r8$lambda$YbuzlWVIPDdYORbpgGojRqxLWg4(buttonWithCounterView, context, bottomSheet, i, (TL_account.Passkey) obj, (String) obj2);
+            }
+        });
+    }
+
+    public static /* synthetic */ void $r8$lambda$YbuzlWVIPDdYORbpgGojRqxLWg4(ButtonWithCounterView buttonWithCounterView, Context context, final BottomSheet bottomSheet, int i, final TL_account.Passkey passkey, String str) {
+        buttonWithCounterView.setLoading(false);
+        if ("CANCELLED".equalsIgnoreCase(str)) {
+            return;
+        }
+        if ("EMPTY".equalsIgnoreCase(str)) {
+            new AlertDialog.Builder(context).setTitle(LocaleController.getString(C2888R.string.PasskeyNoOptionsTitle)).setMessage(LocaleController.getString(C2888R.string.PasskeyNoOptionsText)).setPositiveButton(LocaleController.getString(C2888R.string.f1606OK), null).setOnDismissListener(new DialogInterface.OnDismissListener() { // from class: org.telegram.ui.PasskeysActivity$$ExternalSyntheticLambda11
+                @Override // android.content.DialogInterface.OnDismissListener
+                public final void onDismiss(DialogInterface dialogInterface) {
+                    bottomSheet.lambda$new$0();
+                }
+            }).show();
+            return;
+        }
+        BaseFragment safeLastFragment = LaunchActivity.getSafeLastFragment();
+        if (safeLastFragment == null) {
+            return;
+        }
+        final BulletinFactory bulletinFactoryM1245of = BulletinFactory.m1245of(bottomSheet.topBulletinContainer, bottomSheet.getResourcesProvider());
+        if (str != null) {
+            if (str.startsWith("No create options")) {
+                PasskeysUtil.showUnsupportedBulletin(bulletinFactoryM1245of);
+                return;
+            } else {
+                bulletinFactoryM1245of.showForError(str);
+                return;
+            }
+        }
+        if (passkey != null) {
+            MessagesController.getInstance(i).removeSuggestion(0L, "SETUP_PASSKEY");
+            if (safeLastFragment instanceof PasskeysActivity) {
+                bottomSheet.lambda$new$0();
+                ((PasskeysActivity) safeLastFragment).added(passkey);
+                return;
+            }
+            if (safeLastFragment instanceof PrivacySettingsActivity) {
+                bottomSheet.lambda$new$0();
+                PrivacySettingsActivity privacySettingsActivity = (PrivacySettingsActivity) safeLastFragment;
+                ArrayList arrayList = privacySettingsActivity.currentPasskeys;
+                if (arrayList == null) {
+                    arrayList = new ArrayList();
+                }
+                arrayList.add(passkey);
+                privacySettingsActivity.updateRows(true);
+                safeLastFragment.presentFragment(new PasskeysActivity(arrayList));
+                return;
+            }
+            ConnectionsManager.getInstance(i).sendRequestTyped(new TL_account.getPasskeys(), new BotForumHelper$$ExternalSyntheticLambda2(), new Utilities.Callback2() { // from class: org.telegram.ui.PasskeysActivity$$ExternalSyntheticLambda12
+                @Override // org.telegram.messenger.Utilities.Callback2
+                public final void run(Object obj, Object obj2) {
+                    PasskeysActivity.m15831$r8$lambda$IjsLdKNQgpIsFobjMO60p983YE(bottomSheet, passkey, bulletinFactoryM1245of, (TL_account.Passkeys) obj, (TLRPC.TL_error) obj2);
+                }
+            });
+        }
+    }
+
+    /* JADX INFO: renamed from: $r8$lambda$IjsLdKNQgpI-sFobjMO60p983YE, reason: not valid java name */
+    public static /* synthetic */ void m15831$r8$lambda$IjsLdKNQgpIsFobjMO60p983YE(BottomSheet bottomSheet, final TL_account.Passkey passkey, BulletinFactory bulletinFactory, TL_account.Passkeys passkeys, TLRPC.TL_error tL_error) {
+        if (passkeys == null) {
+            if (tL_error != null) {
+                bulletinFactory.showForError(tL_error);
+                return;
+            }
+            return;
+        }
+        bottomSheet.lambda$new$0();
+        int i = 0;
+        while (i < passkeys.passkeys.size()) {
+            if (TextUtils.equals(passkeys.passkeys.get(i).f1837id, passkey.f1837id)) {
+                passkeys.passkeys.remove(i);
+                i--;
+            }
+            i++;
+        }
+        BaseFragment safeLastFragment = LaunchActivity.getSafeLastFragment();
+        if (safeLastFragment == null) {
+            return;
+        }
+        final PasskeysActivity passkeysActivity = new PasskeysActivity(passkeys.passkeys);
+        safeLastFragment.presentFragment(passkeysActivity);
+        AndroidUtilities.runOnUIThread(new Runnable() { // from class: org.telegram.ui.PasskeysActivity$$ExternalSyntheticLambda14
+            @Override // java.lang.Runnable
+            public final void run() {
+                this.f$0.added(passkey);
+            }
+        }, 150L);
+    }
+
+    @Override // org.telegram.p029ui.ActionBar.BaseFragment
+    public void onInsets(int i, int i2, int i3, int i4) {
+        this.listView.setPadding(0, 0, 0, i4);
+        this.listView.setClipToPadding(false);
+    }
+}

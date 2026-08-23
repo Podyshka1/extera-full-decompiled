@@ -1,0 +1,87 @@
+package org.telegram.messenger.secretmedia;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import org.telegram.messenger.SecureDocumentKey;
+import org.telegram.messenger.Utilities;
+
+/* JADX INFO: loaded from: classes5.dex */
+public class EncryptedFileInputStream extends FileInputStream {
+    private static final int MODE_CBC = 1;
+    private static final int MODE_CTR = 0;
+    private int currentMode;
+    private int fileOffset;
+
+    /* JADX INFO: renamed from: iv */
+    private byte[] f1630iv;
+    private byte[] key;
+
+    public EncryptedFileInputStream(File file, File file2) throws IOException {
+        super(file);
+        this.key = new byte[32];
+        this.f1630iv = new byte[16];
+        this.currentMode = 0;
+        RandomAccessFile randomAccessFile = new RandomAccessFile(file2, "r");
+        randomAccessFile.read(this.key, 0, 32);
+        randomAccessFile.read(this.f1630iv, 0, 16);
+        randomAccessFile.close();
+    }
+
+    public EncryptedFileInputStream(File file, SecureDocumentKey secureDocumentKey) {
+        super(file);
+        byte[] bArr = new byte[32];
+        this.key = bArr;
+        this.f1630iv = new byte[16];
+        this.currentMode = 1;
+        System.arraycopy(secureDocumentKey.file_key, 0, bArr, 0, bArr.length);
+        byte[] bArr2 = secureDocumentKey.file_iv;
+        byte[] bArr3 = this.f1630iv;
+        System.arraycopy(bArr2, 0, bArr3, 0, bArr3.length);
+    }
+
+    @Override // java.io.FileInputStream, java.io.InputStream
+    public int read(byte[] bArr, int i, int i2) throws IOException {
+        int i3;
+        if (this.currentMode == 1 && this.fileOffset == 0) {
+            super.read(new byte[32], 0, 32);
+            Utilities.aesCbcEncryptionByteArraySafe(bArr, this.key, this.f1630iv, i, i2, this.fileOffset, 0);
+            this.fileOffset += 32;
+            skip((r10[0] & 255) - 32);
+        }
+        int i4 = super.read(bArr, i, i2);
+        int i5 = this.currentMode;
+        if (i5 == 1) {
+            i3 = i2;
+            Utilities.aesCbcEncryptionByteArraySafe(bArr, this.key, this.f1630iv, i, i3, this.fileOffset, 0);
+        } else {
+            i3 = i2;
+            if (i5 == 0) {
+                Utilities.aesCtrDecryptionByteArray(bArr, this.key, this.f1630iv, i, i3, this.fileOffset);
+            }
+        }
+        this.fileOffset += i3;
+        return i4;
+    }
+
+    @Override // java.io.FileInputStream, java.io.InputStream
+    public long skip(long j) {
+        this.fileOffset = (int) (((long) this.fileOffset) + j);
+        return super.skip(j);
+    }
+
+    public static void decryptBytesWithKeyFile(byte[] bArr, int i, int i2, SecureDocumentKey secureDocumentKey) {
+        Utilities.aesCbcEncryptionByteArraySafe(bArr, secureDocumentKey.file_key, secureDocumentKey.file_iv, i, i2, 0, 0);
+    }
+
+    public static void decryptBytesWithKeyFile(byte[] bArr, int i, int i2, File file) throws IOException {
+        byte[] bArr2 = new byte[32];
+        byte[] bArr3 = new byte[16];
+        RandomAccessFile randomAccessFile = new RandomAccessFile(file, "r");
+        randomAccessFile.read(bArr2, 0, 32);
+        randomAccessFile.read(bArr3, 0, 16);
+        randomAccessFile.close();
+        Utilities.aesCtrDecryptionByteArray(bArr, bArr2, bArr3, i, i2, 0);
+    }
+}

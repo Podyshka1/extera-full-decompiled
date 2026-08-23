@@ -1,0 +1,837 @@
+package org.telegram.p029ui;
+
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.AnimatorSet;
+import android.animation.ValueAnimator;
+import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
+import android.os.Build;
+import android.text.TextUtils;
+import android.view.KeyEvent;
+import android.view.MotionEvent;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.WindowManager;
+import android.view.animation.Interpolator;
+import android.view.animation.OvershootInterpolator;
+import android.widget.FrameLayout;
+import android.window.OnBackInvokedCallback;
+import android.window.OnBackInvokedDispatcher;
+import androidx.core.content.ContextCompat;
+import androidx.core.math.MathUtils;
+import androidx.core.util.Consumer;
+import java.util.Collections;
+import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.C2888R;
+import org.telegram.messenger.FileLoader;
+import org.telegram.messenger.ImageLoader;
+import org.telegram.messenger.ImageLocation;
+import org.telegram.messenger.LocaleController;
+import org.telegram.messenger.MediaDataController;
+import org.telegram.messenger.MessagesController;
+import org.telegram.messenger.NotificationCenter;
+import org.telegram.messenger.UserConfig;
+import org.telegram.messenger.Utilities;
+import org.telegram.p029ui.ActionBar.ActionBarMenuItem;
+import org.telegram.p029ui.ActionBar.ActionBarMenuSubItem;
+import org.telegram.p029ui.ActionBar.ActionBarPopupWindow;
+import org.telegram.p029ui.ActionBar.Theme;
+import org.telegram.p029ui.Components.AnimatedFileDrawable;
+import org.telegram.p029ui.Components.BackupImageView;
+import org.telegram.p029ui.Components.CubicBezierInterpolator;
+import org.telegram.p029ui.Components.LayoutHelper;
+import org.telegram.p029ui.Components.RadialProgress2;
+import org.telegram.p029ui.Stories.RoundRectOutlineProvider;
+import org.telegram.tgnet.TLObject;
+import org.telegram.tgnet.TLRPC;
+import p022j$.util.Objects;
+
+/* JADX INFO: loaded from: classes3.dex */
+public class AvatarPreviewer {
+    private static AvatarPreviewer INSTANCE;
+    private Layout layout;
+    private ViewGroup view;
+    private boolean visible;
+    private WindowManager windowManager;
+
+    /* JADX INFO: loaded from: classes6.dex */
+    public interface Callback {
+        void onMenuClick(MenuItem menuItem);
+    }
+
+    public static AvatarPreviewer getInstance() {
+        if (INSTANCE == null) {
+            INSTANCE = new AvatarPreviewer();
+        }
+        return INSTANCE;
+    }
+
+    public static boolean hasVisibleInstance() {
+        AvatarPreviewer avatarPreviewer = INSTANCE;
+        return avatarPreviewer != null && avatarPreviewer.visible;
+    }
+
+    public static boolean canPreview(Data data) {
+        if (data != null) {
+            return (data.imageLocation == null && data.thumbImageLocation == null) ? false : true;
+        }
+        return false;
+    }
+
+    public void show(ViewGroup viewGroup, Theme.ResourcesProvider resourcesProvider, Data data, Callback callback) {
+        Objects.requireNonNull(viewGroup);
+        Objects.requireNonNull(data);
+        Objects.requireNonNull(callback);
+        Context context = viewGroup.getContext();
+        if (this.view != viewGroup) {
+            close();
+            this.view = viewGroup;
+            this.windowManager = (WindowManager) ContextCompat.getSystemService(context, WindowManager.class);
+            this.layout = new Layout(context, resourcesProvider, callback) { // from class: org.telegram.ui.AvatarPreviewer.1
+                @Override // org.telegram.ui.AvatarPreviewer.Layout
+                protected void onHideFinish() {
+                    if (AvatarPreviewer.this.visible) {
+                        AvatarPreviewer.this.visible = false;
+                        if (AvatarPreviewer.this.layout.getParent() != null) {
+                            AvatarPreviewer.this.windowManager.removeView(AvatarPreviewer.this.layout);
+                        }
+                        AvatarPreviewer.this.layout.recycle();
+                        AvatarPreviewer.this.layout = null;
+                        AvatarPreviewer.this.view.requestDisallowInterceptTouchEvent(false);
+                        AvatarPreviewer.this.view = null;
+                        AvatarPreviewer.this.windowManager = null;
+                    }
+                }
+            };
+        }
+        this.layout.setData(data);
+        if (this.visible) {
+            return;
+        }
+        if (this.layout.getParent() != null) {
+            this.windowManager.removeView(this.layout);
+        }
+        WindowManager.LayoutParams layoutParams = new WindowManager.LayoutParams(-1, -1, MediaDataController.MAX_STYLE_RUNS_COUNT, 0, -3);
+        layoutParams.flags = 196864;
+        AndroidUtilities.setPreferredMaxRefreshRate(this.windowManager, this.layout, layoutParams);
+        this.windowManager.addView(this.layout, layoutParams);
+        viewGroup.requestDisallowInterceptTouchEvent(true);
+        this.visible = true;
+    }
+
+    public void close() {
+        if (this.visible) {
+            this.layout.setShowing(false);
+        }
+    }
+
+    public void onTouchEvent(MotionEvent motionEvent) {
+        Layout layout = this.layout;
+        if (layout != null) {
+            layout.onTouchEvent(motionEvent);
+        }
+    }
+
+    /* JADX INFO: loaded from: classes6.dex */
+    public enum MenuItem {
+        OPEN_PROFILE("OpenProfile", C2888R.string.OpenProfile, C2888R.drawable.msg_openprofile),
+        OPEN_CHANNEL("OpenChannel2", C2888R.string.OpenChannel2, C2888R.drawable.msg_channel),
+        OPEN_GROUP("OpenGroup2", C2888R.string.OpenGroup2, C2888R.drawable.msg_discussion),
+        SEND_MESSAGE("SendMessage", C2888R.string.SendMessage, C2888R.drawable.msg_discussion),
+        MENTION("Mention", C2888R.string.Mention, C2888R.drawable.msg_mention),
+        SEARCH_MESSAGES("AvatarPreviewSearchMessages", C2888R.string.AvatarPreviewSearchMessages, C2888R.drawable.msg_search);
+
+        private final int iconResId;
+        private final String labelKey;
+        private final int labelResId;
+
+        MenuItem(String str, int i, int i2) {
+            this.labelKey = str;
+            this.labelResId = i;
+            this.iconResId = i2;
+        }
+    }
+
+    /* JADX INFO: loaded from: classes6.dex */
+    public static class Data {
+        private final String imageFilter;
+        private final ImageLocation imageLocation;
+        private final InfoLoadTask infoLoadTask;
+        private final MenuItem[] menuItems;
+        private final Object parentObject;
+        private final BitmapDrawable thumb;
+        private final String thumbImageFilter;
+        private final ImageLocation thumbImageLocation;
+        private final String videoFileName;
+        private final String videoFilter;
+        private final ImageLocation videoLocation;
+
+        /* JADX INFO: renamed from: of */
+        public static Data m1216of(TLRPC.User user, int i, MenuItem... menuItemArr) {
+            TLRPC.UserProfilePhoto userProfilePhoto;
+            ImageLocation forUserOrChat = ImageLocation.getForUserOrChat(user, 0);
+            ImageLocation forUserOrChat2 = ImageLocation.getForUserOrChat(user, 1);
+            BitmapDrawable bitmapDrawable = null;
+            String str = (forUserOrChat2 == null || !(forUserOrChat2.photoSize instanceof TLRPC.TL_photoStrippedSize)) ? null : "b";
+            if (user != null && (userProfilePhoto = user.photo) != null) {
+                bitmapDrawable = userProfilePhoto.strippedBitmap;
+            }
+            return new Data(forUserOrChat, forUserOrChat2, null, null, str, null, null, bitmapDrawable, user, menuItemArr, new UserInfoLoadTask(user, i));
+        }
+
+        /* JADX INFO: renamed from: of */
+        public static Data m1217of(TLRPC.User user, TLRPC.UserFull userFull, MenuItem... menuItemArr) {
+            ImageLocation forPhoto;
+            String attachFileName;
+            TLRPC.Photo photo;
+            TLRPC.UserProfilePhoto userProfilePhoto;
+            TLRPC.Photo photo2;
+            if (user == null) {
+                user = userFull.user;
+            }
+            TLRPC.User user2 = user;
+            ImageLocation forUserOrChat = ImageLocation.getForUserOrChat(user2, 0);
+            if (forUserOrChat == null && userFull != null && (photo2 = userFull.profile_photo) != null) {
+                forUserOrChat = ImageLocation.getForPhoto(FileLoader.getClosestPhotoSizeWithSize(photo2.sizes, 500), userFull.profile_photo);
+            }
+            ImageLocation imageLocation = forUserOrChat;
+            ImageLocation forUserOrChat2 = ImageLocation.getForUserOrChat(user2, 1);
+            String str = null;
+            String str2 = (forUserOrChat2 == null || !(forUserOrChat2.photoSize instanceof TLRPC.TL_photoStrippedSize)) ? null : "b";
+            BitmapDrawable bitmapDrawable = (user2 == null || (userProfilePhoto = user2.photo) == null) ? null : userProfilePhoto.strippedBitmap;
+            if (userFull == null || (photo = userFull.profile_photo) == null || photo.video_sizes.isEmpty()) {
+                forPhoto = null;
+                attachFileName = null;
+            } else {
+                TLRPC.VideoSize closestVideoSizeWithSize = FileLoader.getClosestVideoSizeWithSize(userFull.profile_photo.video_sizes, MediaDataController.MAX_STYLE_RUNS_COUNT);
+                forPhoto = ImageLocation.getForPhoto(closestVideoSizeWithSize, userFull.profile_photo);
+                attachFileName = FileLoader.getAttachFileName(closestVideoSizeWithSize);
+            }
+            if (forPhoto != null && forPhoto.imageType == 2) {
+                str = ImageLoader.AUTOPLAY_FILTER;
+            }
+            return new Data(imageLocation, forUserOrChat2, forPhoto, null, str2, str, attachFileName, bitmapDrawable, user2, menuItemArr, null);
+        }
+
+        /* JADX INFO: renamed from: of */
+        public static Data m1214of(TLRPC.Chat chat, int i, MenuItem... menuItemArr) {
+            TLRPC.ChatPhoto chatPhoto;
+            ImageLocation forUserOrChat = ImageLocation.getForUserOrChat(chat, 0);
+            ImageLocation forUserOrChat2 = ImageLocation.getForUserOrChat(chat, 1);
+            BitmapDrawable bitmapDrawable = null;
+            String str = (forUserOrChat2 == null || !(forUserOrChat2.photoSize instanceof TLRPC.TL_photoStrippedSize)) ? null : "b";
+            if (chat != null && (chatPhoto = chat.photo) != null) {
+                bitmapDrawable = chatPhoto.strippedBitmap;
+            }
+            return new Data(forUserOrChat, forUserOrChat2, null, null, str, null, null, bitmapDrawable, chat, menuItemArr, new ChatInfoLoadTask(chat, i));
+        }
+
+        /* JADX INFO: renamed from: of */
+        public static Data m1215of(TLRPC.Chat chat, TLRPC.ChatFull chatFull, MenuItem... menuItemArr) {
+            ImageLocation forPhoto;
+            String attachFileName;
+            TLRPC.ChatPhoto chatPhoto;
+            ImageLocation forUserOrChat = ImageLocation.getForUserOrChat(chat, 0);
+            ImageLocation forUserOrChat2 = ImageLocation.getForUserOrChat(chat, 1);
+            String str = null;
+            String str2 = (forUserOrChat2 == null || !(forUserOrChat2.photoSize instanceof TLRPC.TL_photoStrippedSize)) ? null : "b";
+            BitmapDrawable bitmapDrawable = (chat == null || (chatPhoto = chat.photo) == null) ? null : chatPhoto.strippedBitmap;
+            TLRPC.Photo photo = chatFull.chat_photo;
+            if (photo == null || photo.video_sizes.isEmpty()) {
+                forPhoto = null;
+                attachFileName = null;
+            } else {
+                TLRPC.VideoSize closestVideoSizeWithSize = FileLoader.getClosestVideoSizeWithSize(chatFull.chat_photo.video_sizes, MediaDataController.MAX_STYLE_RUNS_COUNT);
+                forPhoto = ImageLocation.getForPhoto(closestVideoSizeWithSize, chatFull.chat_photo);
+                attachFileName = FileLoader.getAttachFileName(closestVideoSizeWithSize);
+            }
+            if (forPhoto != null && forPhoto.imageType == 2) {
+                str = ImageLoader.AUTOPLAY_FILTER;
+            }
+            return new Data(forUserOrChat, forUserOrChat2, forPhoto, null, str2, str, attachFileName, bitmapDrawable, chat, menuItemArr, null);
+        }
+
+        private Data(ImageLocation imageLocation, ImageLocation imageLocation2, ImageLocation imageLocation3, String str, String str2, String str3, String str4, BitmapDrawable bitmapDrawable, Object obj, MenuItem[] menuItemArr, InfoLoadTask infoLoadTask) {
+            this.imageLocation = imageLocation;
+            this.thumbImageLocation = imageLocation2;
+            this.videoLocation = imageLocation3;
+            this.imageFilter = str;
+            this.thumbImageFilter = str2;
+            this.videoFilter = str3;
+            this.videoFileName = str4;
+            this.thumb = bitmapDrawable;
+            this.parentObject = obj;
+            this.menuItems = menuItemArr;
+            this.infoLoadTask = infoLoadTask;
+        }
+    }
+
+    /* JADX INFO: loaded from: classes6.dex */
+    private static class UserInfoLoadTask extends InfoLoadTask {
+        public UserInfoLoadTask(TLRPC.User user, int i) {
+            super(user, i, NotificationCenter.userInfoDidLoad);
+        }
+
+        @Override // org.telegram.ui.AvatarPreviewer.InfoLoadTask
+        protected void load() {
+            MessagesController.getInstance(UserConfig.selectedAccount).loadUserInfo((TLRPC.User) this.argument, false, this.classGuid);
+        }
+
+        @Override // org.telegram.ui.AvatarPreviewer.InfoLoadTask
+        protected void onReceiveNotification(Object... objArr) {
+            if (((Long) objArr[0]).longValue() == ((TLRPC.User) this.argument).f1825id) {
+                onResult((TLRPC.UserFull) objArr[1]);
+            }
+        }
+    }
+
+    /* JADX INFO: loaded from: classes6.dex */
+    private static class ChatInfoLoadTask extends InfoLoadTask {
+        public ChatInfoLoadTask(TLRPC.Chat chat, int i) {
+            super(chat, i, NotificationCenter.chatInfoDidLoad);
+        }
+
+        @Override // org.telegram.ui.AvatarPreviewer.InfoLoadTask
+        protected void load() {
+            MessagesController.getInstance(UserConfig.selectedAccount).loadFullChat(((TLRPC.Chat) this.argument).f1660id, this.classGuid, false);
+        }
+
+        @Override // org.telegram.ui.AvatarPreviewer.InfoLoadTask
+        protected void onReceiveNotification(Object... objArr) {
+            TLRPC.ChatFull chatFull = (TLRPC.ChatFull) objArr[0];
+            if (chatFull == null || chatFull.f1661id != ((TLRPC.Chat) this.argument).f1660id) {
+                return;
+            }
+            onResult(chatFull);
+        }
+    }
+
+    /* JADX INFO: loaded from: classes6.dex */
+    private static abstract class InfoLoadTask {
+        protected final Object argument;
+        protected final int classGuid;
+        private boolean loading;
+        private final int notificationId;
+        private Consumer onResult;
+        private final NotificationCenter.NotificationCenterDelegate observer = new NotificationCenter.NotificationCenterDelegate() { // from class: org.telegram.ui.AvatarPreviewer.InfoLoadTask.1
+            @Override // org.telegram.messenger.NotificationCenter.NotificationCenterDelegate
+            public void didReceivedNotification(int i, int i2, Object... objArr) {
+                if (InfoLoadTask.this.loading && i == InfoLoadTask.this.notificationId) {
+                    InfoLoadTask.this.onReceiveNotification(objArr);
+                }
+            }
+        };
+        private final NotificationCenter notificationCenter = NotificationCenter.getInstance(UserConfig.selectedAccount);
+
+        protected abstract void load();
+
+        protected abstract void onReceiveNotification(Object... objArr);
+
+        public InfoLoadTask(Object obj, int i, int i2) {
+            this.argument = obj;
+            this.classGuid = i;
+            this.notificationId = i2;
+        }
+
+        public final void load(Consumer consumer) {
+            if (this.loading) {
+                return;
+            }
+            this.loading = true;
+            this.onResult = consumer;
+            this.notificationCenter.addObserver(this.observer, this.notificationId);
+            load();
+        }
+
+        public final void cancel() {
+            if (this.loading) {
+                this.loading = false;
+                this.notificationCenter.removeObserver(this.observer, this.notificationId);
+            }
+        }
+
+        protected final void onResult(Object obj) {
+            if (this.loading) {
+                cancel();
+                this.onResult.accept(obj);
+            }
+        }
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    /* JADX INFO: loaded from: classes6.dex */
+    static abstract class Layout extends FrameLayout implements NotificationCenter.NotificationCenterDelegate {
+        private final AvatarView avatarView;
+        private View blurView;
+        private final Callback callback;
+        private final FrameLayout container;
+        private InfoLoadTask infoLoadTask;
+        private final ActionBarPopupWindow.ActionBarPopupWindowLayout menu;
+        private MenuItem[] menuItems;
+        private OnBackInvokedCallback onBackInvokedCallback;
+        private OnBackInvokedDispatcher onBackInvokedDispatcher;
+        private AnimatorSet openAnimator;
+        private final Interpolator openInterpolator;
+        private boolean preparingBlur;
+        private boolean recycled;
+        private final Theme.ResourcesProvider resourcesProvider;
+        private boolean showing;
+        private String videoFileName;
+
+        protected abstract void onHideFinish();
+
+        public Layout(Context context, Theme.ResourcesProvider resourcesProvider, Callback callback) {
+            super(context);
+            this.openInterpolator = new OvershootInterpolator(1.02f);
+            this.callback = callback;
+            this.resourcesProvider = resourcesProvider;
+            setWillNotDraw(false);
+            View view = new View(context);
+            this.blurView = view;
+            view.setOnClickListener(new View.OnClickListener() { // from class: org.telegram.ui.AvatarPreviewer$Layout$$ExternalSyntheticLambda6
+                @Override // android.view.View.OnClickListener
+                public final void onClick(View view2) {
+                    this.f$0.lambda$new$0(view2);
+                }
+            });
+            addView(this.blurView, LayoutHelper.createFrame(-1, -1.0f));
+            FrameLayout frameLayout = new FrameLayout(context) { // from class: org.telegram.ui.AvatarPreviewer.Layout.1
+                @Override // android.widget.FrameLayout, android.view.View
+                protected void onMeasure(int i, int i2) {
+                    setMeasuredDimension(View.MeasureSpec.getSize(i), View.MeasureSpec.getSize(i2));
+                }
+
+                @Override // android.widget.FrameLayout, android.view.ViewGroup, android.view.View
+                protected void onLayout(boolean z, int i, int i2, int i3, int i4) {
+                    int paddingLeft = ((i3 - i) - getPaddingLeft()) - getPaddingRight();
+                    int paddingTop = ((i4 - i2) - getPaddingTop()) - getPaddingBottom();
+                    int iMin = Math.min(paddingLeft, paddingTop) - AndroidUtilities.m1124dp(16.0f);
+                    int iMin2 = Math.min(AndroidUtilities.m1124dp(60.0f), iMin);
+                    Layout.this.menu.measure(View.MeasureSpec.makeMeasureSpec(paddingLeft, Integer.MIN_VALUE), View.MeasureSpec.makeMeasureSpec((paddingTop - iMin2) - AndroidUtilities.m1124dp(40.0f), Integer.MIN_VALUE));
+                    int iClamp = MathUtils.clamp((paddingTop - Layout.this.menu.getMeasuredHeight()) - AndroidUtilities.m1124dp(40.0f), iMin2, iMin);
+                    Layout.this.avatarView.measure(View.MeasureSpec.makeMeasureSpec(iClamp, TLObject.FLAG_30), View.MeasureSpec.makeMeasureSpec(iClamp, TLObject.FLAG_30));
+                    int measuredHeight = (((paddingTop - iClamp) - Layout.this.menu.getMeasuredHeight()) - AndroidUtilities.m1124dp(40.0f)) / 2;
+                    FrameLayout.LayoutParams layoutParams = (FrameLayout.LayoutParams) Layout.this.avatarView.getLayoutParams();
+                    FrameLayout.LayoutParams layoutParams2 = (FrameLayout.LayoutParams) Layout.this.menu.getLayoutParams();
+                    layoutParams.topMargin = AndroidUtilities.m1124dp(8.0f) + measuredHeight;
+                    layoutParams2.topMargin = measuredHeight + AndroidUtilities.m1124dp(8.0f) + iClamp;
+                    super.onLayout(z, i, i2, i3, i4);
+                }
+            };
+            this.container = frameLayout;
+            frameLayout.setFitsSystemWindows(true);
+            addView(frameLayout, LayoutHelper.createFrame(-1, -1.0f));
+            AvatarView avatarView = new AvatarView(context, resourcesProvider);
+            this.avatarView = avatarView;
+            avatarView.setElevation(AndroidUtilities.m1124dp(4.0f));
+            avatarView.setClipToOutline(true);
+            frameLayout.addView(avatarView, LayoutHelper.createFrame(0, 0, 1));
+            ActionBarPopupWindow.ActionBarPopupWindowLayout actionBarPopupWindowLayout = new ActionBarPopupWindow.ActionBarPopupWindowLayout(context, C2888R.drawable.popup_fixed_alert, resourcesProvider, 0);
+            this.menu = actionBarPopupWindowLayout;
+            frameLayout.addView(actionBarPopupWindowLayout, LayoutHelper.createFrameRelatively(-2.0f, -2.0f, AndroidUtilities.isTablet() ? 1 : 8388611));
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public /* synthetic */ void lambda$new$0(View view) {
+            setShowing(false);
+        }
+
+        @Override // android.view.ViewGroup, android.view.View
+        protected void onAttachedToWindow() {
+            super.onAttachedToWindow();
+            NotificationCenter.getInstance(UserConfig.selectedAccount).addObserver(this, NotificationCenter.fileLoaded);
+            NotificationCenter.getInstance(UserConfig.selectedAccount).addObserver(this, NotificationCenter.fileLoadProgressChanged);
+            registerBackCallback();
+        }
+
+        @Override // android.view.ViewGroup, android.view.View
+        protected void onDetachedFromWindow() {
+            super.onDetachedFromWindow();
+            NotificationCenter.getInstance(UserConfig.selectedAccount).removeObserver(this, NotificationCenter.fileLoaded);
+            NotificationCenter.getInstance(UserConfig.selectedAccount).removeObserver(this, NotificationCenter.fileLoadProgressChanged);
+            unregisterBackCallback();
+        }
+
+        @Override // org.telegram.messenger.NotificationCenter.NotificationCenterDelegate
+        public void didReceivedNotification(int i, int i2, Object... objArr) {
+            if (!this.avatarView.getShowProgress() || TextUtils.isEmpty(this.videoFileName)) {
+                return;
+            }
+            if (i == NotificationCenter.fileLoaded) {
+                if (TextUtils.equals((String) objArr[0], this.videoFileName)) {
+                    this.avatarView.setProgress(1.0f);
+                }
+            } else if (i == NotificationCenter.fileLoadProgressChanged && TextUtils.equals((String) objArr[0], this.videoFileName)) {
+                this.avatarView.setProgress(Math.min(1.0f, ((Long) objArr[1]).longValue() / ((Long) objArr[2]).longValue()));
+            }
+        }
+
+        @Override // android.view.ViewGroup, android.view.View
+        public boolean dispatchKeyEvent(KeyEvent keyEvent) {
+            KeyEvent.DispatcherState keyDispatcherState;
+            if (keyEvent.getKeyCode() == 4 || keyEvent.getKeyCode() == 111) {
+                if (getKeyDispatcherState() == null) {
+                    return super.dispatchKeyEvent(keyEvent);
+                }
+                if (keyEvent.getAction() == 0 && keyEvent.getRepeatCount() == 0) {
+                    KeyEvent.DispatcherState keyDispatcherState2 = getKeyDispatcherState();
+                    if (keyDispatcherState2 != null) {
+                        keyDispatcherState2.startTracking(keyEvent, this);
+                    }
+                    return true;
+                }
+                if (keyEvent.getAction() == 1 && (keyDispatcherState = getKeyDispatcherState()) != null && keyDispatcherState.isTracking(keyEvent) && !keyEvent.isCanceled()) {
+                    setShowing(false);
+                    return true;
+                }
+                return super.dispatchKeyEvent(keyEvent);
+            }
+            return super.dispatchKeyEvent(keyEvent);
+        }
+
+        @Override // android.view.View
+        protected void onSizeChanged(int i, int i2, int i3, int i4) {
+            if (i == 0 || i2 == 0 || !this.showing) {
+                return;
+            }
+            this.blurView.setBackground(null);
+            AndroidUtilities.runOnUIThread(new Runnable() { // from class: org.telegram.ui.AvatarPreviewer$Layout$$ExternalSyntheticLambda7
+                @Override // java.lang.Runnable
+                public final void run() {
+                    this.f$0.prepareBlurBitmap();
+                }
+            });
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public void prepareBlurBitmap() {
+            if (this.preparingBlur) {
+                return;
+            }
+            this.preparingBlur = true;
+            AndroidUtilities.makeGlobalBlurBitmap(new Utilities.Callback() { // from class: org.telegram.ui.AvatarPreviewer$Layout$$ExternalSyntheticLambda8
+                @Override // org.telegram.messenger.Utilities.Callback
+                public final void run(Object obj) {
+                    this.f$0.lambda$prepareBlurBitmap$1((Bitmap) obj);
+                }
+            }, 6.0f, 7, this, Collections.singletonList(this));
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public /* synthetic */ void lambda$prepareBlurBitmap$1(Bitmap bitmap) {
+            this.blurView.setBackground(new BitmapDrawable(bitmap));
+            this.preparingBlur = false;
+        }
+
+        public void setData(final Data data) {
+            this.menuItems = data.menuItems;
+            this.avatarView.setShowProgress(data.videoLocation != null);
+            this.videoFileName = data.videoFileName;
+            recycleInfoLoadTask();
+            if (data.infoLoadTask != null) {
+                InfoLoadTask infoLoadTask = data.infoLoadTask;
+                this.infoLoadTask = infoLoadTask;
+                infoLoadTask.load(new Consumer() { // from class: org.telegram.ui.AvatarPreviewer$Layout$$ExternalSyntheticLambda2
+                    @Override // androidx.core.util.Consumer
+                    public final void accept(Object obj) {
+                        this.f$0.lambda$setData$2(data, obj);
+                    }
+                });
+            }
+            this.avatarView.setImage(UserConfig.selectedAccount, data.videoLocation, data.videoFilter, data.imageLocation, data.imageFilter, data.thumbImageLocation, data.thumbImageFilter, data.thumb, data.parentObject);
+            this.menu.removeInnerViews();
+            int i = 0;
+            while (true) {
+                MenuItem[] menuItemArr = this.menuItems;
+                if (i < menuItemArr.length) {
+                    final MenuItem menuItem = menuItemArr[i];
+                    ActionBarMenuSubItem actionBarMenuSubItemAddItem = ActionBarMenuItem.addItem(i == 0, i == this.menuItems.length - 1, this.menu, menuItem.iconResId, LocaleController.getString(menuItem.labelKey, menuItem.labelResId), false, this.resourcesProvider);
+                    actionBarMenuSubItemAddItem.setTag(Integer.valueOf(i));
+                    actionBarMenuSubItemAddItem.setOnClickListener(new View.OnClickListener() { // from class: org.telegram.ui.AvatarPreviewer$Layout$$ExternalSyntheticLambda3
+                        @Override // android.view.View.OnClickListener
+                        public final void onClick(View view) {
+                            this.f$0.lambda$setData$3(menuItem, view);
+                        }
+                    });
+                    i++;
+                } else {
+                    setShowing(true);
+                    return;
+                }
+            }
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public /* synthetic */ void lambda$setData$2(Data data, Object obj) {
+            if (this.recycled) {
+                return;
+            }
+            if (obj instanceof TLRPC.UserFull) {
+                setData(Data.m1217of((TLRPC.User) data.infoLoadTask.argument, (TLRPC.UserFull) obj, data.menuItems));
+            } else if (obj instanceof TLRPC.ChatFull) {
+                setData(Data.m1215of((TLRPC.Chat) data.infoLoadTask.argument, (TLRPC.ChatFull) obj, data.menuItems));
+            }
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public /* synthetic */ void lambda$setData$3(MenuItem menuItem, View view) {
+            setShowing(false);
+            this.callback.onMenuClick(menuItem);
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public void setShowing(final boolean z) {
+            if (this.showing == z) {
+                return;
+            }
+            this.showing = z;
+            ValueAnimator valueAnimatorOfFloat = ValueAnimator.ofFloat(0.0f, 1.0f);
+            valueAnimatorOfFloat.setInterpolator(z ? this.openInterpolator : CubicBezierInterpolator.EASE_OUT_QUINT);
+            valueAnimatorOfFloat.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() { // from class: org.telegram.ui.AvatarPreviewer$Layout$$ExternalSyntheticLambda0
+                @Override // android.animation.ValueAnimator.AnimatorUpdateListener
+                public final void onAnimationUpdate(ValueAnimator valueAnimator) {
+                    this.f$0.lambda$setShowing$4(z, valueAnimator);
+                }
+            });
+            ValueAnimator valueAnimatorOfFloat2 = ValueAnimator.ofFloat(0.0f, 1.0f);
+            valueAnimatorOfFloat2.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() { // from class: org.telegram.ui.AvatarPreviewer$Layout$$ExternalSyntheticLambda1
+                @Override // android.animation.ValueAnimator.AnimatorUpdateListener
+                public final void onAnimationUpdate(ValueAnimator valueAnimator) {
+                    this.f$0.lambda$setShowing$5(z, valueAnimator);
+                }
+            });
+            AnimatorSet animatorSet = this.openAnimator;
+            if (animatorSet != null) {
+                animatorSet.cancel();
+            }
+            AnimatorSet animatorSet2 = new AnimatorSet();
+            this.openAnimator = animatorSet2;
+            animatorSet2.setDuration(z ? 190L : 150L);
+            this.openAnimator.playTogether(valueAnimatorOfFloat, valueAnimatorOfFloat2);
+            this.openAnimator.addListener(new AnimatorListenerAdapter() { // from class: org.telegram.ui.AvatarPreviewer.Layout.2
+                @Override // android.animation.AnimatorListenerAdapter, android.animation.Animator.AnimatorListener
+                public void onAnimationEnd(Animator animator) {
+                    if (z) {
+                        return;
+                    }
+                    Layout.this.setVisibility(4);
+                    Layout.this.onHideFinish();
+                }
+            });
+            this.openAnimator.start();
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public /* synthetic */ void lambda$setShowing$4(boolean z, ValueAnimator valueAnimator) {
+            float fFloatValue = ((Float) valueAnimator.getAnimatedValue()).floatValue();
+            if (!z) {
+                fFloatValue = 1.0f - fFloatValue;
+            }
+            float fClamp = MathUtils.clamp(fFloatValue, 0.0f, 1.0f);
+            float f = (0.3f * fFloatValue) + 0.7f;
+            this.container.setScaleX(f);
+            this.container.setScaleY(f);
+            this.container.setAlpha(fClamp);
+            float f2 = 1.0f - fFloatValue;
+            this.avatarView.setTranslationY(AndroidUtilities.m1124dp(40.0f) * f2);
+            this.menu.setTranslationY((-AndroidUtilities.m1124dp(70.0f)) * f2);
+            float f3 = (fFloatValue * 0.05f) + 0.95f;
+            this.menu.setScaleX(f3);
+            this.menu.setScaleY(f3);
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public /* synthetic */ void lambda$setShowing$5(boolean z, ValueAnimator valueAnimator) {
+            float fFloatValue = ((Float) valueAnimator.getAnimatedValue()).floatValue();
+            if (!z) {
+                fFloatValue = 1.0f - fFloatValue;
+            }
+            this.blurView.setAlpha(fFloatValue);
+            invalidate();
+        }
+
+        public void recycle() {
+            this.recycled = true;
+            recycleInfoLoadTask();
+        }
+
+        private void recycleInfoLoadTask() {
+            InfoLoadTask infoLoadTask = this.infoLoadTask;
+            if (infoLoadTask != null) {
+                infoLoadTask.cancel();
+                this.infoLoadTask = null;
+            }
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public void registerBackCallback() {
+            if (Build.VERSION.SDK_INT < 33 || this.onBackInvokedCallback != null) {
+                return;
+            }
+            OnBackInvokedDispatcher onBackInvokedDispatcherFindOnBackInvokedDispatcher = findOnBackInvokedDispatcher();
+            this.onBackInvokedDispatcher = onBackInvokedDispatcherFindOnBackInvokedDispatcher;
+            if (onBackInvokedDispatcherFindOnBackInvokedDispatcher == null) {
+                post(new Runnable() { // from class: org.telegram.ui.AvatarPreviewer$Layout$$ExternalSyntheticLambda4
+                    @Override // java.lang.Runnable
+                    public final void run() {
+                        this.f$0.registerBackCallback();
+                    }
+                });
+                return;
+            }
+            OnBackInvokedCallback onBackInvokedCallback = new OnBackInvokedCallback() { // from class: org.telegram.ui.AvatarPreviewer$Layout$$ExternalSyntheticLambda5
+                public final void onBackInvoked() {
+                    this.f$0.lambda$registerBackCallback$6();
+                }
+            };
+            this.onBackInvokedCallback = onBackInvokedCallback;
+            this.onBackInvokedDispatcher.registerOnBackInvokedCallback(1000000, onBackInvokedCallback);
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public /* synthetic */ void lambda$registerBackCallback$6() {
+            setShowing(false);
+        }
+
+        private void unregisterBackCallback() {
+            OnBackInvokedDispatcher onBackInvokedDispatcher;
+            OnBackInvokedCallback onBackInvokedCallback;
+            if (Build.VERSION.SDK_INT < 33 || (onBackInvokedDispatcher = this.onBackInvokedDispatcher) == null || (onBackInvokedCallback = this.onBackInvokedCallback) == null) {
+                return;
+            }
+            onBackInvokedDispatcher.unregisterOnBackInvokedCallback(onBackInvokedCallback);
+            this.onBackInvokedDispatcher = null;
+            this.onBackInvokedCallback = null;
+        }
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    /* JADX INFO: loaded from: classes6.dex */
+    static class AvatarView extends FrameLayout {
+        private BackupImageView backupImageView;
+        private ValueAnimator progressHideAnimator;
+        private ValueAnimator progressShowAnimator;
+        private final RadialProgress2 radialProgress;
+        private final int radialProgressSize;
+        private boolean showProgress;
+
+        public AvatarView(Context context, Theme.ResourcesProvider resourcesProvider) {
+            super(context);
+            this.radialProgressSize = AndroidUtilities.m1124dp(64.0f);
+            setWillNotDraw(false);
+            setOutlineProvider(new RoundRectOutlineProvider(12));
+            BackupImageView backupImageView = new BackupImageView(context);
+            this.backupImageView = backupImageView;
+            backupImageView.setAspectFit(true);
+            this.backupImageView.setRoundRadius(AndroidUtilities.m1124dp(12.0f));
+            addView(this.backupImageView, LayoutHelper.createFrame(-1, -1.0f));
+            RadialProgress2 radialProgress2 = new RadialProgress2(this, resourcesProvider);
+            this.radialProgress = radialProgress2;
+            radialProgress2.setOverrideAlpha(0.0f);
+            radialProgress2.setIcon(10, false, false);
+            radialProgress2.setColors(1107296256, 1107296256, -1, -1);
+        }
+
+        public void setImage(int i, ImageLocation imageLocation, String str, ImageLocation imageLocation2, String str2, ImageLocation imageLocation3, String str3, BitmapDrawable bitmapDrawable, Object obj) {
+            this.backupImageView.getImageReceiver().setCurrentAccount(i);
+            this.backupImageView.getImageReceiver().setImage(imageLocation, str, imageLocation2, str2, imageLocation3, str3, bitmapDrawable, 0L, null, obj, 1);
+            this.backupImageView.onNewImageSet();
+        }
+
+        public void setProgress(float f) {
+            this.radialProgress.setProgress(f, true);
+        }
+
+        public boolean getShowProgress() {
+            return this.showProgress;
+        }
+
+        public void setShowProgress(boolean z) {
+            this.showProgress = z;
+            invalidate();
+        }
+
+        @Override // android.widget.FrameLayout, android.view.ViewGroup, android.view.View
+        protected void onLayout(boolean z, int i, int i2, int i3, int i4) {
+            super.onLayout(z, i, i2, i3, i4);
+            int width = getWidth() / 2;
+            int height = getHeight() / 2;
+            RadialProgress2 radialProgress2 = this.radialProgress;
+            int i5 = this.radialProgressSize;
+            radialProgress2.setProgressRect(width - i5, height - i5, width + i5, height + i5);
+        }
+
+        @Override // android.view.ViewGroup, android.view.View
+        protected void dispatchDraw(Canvas canvas) {
+            super.dispatchDraw(canvas);
+            if (this.showProgress) {
+                Drawable drawable = this.backupImageView.getImageReceiver().getDrawable();
+                if ((drawable instanceof AnimatedFileDrawable) && ((AnimatedFileDrawable) drawable).getDurationMs() > 0) {
+                    ValueAnimator valueAnimator = this.progressShowAnimator;
+                    if (valueAnimator != null) {
+                        valueAnimator.cancel();
+                        if (this.radialProgress.getProgress() < 1.0f) {
+                            this.radialProgress.setProgress(1.0f, true);
+                        }
+                        ValueAnimator valueAnimatorOfFloat = ValueAnimator.ofFloat(((Float) this.progressShowAnimator.getAnimatedValue()).floatValue(), 0.0f);
+                        this.progressHideAnimator = valueAnimatorOfFloat;
+                        valueAnimatorOfFloat.addListener(new AnimatorListenerAdapter() { // from class: org.telegram.ui.AvatarPreviewer.AvatarView.1
+                            @Override // android.animation.AnimatorListenerAdapter, android.animation.Animator.AnimatorListener
+                            public void onAnimationEnd(Animator animator) {
+                                AvatarView.this.showProgress = false;
+                                AvatarView.this.invalidate();
+                            }
+                        });
+                        this.progressHideAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() { // from class: org.telegram.ui.AvatarPreviewer$AvatarView$$ExternalSyntheticLambda0
+                            @Override // android.animation.ValueAnimator.AnimatorUpdateListener
+                            public final void onAnimationUpdate(ValueAnimator valueAnimator2) {
+                                this.f$0.lambda$dispatchDraw$0(valueAnimator2);
+                            }
+                        });
+                        this.progressHideAnimator.setDuration(250L);
+                        this.progressHideAnimator.start();
+                    } else {
+                        this.showProgress = false;
+                    }
+                } else if (this.progressShowAnimator == null) {
+                    ValueAnimator valueAnimatorOfFloat2 = ValueAnimator.ofFloat(0.0f, 1.0f);
+                    this.progressShowAnimator = valueAnimatorOfFloat2;
+                    valueAnimatorOfFloat2.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() { // from class: org.telegram.ui.AvatarPreviewer$AvatarView$$ExternalSyntheticLambda1
+                        @Override // android.animation.ValueAnimator.AnimatorUpdateListener
+                        public final void onAnimationUpdate(ValueAnimator valueAnimator2) {
+                            this.f$0.lambda$dispatchDraw$1(valueAnimator2);
+                        }
+                    });
+                    this.progressShowAnimator.setStartDelay(250L);
+                    this.progressShowAnimator.setDuration(250L);
+                    this.progressShowAnimator.start();
+                }
+                ValueAnimator valueAnimator2 = this.progressHideAnimator;
+                if (valueAnimator2 != null) {
+                    this.radialProgress.setOverrideAlpha(((Float) valueAnimator2.getAnimatedValue()).floatValue());
+                    this.radialProgress.draw(canvas);
+                    return;
+                }
+                ValueAnimator valueAnimator3 = this.progressShowAnimator;
+                if (valueAnimator3 != null) {
+                    this.radialProgress.setOverrideAlpha(((Float) valueAnimator3.getAnimatedValue()).floatValue());
+                    this.radialProgress.draw(canvas);
+                }
+            }
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public /* synthetic */ void lambda$dispatchDraw$0(ValueAnimator valueAnimator) {
+            invalidate();
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public /* synthetic */ void lambda$dispatchDraw$1(ValueAnimator valueAnimator) {
+            invalidate();
+        }
+    }
+}

@@ -1,0 +1,36 @@
+package androidx.transition;
+
+import androidx.transition.Transition;
+
+/* JADX INFO: loaded from: classes4.dex */
+public abstract class TransitionListenerAdapter implements Transition.TransitionListener {
+    @Override // androidx.transition.Transition.TransitionListener
+    public void onTransitionCancel(Transition transition) {
+    }
+
+    @Override // androidx.transition.Transition.TransitionListener
+    public void onTransitionEnd(Transition transition) {
+    }
+
+    @Override // androidx.transition.Transition.TransitionListener
+    public /* synthetic */ void onTransitionEnd(Transition transition, boolean z) {
+        onTransitionEnd(transition);
+    }
+
+    @Override // androidx.transition.Transition.TransitionListener
+    public void onTransitionPause(Transition transition) {
+    }
+
+    @Override // androidx.transition.Transition.TransitionListener
+    public void onTransitionResume(Transition transition) {
+    }
+
+    @Override // androidx.transition.Transition.TransitionListener
+    public void onTransitionStart(Transition transition) {
+    }
+
+    @Override // androidx.transition.Transition.TransitionListener
+    public /* synthetic */ void onTransitionStart(Transition transition, boolean z) {
+        onTransitionStart(transition);
+    }
+}

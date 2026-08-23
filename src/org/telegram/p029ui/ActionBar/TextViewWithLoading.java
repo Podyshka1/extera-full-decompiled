@@ -1,0 +1,75 @@
+package org.telegram.p029ui.ActionBar;
+
+import android.content.Context;
+import android.graphics.Canvas;
+import android.widget.TextView;
+import org.telegram.messenger.AndroidUtilities;
+import org.telegram.p029ui.Components.AnimatedFloat;
+import org.telegram.p029ui.Components.CircularProgressDrawable;
+import org.telegram.p029ui.Components.CubicBezierInterpolator;
+
+/* JADX INFO: loaded from: classes3.dex */
+public abstract class TextViewWithLoading extends TextView {
+    private final AnimatedFloat animatedLoading;
+    private boolean loading;
+    private CircularProgressDrawable spinner;
+
+    public TextViewWithLoading(Context context) {
+        super(context);
+        this.loading = false;
+        this.animatedLoading = new AnimatedFloat(this, 320L, CubicBezierInterpolator.EASE_OUT_QUINT);
+        this.spinner = new CircularProgressDrawable();
+    }
+
+    @Override // android.widget.TextView
+    public void setTextColor(int i) {
+        super.setTextColor(i);
+        this.spinner.setColor(i);
+    }
+
+    public void setLoading(boolean z, boolean z2) {
+        if (this.loading == z) {
+            return;
+        }
+        this.loading = z;
+        invalidate();
+        if (z2) {
+            return;
+        }
+        this.animatedLoading.force(z);
+    }
+
+    public boolean isLoading() {
+        return this.loading;
+    }
+
+    @Override // android.widget.TextView, android.view.View
+    protected void onDraw(Canvas canvas) {
+        Canvas canvas2;
+        float f = this.animatedLoading.set(this.loading);
+        if (f < 1.0f) {
+            if (f <= 0.0f) {
+                canvas.save();
+                canvas2 = canvas;
+            } else {
+                canvas2 = canvas;
+                canvas2.saveLayerAlpha(0.0f, 0.0f, getWidth(), getHeight(), (int) ((1.0f - f) * 255.0f), 31);
+            }
+            canvas2.translate(0.0f, AndroidUtilities.m1124dp(6.0f) * f);
+            super.onDraw(canvas2);
+            canvas2.restore();
+        } else {
+            canvas2 = canvas;
+        }
+        if (f > 0.0f) {
+            int width = getWidth() / 2;
+            int height = getHeight() / 2;
+            int iM1124dp = width - ((int) (AndroidUtilities.m1124dp(6.0f) * (1.0f - f)));
+            this.spinner.setAlpha((int) (f * 255.0f));
+            CircularProgressDrawable circularProgressDrawable = this.spinner;
+            circularProgressDrawable.setBounds(iM1124dp - (circularProgressDrawable.getIntrinsicWidth() / 2), height - (this.spinner.getIntrinsicWidth() / 2), iM1124dp + (this.spinner.getIntrinsicWidth() / 2), height + (this.spinner.getIntrinsicHeight() / 2));
+            this.spinner.draw(canvas2);
+            invalidate();
+        }
+    }
+}

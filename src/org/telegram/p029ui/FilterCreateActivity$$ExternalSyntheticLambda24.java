@@ -1,0 +1,18 @@
+package org.telegram.p029ui;
+
+import org.telegram.messenger.Utilities;
+import org.telegram.tgnet.p028tl.TL_chatlists;
+
+/* JADX INFO: loaded from: classes6.dex */
+public final /* synthetic */ class FilterCreateActivity$$ExternalSyntheticLambda24 implements Utilities.Callback {
+    public final /* synthetic */ FilterCreateActivity f$0;
+
+    public /* synthetic */ FilterCreateActivity$$ExternalSyntheticLambda24(FilterCreateActivity filterCreateActivity) {
+        this.f$0 = filterCreateActivity;
+    }
+
+    @Override // org.telegram.messenger.Utilities.Callback
+    public final void run(Object obj) {
+        this.f$0.onDelete((TL_chatlists.TL_exportedChatlistInvite) obj);
+    }
+}

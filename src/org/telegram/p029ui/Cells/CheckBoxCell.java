@@ -1,0 +1,728 @@
+package org.telegram.p029ui.Cells;
+
+import android.content.Context;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
+import android.graphics.drawable.Drawable;
+import android.text.TextUtils;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.accessibility.AccessibilityNodeInfo;
+import android.widget.FrameLayout;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+import com.google.android.material.navigation.NavigationBarView;
+import okhttp3.internal.url._UrlKt;
+import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.C2888R;
+import org.telegram.messenger.ContactsController;
+import org.telegram.messenger.Emoji;
+import org.telegram.messenger.LocaleController;
+import org.telegram.messenger.MessagesController;
+import org.telegram.messenger.NotificationCenter;
+import org.telegram.messenger.UserConfig;
+import org.telegram.messenger.UserObject;
+import org.telegram.p029ui.ActionBar.Theme;
+import org.telegram.p029ui.Components.AnimatedTextView;
+import org.telegram.p029ui.Components.AvatarDrawable;
+import org.telegram.p029ui.Components.BackupImageView;
+import org.telegram.p029ui.Components.CheckBox2;
+import org.telegram.p029ui.Components.CheckBoxSquare;
+import org.telegram.p029ui.Components.CubicBezierInterpolator;
+import org.telegram.p029ui.Components.LayoutHelper;
+import org.telegram.p029ui.Components.LinkSpanDrawable;
+import org.telegram.tgnet.TLObject;
+import org.telegram.tgnet.TLRPC;
+
+/* JADX INFO: loaded from: classes3.dex */
+public class CheckBoxCell extends FrameLayout {
+    private AnimatedTextView animatedTextView;
+    private AvatarDrawable avatarDrawable;
+    private BackupImageView avatarImageView;
+    private final View checkBox;
+    private CheckBox2 checkBoxRound;
+    private final int checkBoxSize;
+    private CheckBoxSquare checkBoxSquare;
+    private View click1Container;
+    private View click2Container;
+    private CollapseButton collapseButton;
+    private View collapsedArrow;
+    private final int currentType;
+    private boolean isMultiline;
+    public int itemId;
+    private LinkSpanDrawable.LinksTextView linksTextView;
+    private boolean needDivider;
+    private final Theme.ResourcesProvider resourcesProvider;
+    private boolean textAnimated;
+    private View textView;
+    private final TextView valueTextView;
+
+    public CheckBoxCell(Context context, int i) {
+        this(context, i, 17, null);
+    }
+
+    public CheckBoxCell(Context context, int i, Theme.ResourcesProvider resourcesProvider) {
+        this(context, i, 17, resourcesProvider);
+    }
+
+    public CheckBoxCell(Context context, int i, int i2, Theme.ResourcesProvider resourcesProvider) {
+        this(context, i, i2, false, resourcesProvider);
+    }
+
+    public CheckBoxCell(Context context, int i, int i2, boolean z, Theme.ResourcesProvider resourcesProvider) {
+        super(context);
+        this.resourcesProvider = resourcesProvider;
+        this.currentType = i;
+        this.textAnimated = z;
+        boolean z2 = true;
+        if (z) {
+            AnimatedTextView animatedTextView = new AnimatedTextView(context) { // from class: org.telegram.ui.Cells.CheckBoxCell.1
+                @Override // org.telegram.p029ui.Components.AnimatedTextView, android.view.View
+                protected void onDraw(Canvas canvas) {
+                    super.onDraw(canvas);
+                    CheckBoxCell.this.updateCollapseArrowTranslation();
+                }
+            };
+            this.animatedTextView = animatedTextView;
+            NotificationCenter.listenEmojiLoading(animatedTextView);
+            this.animatedTextView.setEllipsizeByGradient(true);
+            this.animatedTextView.setRightPadding(AndroidUtilities.m1124dp(8.0f));
+            this.animatedTextView.getDrawable().setHacks(true, true, false);
+            this.animatedTextView.setTag(Integer.valueOf(getThemedColor((i == 1 || i == 5) ? Theme.key_dialogTextBlack : Theme.key_windowBackgroundWhiteBlackText)));
+            this.animatedTextView.setTextSize(AndroidUtilities.m1124dp(16.0f));
+            if (i == 7) {
+                this.animatedTextView.setTypeface(AndroidUtilities.bold());
+            }
+            if (i == 3) {
+                this.animatedTextView.setGravity(19);
+                addView(this.animatedTextView, LayoutHelper.createFrame(-1, -2.0f, 19, 29.0f, 0.0f, 0.0f, 0.0f));
+                this.animatedTextView.setPadding(0, 0, 0, AndroidUtilities.m1124dp(3.0f));
+            } else {
+                this.animatedTextView.setRightPadding(AndroidUtilities.m1124dp(i2));
+                this.animatedTextView.setGravity((LocaleController.isRTL ? 5 : 3) | 16);
+                if (i == 2) {
+                    View view = this.animatedTextView;
+                    boolean z3 = LocaleController.isRTL;
+                    addView(view, LayoutHelper.createFrame(-1, -2.0f, (z3 ? 5 : 3) | 16, z3 ? 8 : 29, 0.0f, z3 ? 29 : 8, 0.0f));
+                } else {
+                    int i3 = isCheckboxRound() ? 56 : 46;
+                    i3 = i == 7 ? i3 + 39 : i3;
+                    View view2 = this.animatedTextView;
+                    boolean z4 = LocaleController.isRTL;
+                    addView(view2, LayoutHelper.createFrame(-1, -2.0f, (z4 ? 5 : 3) | 16, z4 ? i2 : i3 + (i2 - 17), 0.0f, z4 ? i3 + (i2 - 17) : i2, 0.0f));
+                }
+            }
+            this.textView = this.animatedTextView;
+        } else {
+            LinkSpanDrawable.LinksTextView linksTextView = new LinkSpanDrawable.LinksTextView(context) { // from class: org.telegram.ui.Cells.CheckBoxCell.2
+                @Override // org.telegram.ui.Components.LinkSpanDrawable.LinksTextView, android.widget.TextView, android.view.View
+                protected void onDraw(Canvas canvas) {
+                    super.onDraw(canvas);
+                    CheckBoxCell.this.updateCollapseArrowTranslation();
+                }
+
+                @Override // org.telegram.ui.Components.LinkSpanDrawable.LinksTextView, android.widget.TextView
+                public void setText(CharSequence charSequence, TextView.BufferType bufferType) {
+                    super.setText(Emoji.replaceEmoji(charSequence, getPaint().getFontMetricsInt(), false), bufferType);
+                }
+            };
+            this.linksTextView = linksTextView;
+            NotificationCenter.listenEmojiLoading(linksTextView);
+            this.linksTextView.setTag(Integer.valueOf(getThemedColor((i == 1 || i == 5) ? Theme.key_dialogTextBlack : Theme.key_windowBackgroundWhiteBlackText)));
+            this.linksTextView.setTextSize(1, 16.0f);
+            this.linksTextView.setLines(1);
+            this.linksTextView.setMaxLines(1);
+            this.linksTextView.setSingleLine(true);
+            this.linksTextView.setEllipsize(TextUtils.TruncateAt.END);
+            if (i == 7) {
+                this.linksTextView.setTypeface(AndroidUtilities.bold());
+            }
+            if (i == 3) {
+                this.linksTextView.setGravity(19);
+                addView(this.linksTextView, LayoutHelper.createFrame(-1, -2.0f, 19, 29.0f, 0.0f, 0.0f, 0.0f));
+                this.linksTextView.setPadding(0, 0, 0, AndroidUtilities.m1124dp(3.0f));
+            } else {
+                this.linksTextView.setGravity((LocaleController.isRTL ? 5 : 3) | 16);
+                if (i == 2) {
+                    View view3 = this.linksTextView;
+                    boolean z5 = LocaleController.isRTL;
+                    addView(view3, LayoutHelper.createFrame(-1, -2.0f, (z5 ? 5 : 3) | 16, z5 ? 8 : 29, 0.0f, z5 ? 29 : 8, 0.0f));
+                } else {
+                    int i4 = isCheckboxRound() ? 56 : 46;
+                    i4 = i == 7 ? i4 + 39 : i4;
+                    View view4 = this.linksTextView;
+                    int i5 = isCheckboxRound() ? -2 : -1;
+                    boolean z6 = LocaleController.isRTL;
+                    addView(view4, LayoutHelper.createFrame(i5, -2.0f, (z6 ? 5 : 3) | 16, z6 ? i2 : i4 + (i2 - 17), 0.0f, z6 ? i4 + (i2 - 17) : i2, 0.0f));
+                }
+            }
+            this.textView = this.linksTextView;
+        }
+        TextView textView = new TextView(context);
+        this.valueTextView = textView;
+        textView.setTag(Integer.valueOf((i == 1 || i == 5) ? Theme.key_dialogTextBlue : Theme.key_windowBackgroundWhiteValueText));
+        textView.setTextSize(1, 16.0f);
+        textView.setLines(1);
+        textView.setMaxLines(1);
+        textView.setSingleLine(true);
+        textView.setEllipsize(TextUtils.TruncateAt.END);
+        textView.setGravity((LocaleController.isRTL ? 3 : 5) | 16);
+        float f = i2;
+        addView(textView, LayoutHelper.createFrame(-2, -1.0f, (LocaleController.isRTL ? 3 : 5) | 48, f, 0.0f, f, 0.0f));
+        if (isCheckboxRound()) {
+            CheckBox2 checkBox2 = new CheckBox2(context, 21, resourcesProvider);
+            this.checkBoxRound = checkBox2;
+            this.checkBox = checkBox2;
+            checkBox2.setDrawUnchecked(true);
+            this.checkBoxRound.setChecked(true, false);
+            this.checkBoxRound.setDrawBackgroundAsArc(10);
+            this.checkBoxSize = 21;
+            float f2 = 21;
+            boolean z7 = LocaleController.isRTL;
+            addView(checkBox2, LayoutHelper.createFrame(21, f2, (z7 ? 5 : 3) | 48, z7 ? 0 : i2, 16.0f, z7 ? i2 : 0, 0.0f));
+        } else {
+            if (i != 1 && i != 5) {
+                z2 = false;
+            }
+            CheckBoxSquare checkBoxSquare = new CheckBoxSquare(context, z2, resourcesProvider);
+            this.checkBoxSquare = checkBoxSquare;
+            this.checkBox = checkBoxSquare;
+            this.checkBoxSize = 18;
+            if (i == 5) {
+                float f3 = 18;
+                boolean z8 = LocaleController.isRTL;
+                addView(checkBoxSquare, LayoutHelper.createFrame(18, f3, (z8 ? 5 : 3) | 16, z8 ? 0 : i2, 0.0f, z8 ? i2 : 0, 0.0f));
+            } else if (i == 3) {
+                addView(checkBoxSquare, LayoutHelper.createFrame(18, 18, 51, 0.0f, 15.0f, 0.0f, 0.0f));
+            } else if (i == 2) {
+                addView(checkBoxSquare, LayoutHelper.createFrame(18, 18, (LocaleController.isRTL ? 5 : 3) | 48, 0.0f, 15.0f, 0.0f, 0.0f));
+            } else {
+                float f4 = 18;
+                boolean z9 = LocaleController.isRTL;
+                addView(checkBoxSquare, LayoutHelper.createFrame(18, f4, (z9 ? 5 : 3) | 48, z9 ? 0 : i2, 16.0f, z9 ? i2 : 0, 0.0f));
+            }
+        }
+        if (i == 6) {
+            CollapseButton collapseButton = new CollapseButton(context, C2888R.drawable.msg_folders_groups);
+            this.collapseButton = collapseButton;
+            addView(collapseButton, LayoutHelper.createFrameRelatively(-2.0f, -2.0f, 8388629, f, 0.0f, i2 - 11, 0.0f));
+        } else if (i == 8) {
+            CollapseButton collapseButton2 = new CollapseButton(context, 0);
+            this.collapseButton = collapseButton2;
+            addView(collapseButton2, LayoutHelper.createFrameRelatively(-2.0f, -2.0f, 8388629, f, 0.0f, i2 - 11, 0.0f));
+        } else if (i == 7) {
+            this.avatarDrawable = new AvatarDrawable();
+            BackupImageView backupImageView = new BackupImageView(context);
+            this.avatarImageView = backupImageView;
+            backupImageView.setRoundRadius(AndroidUtilities.m1124dp(17.0f));
+            addView(this.avatarImageView, LayoutHelper.createFrameRelatively(34.0f, 34.0f, NavigationBarView.ITEM_GRAVITY_START_CENTER, 56.0f, 0.0f, 0.0f, 0.0f));
+        }
+        updateTextColor();
+    }
+
+    public boolean isCheckboxRound() {
+        int i = this.currentType;
+        return i == 4 || i == 8 || i == 6 || i == 7;
+    }
+
+    public void allowMultiline() {
+        if (this.textAnimated) {
+            return;
+        }
+        this.linksTextView.setLines(3);
+        this.linksTextView.setMaxLines(3);
+        this.linksTextView.setSingleLine(false);
+    }
+
+    public void updateTextColor() {
+        if (this.textAnimated) {
+            AnimatedTextView animatedTextView = this.animatedTextView;
+            int i = this.currentType;
+            animatedTextView.setTextColor(getThemedColor((i == 1 || i == 5) ? Theme.key_dialogTextBlack : Theme.key_windowBackgroundWhiteBlackText));
+        } else {
+            LinkSpanDrawable.LinksTextView linksTextView = this.linksTextView;
+            int i2 = this.currentType;
+            linksTextView.setTextColor(getThemedColor((i2 == 1 || i2 == 5) ? Theme.key_dialogTextBlack : Theme.key_windowBackgroundWhiteBlackText));
+            LinkSpanDrawable.LinksTextView linksTextView2 = this.linksTextView;
+            int i3 = this.currentType;
+            linksTextView2.setLinkTextColor(getThemedColor((i3 == 1 || i3 == 5) ? Theme.key_dialogTextLink : Theme.key_windowBackgroundWhiteLinkText));
+        }
+        TextView textView = this.valueTextView;
+        int i4 = this.currentType;
+        textView.setTextColor(getThemedColor((i4 == 1 || i4 == 5) ? Theme.key_dialogTextBlue : Theme.key_windowBackgroundWhiteValueText));
+    }
+
+    public void setOnSectionsClickListener(View.OnClickListener onClickListener, View.OnClickListener onClickListener2) {
+        if (onClickListener == null) {
+            View view = this.click1Container;
+            if (view != null) {
+                removeView(view);
+                this.click1Container = null;
+            }
+        } else {
+            if (this.click1Container == null) {
+                View view2 = new View(getContext());
+                this.click1Container = view2;
+                view2.setBackground(Theme.createSelectorDrawable(getThemedColor(Theme.key_listSelector), 2));
+                addView(this.click1Container, LayoutHelper.createFrame(-1, -1, 119));
+            }
+            this.click1Container.setOnClickListener(onClickListener);
+        }
+        if (onClickListener2 == null) {
+            View view3 = this.click2Container;
+            if (view3 != null) {
+                removeView(view3);
+                this.click2Container = null;
+                return;
+            }
+            return;
+        }
+        if (this.click2Container == null) {
+            View view4 = new View(getContext());
+            this.click2Container = view4;
+            addView(view4, LayoutHelper.createFrame(56, -1, LocaleController.isRTL ? 5 : 3));
+        }
+        this.click2Container.setOnClickListener(onClickListener2);
+    }
+
+    public void setCollapsed(Boolean bool) {
+        if (bool == null) {
+            View view = this.collapsedArrow;
+            if (view != null) {
+                removeView(view);
+                this.collapsedArrow = null;
+                return;
+            }
+            return;
+        }
+        if (this.collapsedArrow == null) {
+            this.collapsedArrow = new View(getContext());
+            Drawable drawableMutate = getContext().getResources().getDrawable(C2888R.drawable.arrow_more).mutate();
+            drawableMutate.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_windowBackgroundWhiteBlackText), PorterDuff.Mode.MULTIPLY));
+            this.collapsedArrow.setBackground(drawableMutate);
+            addView(this.collapsedArrow, LayoutHelper.createFrame(16, 16, 16));
+        }
+        if (this.collapsedArrow.getVisibility() == 8) {
+            this.collapsedArrow.setVisibility(0);
+        }
+        updateCollapseArrowTranslation();
+        this.collapsedArrow.animate().cancel();
+        this.collapsedArrow.animate().rotation(bool.booleanValue() ? 0.0f : 180.0f).setDuration(340L).setInterpolator(CubicBezierInterpolator.EASE_OUT_QUINT).start();
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public void updateCollapseArrowTranslation() {
+        float measuredWidth;
+        float left;
+        if (this.collapsedArrow == null) {
+            return;
+        }
+        try {
+            measuredWidth = this.textView.getMeasuredWidth();
+        } catch (Exception unused) {
+            measuredWidth = 0.0f;
+        }
+        if (LocaleController.isRTL) {
+            left = (this.textView.getRight() - measuredWidth) - AndroidUtilities.m1124dp(20.0f);
+        } else {
+            left = this.textView.getLeft() + measuredWidth + AndroidUtilities.m1124dp(4.0f);
+        }
+        this.collapsedArrow.setTranslationX(left);
+    }
+
+    @Override // android.widget.FrameLayout, android.view.View
+    protected void onMeasure(int i, int i2) {
+        int size = View.MeasureSpec.getSize(i);
+        if (this.currentType == 3) {
+            this.valueTextView.measure(View.MeasureSpec.makeMeasureSpec(AndroidUtilities.m1124dp(10.0f), Integer.MIN_VALUE), View.MeasureSpec.makeMeasureSpec(AndroidUtilities.m1124dp(50.0f), TLObject.FLAG_30));
+            this.textView.measure(View.MeasureSpec.makeMeasureSpec(size - AndroidUtilities.m1124dp(34.0f), Integer.MIN_VALUE), View.MeasureSpec.makeMeasureSpec(AndroidUtilities.m1124dp(50.0f), Integer.MIN_VALUE));
+            this.checkBox.measure(View.MeasureSpec.makeMeasureSpec(AndroidUtilities.m1124dp(this.checkBoxSize), Integer.MIN_VALUE), View.MeasureSpec.makeMeasureSpec(AndroidUtilities.m1124dp(this.checkBoxSize), TLObject.FLAG_30));
+            setMeasuredDimension(this.textView.getMeasuredWidth() + AndroidUtilities.m1124dp(29.0f), AndroidUtilities.m1124dp(50.0f));
+        } else if (this.isMultiline) {
+            super.onMeasure(View.MeasureSpec.makeMeasureSpec(View.MeasureSpec.getSize(i), TLObject.FLAG_30), View.MeasureSpec.makeMeasureSpec(0, 0));
+        } else {
+            setMeasuredDimension(View.MeasureSpec.getSize(i), AndroidUtilities.m1124dp(50.0f) + (this.needDivider ? 1 : 0));
+            int measuredWidth = ((getMeasuredWidth() - getPaddingLeft()) - getPaddingRight()) - AndroidUtilities.m1124dp(isCheckboxRound() ? 60.0f : 34.0f);
+            if (this.textAnimated) {
+                measuredWidth += (int) this.animatedTextView.getRightPadding();
+            }
+            if (this.currentType == 7) {
+                measuredWidth -= AndroidUtilities.m1124dp(34.0f);
+            }
+            if (this.valueTextView.getLayoutParams() instanceof ViewGroup.MarginLayoutParams) {
+                measuredWidth -= ((ViewGroup.MarginLayoutParams) this.valueTextView.getLayoutParams()).rightMargin;
+            }
+            int i3 = measuredWidth / 2;
+            this.valueTextView.measure(View.MeasureSpec.makeMeasureSpec(i3, Integer.MIN_VALUE), View.MeasureSpec.makeMeasureSpec(getMeasuredHeight(), TLObject.FLAG_30));
+            int measuredWidth2 = this.valueTextView.getMeasuredWidth();
+            CollapseButton collapseButton = this.collapseButton;
+            if (collapseButton != null) {
+                collapseButton.measure(View.MeasureSpec.makeMeasureSpec(i3, Integer.MIN_VALUE), View.MeasureSpec.makeMeasureSpec(getMeasuredHeight(), TLObject.FLAG_30));
+                measuredWidth2 += this.collapseButton.getMeasuredWidth() - AndroidUtilities.m1124dp(11.0f);
+            }
+            if (this.textView.getLayoutParams().width == -1) {
+                View view = this.textView;
+                view.measure(View.MeasureSpec.makeMeasureSpec(((measuredWidth - ((int) Math.abs(view.getTranslationX()))) - measuredWidth2) - AndroidUtilities.m1124dp(8.0f), TLObject.FLAG_30), View.MeasureSpec.makeMeasureSpec(getMeasuredHeight(), Integer.MIN_VALUE));
+            } else {
+                View view2 = this.textView;
+                view2.measure(View.MeasureSpec.makeMeasureSpec(((measuredWidth - ((int) Math.abs(view2.getTranslationX()))) - measuredWidth2) - AndroidUtilities.m1124dp(8.0f), Integer.MIN_VALUE), View.MeasureSpec.makeMeasureSpec(getMeasuredHeight(), Integer.MIN_VALUE));
+            }
+            BackupImageView backupImageView = this.avatarImageView;
+            if (backupImageView != null) {
+                backupImageView.measure(View.MeasureSpec.makeMeasureSpec(AndroidUtilities.m1124dp(34.0f), TLObject.FLAG_30), View.MeasureSpec.makeMeasureSpec(AndroidUtilities.m1124dp(34.0f), TLObject.FLAG_30));
+            }
+            this.checkBox.measure(View.MeasureSpec.makeMeasureSpec(AndroidUtilities.m1124dp(this.checkBoxSize), Integer.MIN_VALUE), View.MeasureSpec.makeMeasureSpec(AndroidUtilities.m1124dp(this.checkBoxSize), TLObject.FLAG_30));
+        }
+        View view3 = this.click1Container;
+        if (view3 != null) {
+            ViewGroup.MarginLayoutParams marginLayoutParams = (ViewGroup.MarginLayoutParams) view3.getLayoutParams();
+            this.click1Container.measure(View.MeasureSpec.makeMeasureSpec((size - marginLayoutParams.leftMargin) - marginLayoutParams.rightMargin, TLObject.FLAG_30), View.MeasureSpec.makeMeasureSpec(AndroidUtilities.m1124dp(50.0f), TLObject.FLAG_30));
+        }
+        View view4 = this.click2Container;
+        if (view4 != null) {
+            view4.measure(View.MeasureSpec.makeMeasureSpec(AndroidUtilities.m1124dp(56.0f), TLObject.FLAG_30), View.MeasureSpec.makeMeasureSpec(AndroidUtilities.m1124dp(50.0f), TLObject.FLAG_30));
+        }
+        View view5 = this.collapsedArrow;
+        if (view5 != null) {
+            view5.measure(View.MeasureSpec.makeMeasureSpec(AndroidUtilities.m1124dp(16.0f), TLObject.FLAG_30), View.MeasureSpec.makeMeasureSpec(AndroidUtilities.m1124dp(16.0f), TLObject.FLAG_30));
+        }
+    }
+
+    public void setTextColor(int i) {
+        if (this.textAnimated) {
+            this.animatedTextView.setTextColor(i);
+        } else {
+            this.linksTextView.setTextColor(i);
+        }
+    }
+
+    public void setText(CharSequence charSequence, String str, boolean z, boolean z2) {
+        setText(charSequence, str, z, z2, false);
+    }
+
+    public void setText(CharSequence charSequence, String str, boolean z, boolean z2, boolean z3) {
+        if (this.textAnimated) {
+            this.animatedTextView.setText(Emoji.replaceEmoji(charSequence, this.animatedTextView.getPaint().getFontMetricsInt(), false), z3);
+        } else {
+            this.linksTextView.setText(charSequence);
+        }
+        CheckBox2 checkBox2 = this.checkBoxRound;
+        if (checkBox2 != null) {
+            checkBox2.setChecked(z, z3);
+        } else {
+            this.checkBoxSquare.setChecked(z, z3);
+        }
+        if (!TextUtils.isEmpty(str)) {
+            this.valueTextView.setText(str);
+            this.valueTextView.setVisibility(0);
+        } else {
+            this.valueTextView.setText(_UrlKt.FRAGMENT_ENCODE_SET);
+            this.valueTextView.setVisibility(8);
+        }
+        this.needDivider = z2;
+        setWillNotDraw(!z2);
+    }
+
+    public void setText(CharSequence charSequence, String str, boolean z) {
+        if (this.textAnimated) {
+            this.animatedTextView.setText(Emoji.replaceEmoji(charSequence, this.animatedTextView.getPaint().getFontMetricsInt(), false), z);
+        } else {
+            this.linksTextView.setText(charSequence);
+        }
+        if (!TextUtils.isEmpty(str)) {
+            this.valueTextView.setText(str);
+            this.valueTextView.setVisibility(0);
+        } else {
+            this.valueTextView.setText(_UrlKt.FRAGMENT_ENCODE_SET);
+            this.valueTextView.setVisibility(8);
+        }
+    }
+
+    public void setUserOrChat(TLObject tLObject) {
+        String name;
+        if (this.avatarImageView.getVisibility() == 8) {
+            this.avatarImageView.setVisibility(0);
+        }
+        this.avatarDrawable.setInfo(tLObject);
+        this.avatarImageView.setForUserOrChat(tLObject, this.avatarDrawable);
+        boolean z = tLObject instanceof TLRPC.User;
+        if (z) {
+            name = UserObject.getUserName((TLRPC.User) tLObject);
+        } else {
+            name = ContactsController.formatName(tLObject);
+        }
+        if (z && ((TLRPC.User) tLObject).f1825id == MessagesController.getInstance(UserConfig.selectedAccount).telegramAntispamUserId) {
+            name = LocaleController.getString(C2888R.string.ChannelAntiSpamUser);
+        }
+        if (this.textAnimated) {
+            this.animatedTextView.setText(Emoji.replaceEmoji(name, this.animatedTextView.getPaint().getFontMetricsInt(), false));
+        } else {
+            this.linksTextView.setText(name);
+        }
+    }
+
+    public void setPad(int i) {
+        int iM1124dp = AndroidUtilities.m1124dp(i * 40 * (LocaleController.isRTL ? -1 : 1));
+        View view = this.checkBox;
+        if (view != null) {
+            view.setTranslationX(iM1124dp);
+        }
+        float f = iM1124dp;
+        this.textView.setTranslationX(f);
+        BackupImageView backupImageView = this.avatarImageView;
+        if (backupImageView != null) {
+            backupImageView.setTranslationX(f);
+        }
+        View view2 = this.click1Container;
+        if (view2 != null) {
+            view2.setTranslationX(f);
+        }
+        View view3 = this.click2Container;
+        if (view3 != null) {
+            view3.setTranslationX(f);
+        }
+    }
+
+    public void setNeedDivider(boolean z) {
+        this.needDivider = z;
+    }
+
+    public void setMultiline(boolean z) {
+        if (this.textAnimated) {
+            return;
+        }
+        this.isMultiline = z;
+        FrameLayout.LayoutParams layoutParams = (FrameLayout.LayoutParams) this.textView.getLayoutParams();
+        FrameLayout.LayoutParams layoutParams2 = (FrameLayout.LayoutParams) this.checkBox.getLayoutParams();
+        if (this.isMultiline) {
+            this.linksTextView.setLines(0);
+            this.linksTextView.setMaxLines(0);
+            this.linksTextView.setSingleLine(false);
+            this.linksTextView.setEllipsize(null);
+            layoutParams2.gravity = (layoutParams2.gravity & 7) | 16;
+            layoutParams2.topMargin = 0;
+        } else {
+            this.linksTextView.setLines(1);
+            this.linksTextView.setMaxLines(1);
+            this.linksTextView.setSingleLine(true);
+            this.linksTextView.setEllipsize(TextUtils.TruncateAt.END);
+            this.textView.setPadding(0, 0, 0, 0);
+            layoutParams.height = -1;
+            layoutParams.topMargin = 0;
+            layoutParams2.gravity = (layoutParams2.gravity & 7) | 48;
+            layoutParams2.topMargin = AndroidUtilities.m1124dp(15.0f);
+        }
+        this.textView.setLayoutParams(layoutParams);
+        this.checkBox.setLayoutParams(layoutParams2);
+    }
+
+    @Override // android.view.View
+    public void setEnabled(boolean z) {
+        super.setEnabled(z);
+        this.textView.setAlpha(z ? 1.0f : 0.5f);
+        this.valueTextView.setAlpha(z ? 1.0f : 0.5f);
+        this.checkBox.setAlpha(z ? 1.0f : 0.5f);
+    }
+
+    public void setChecked(boolean z, boolean z2) {
+        CheckBox2 checkBox2 = this.checkBoxRound;
+        if (checkBox2 != null) {
+            checkBox2.setChecked(z, z2);
+        } else {
+            this.checkBoxSquare.setChecked(z, z2);
+        }
+    }
+
+    public boolean isChecked() {
+        CheckBox2 checkBox2 = this.checkBoxRound;
+        if (checkBox2 != null) {
+            return checkBox2.isChecked();
+        }
+        return this.checkBoxSquare.isChecked();
+    }
+
+    public TextView getTextView() {
+        return this.linksTextView;
+    }
+
+    public AnimatedTextView getAnimatedTextView() {
+        return this.animatedTextView;
+    }
+
+    public TextView getValueTextView() {
+        return this.valueTextView;
+    }
+
+    public View getCheckBoxView() {
+        return this.checkBox;
+    }
+
+    public void setCheckBoxColor(int i, int i2, int i3) {
+        CheckBox2 checkBox2 = this.checkBoxRound;
+        if (checkBox2 != null) {
+            checkBox2.setColor(i, i, i3);
+        }
+    }
+
+    public CheckBox2 getCheckBoxRound() {
+        return this.checkBoxRound;
+    }
+
+    public void setSquareCheckBoxColor(int i, int i2, int i3) {
+        CheckBoxSquare checkBoxSquare = this.checkBoxSquare;
+        if (checkBoxSquare != null) {
+            checkBoxSquare.setColors(i, i2, i3);
+        }
+    }
+
+    @Override // android.view.View
+    protected void onDraw(Canvas canvas) {
+        if (this.needDivider) {
+            int iM1124dp = AndroidUtilities.m1124dp(isCheckboxRound() ? 60.0f : 20.0f) + ((int) Math.abs(this.textView.getTranslationX()));
+            if (this.currentType == 7) {
+                iM1124dp += AndroidUtilities.m1124dp(39.0f);
+            }
+            Theme.ResourcesProvider resourcesProvider = this.resourcesProvider;
+            Paint paint = resourcesProvider != null ? resourcesProvider.getPaint("paintDivider") : null;
+            if (paint == null) {
+                paint = Theme.dividerPaint;
+            }
+            Paint paint2 = paint;
+            float f = LocaleController.isRTL ? 0.0f : iM1124dp;
+            float measuredHeight = getMeasuredHeight() - 1;
+            int measuredWidth = getMeasuredWidth();
+            if (!LocaleController.isRTL) {
+                iM1124dp = 0;
+            }
+            canvas.drawLine(f, measuredHeight, measuredWidth - iM1124dp, getMeasuredHeight() - 1, paint2);
+        }
+    }
+
+    @Override // android.view.View
+    public void onInitializeAccessibilityNodeInfo(AccessibilityNodeInfo accessibilityNodeInfo) {
+        super.onInitializeAccessibilityNodeInfo(accessibilityNodeInfo);
+        accessibilityNodeInfo.setClassName("android.widget.CheckBox");
+        accessibilityNodeInfo.setCheckable(true);
+        AnimatedTextView animatedTextView = this.animatedTextView;
+        if (animatedTextView != null) {
+            accessibilityNodeInfo.setText(animatedTextView.getText());
+        } else {
+            LinkSpanDrawable.LinksTextView linksTextView = this.linksTextView;
+            if (linksTextView != null) {
+                accessibilityNodeInfo.setText(linksTextView.getText());
+            }
+        }
+        accessibilityNodeInfo.setChecked(isChecked());
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public int getThemedColor(int i) {
+        return Theme.getColor(i, this.resourcesProvider);
+    }
+
+    public void setIcon(int i) {
+        this.checkBoxRound.setIcon(i);
+    }
+
+    public boolean hasIcon() {
+        return this.checkBoxRound.hasIcon();
+    }
+
+    public void setCollapseButton(boolean z, CharSequence charSequence, View.OnClickListener onClickListener) {
+        CollapseButton collapseButton = this.collapseButton;
+        if (collapseButton != null) {
+            if (collapseButton.getVisibility() == 8) {
+                this.collapseButton.setVisibility(0);
+            }
+            this.collapseButton.set(z, charSequence);
+            if (onClickListener != null) {
+                this.collapseButton.setOnClickListener(onClickListener);
+            }
+        }
+    }
+
+    /* JADX INFO: loaded from: classes6.dex */
+    public class CollapseButton extends LinearLayout {
+        private final View collapsedArrow;
+        private ImageView iconView;
+        private final AnimatedTextView textView;
+
+        public CollapseButton(Context context, int i) {
+            super(context);
+            int themedColor = CheckBoxCell.this.getThemedColor(Theme.key_windowBackgroundWhiteBlackText);
+            if (i != 0) {
+                ImageView imageView = new ImageView(context);
+                this.iconView = imageView;
+                imageView.setColorFilter(new PorterDuffColorFilter(themedColor, PorterDuff.Mode.MULTIPLY));
+                this.iconView.setImageResource(i);
+            }
+            AnimatedTextView animatedTextView = new AnimatedTextView(context, false, true, false);
+            this.textView = animatedTextView;
+            animatedTextView.setTextSize(AndroidUtilities.m1124dp(13.0f));
+            animatedTextView.setTextColor(themedColor);
+            animatedTextView.setIncludeFontPadding(false);
+            animatedTextView.setTypeface(AndroidUtilities.bold());
+            View view = new View(context);
+            this.collapsedArrow = view;
+            Drawable drawableMutate = getContext().getResources().getDrawable(C2888R.drawable.arrow_more).mutate();
+            drawableMutate.setColorFilter(new PorterDuffColorFilter(themedColor, PorterDuff.Mode.MULTIPLY));
+            view.setBackground(drawableMutate);
+            if (LocaleController.isRTL) {
+                addView(view, LayoutHelper.createLinear(16, 16, 16, 11, 0, 3, 0));
+                addView(animatedTextView, LayoutHelper.createLinear(-2, 16, 16, 0, 0, this.iconView != null ? 3 : 11, 0));
+                View view2 = this.iconView;
+                if (view2 != null) {
+                    addView(view2, LayoutHelper.createLinear(16, 16, 16, 0, 0, 11, 0));
+                }
+            } else {
+                View view3 = this.iconView;
+                if (view3 != null) {
+                    addView(view3, LayoutHelper.createLinear(16, 16, 16, 11, 0, 3, 0));
+                }
+                addView(animatedTextView, LayoutHelper.createLinear(-2, 16, 16, this.iconView == null ? 11 : 0, 0, 3, 0));
+                addView(view, LayoutHelper.createLinear(16, 16, 16, 0, 0, 11, 0));
+            }
+            setBackground(Theme.createRadSelectorDrawable(CheckBoxCell.this.getThemedColor(Theme.key_listSelector), 16, 16));
+            setClickable(true);
+        }
+
+        @Override // android.widget.LinearLayout, android.view.View
+        protected void onMeasure(int i, int i2) {
+            super.onMeasure(i, View.MeasureSpec.makeMeasureSpec(AndroidUtilities.m1124dp(32.0f), TLObject.FLAG_30));
+        }
+
+        public void set(boolean z, CharSequence charSequence) {
+            this.textView.cancelAnimation();
+            this.textView.setText(charSequence);
+            this.collapsedArrow.animate().cancel();
+            this.collapsedArrow.animate().rotation(z ? 0.0f : 180.0f).setDuration(340L).setInterpolator(CubicBezierInterpolator.EASE_OUT_QUINT).start();
+        }
+    }
+
+    public void reset() {
+        if (this.textAnimated) {
+            this.animatedTextView.setText(_UrlKt.FRAGMENT_ENCODE_SET);
+        } else {
+            this.linksTextView.setText(_UrlKt.FRAGMENT_ENCODE_SET);
+        }
+        BackupImageView backupImageView = this.avatarImageView;
+        if (backupImageView != null) {
+            backupImageView.setVisibility(8);
+            this.avatarImageView.setImage(null, null, null);
+        }
+        CollapseButton collapseButton = this.collapseButton;
+        if (collapseButton != null) {
+            collapseButton.setVisibility(8);
+            this.collapseButton.setOnClickListener(null);
+        }
+        View view = this.collapsedArrow;
+        if (view != null) {
+            view.setVisibility(8);
+        }
+        setPad(0);
+        setMultiline(false);
+    }
+}

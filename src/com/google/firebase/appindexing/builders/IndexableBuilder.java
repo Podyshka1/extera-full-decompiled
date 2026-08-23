@@ -1,0 +1,60 @@
+package com.google.firebase.appindexing.builders;
+
+import android.os.Bundle;
+import com.google.android.gms.common.internal.Preconditions;
+import com.google.firebase.appindexing.internal.zzw;
+import java.util.Arrays;
+
+/* JADX INFO: loaded from: classes5.dex */
+public abstract class IndexableBuilder {
+    public static void zza(Bundle bundle, String str, String... strArr) {
+        Preconditions.checkNotNull(str);
+        Preconditions.checkNotNull(strArr);
+        String[] strArr2 = (String[]) Arrays.copyOf(strArr, strArr.length);
+        if (strArr2.length <= 0) {
+            zzw.zza("String array is empty and is ignored by put method.");
+            return;
+        }
+        int i = 0;
+        for (int i2 = 0; i2 < Math.min(strArr2.length, 100); i2++) {
+            String str2 = strArr2[i2];
+            strArr2[i] = str2;
+            if (strArr2[i2] == null) {
+                StringBuilder sb = new StringBuilder(59);
+                sb.append("String at ");
+                sb.append(i2);
+                sb.append(" is null and is ignored by put method.");
+                zzw.zza(sb.toString());
+            } else {
+                int i3 = 20000;
+                if (str2.length() > 20000) {
+                    StringBuilder sb2 = new StringBuilder(53);
+                    sb2.append("String at ");
+                    sb2.append(i2);
+                    sb2.append(" is too long, truncating string.");
+                    zzw.zza(sb2.toString());
+                    String strSubstring = strArr2[i];
+                    if (strSubstring.length() > 20000) {
+                        if (Character.isHighSurrogate(strSubstring.charAt(19999)) && Character.isLowSurrogate(strSubstring.charAt(20000))) {
+                            i3 = 19999;
+                        }
+                        strSubstring = strSubstring.substring(0, i3);
+                    }
+                    strArr2[i] = strSubstring;
+                }
+                i++;
+            }
+        }
+        if (i > 0) {
+            bundle.putStringArray(str, (String[]) zzf((String[]) Arrays.copyOfRange(strArr2, 0, i)));
+        }
+    }
+
+    private static Object[] zzf(Object[] objArr) {
+        if (objArr.length < 100) {
+            return objArr;
+        }
+        zzw.zza("Input Array of elements is too big, cutting off.");
+        return Arrays.copyOf(objArr, 100);
+    }
+}

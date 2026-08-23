@@ -1,0 +1,106 @@
+package org.telegram.p029ui.Components.conference.message;
+
+import android.view.ViewGroup;
+import androidx.recyclerview.widget.RecyclerView;
+import java.util.ArrayList;
+import java.util.List;
+import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.voip.GroupCallMessage;
+import org.telegram.messenger.voip.GroupCallMessagesController;
+import org.telegram.p029ui.Components.conference.message.GroupCallMessageCell;
+import org.telegram.tgnet.TLRPC;
+
+/* JADX INFO: loaded from: classes7.dex */
+public abstract class GroupCallMessagesAdapter extends RecyclerView.Adapter implements GroupCallMessagesController.CallMessageListener {
+    private int currentAccount = -1;
+    private TLRPC.InputGroupCall inputGroupCall;
+    private boolean isAttachedToRecyclerView;
+    private List messages;
+
+    @Override // androidx.recyclerview.widget.RecyclerView.Adapter
+    public GroupCallMessageCell.C5356VH onCreateViewHolder(ViewGroup viewGroup, int i) {
+        GroupCallMessageCell groupCallMessageCell = new GroupCallMessageCell(viewGroup.getContext());
+        groupCallMessageCell.setPadding(AndroidUtilities.m1124dp(22.0f), 0, AndroidUtilities.m1124dp(22.0f), 0);
+        return new GroupCallMessageCell.C5356VH(groupCallMessageCell);
+    }
+
+    @Override // androidx.recyclerview.widget.RecyclerView.Adapter
+    public void onBindViewHolder(GroupCallMessageCell.C5356VH c5356vh, int i) {
+        List list = this.messages;
+        if (list == null || list.size() <= i) {
+            return;
+        }
+        ((GroupCallMessageCell) c5356vh.itemView).set((GroupCallMessage) this.messages.get(i));
+    }
+
+    @Override // androidx.recyclerview.widget.RecyclerView.Adapter
+    public int getItemCount() {
+        List list = this.messages;
+        if (list != null) {
+            return list.size();
+        }
+        return 0;
+    }
+
+    public GroupCallMessage getMessage(int i) {
+        List list = this.messages;
+        if (list != null && i >= 0 && i < list.size()) {
+            return (GroupCallMessage) this.messages.get(i);
+        }
+        return null;
+    }
+
+    @Override // org.telegram.messenger.voip.GroupCallMessagesController.CallMessageListener
+    public void onNewGroupCallMessage(long j, GroupCallMessage groupCallMessage) {
+        if (this.messages == null) {
+            this.messages = new ArrayList();
+        }
+        this.messages.add(0, groupCallMessage);
+        notifyItemInserted(0);
+    }
+
+    @Override // org.telegram.messenger.voip.GroupCallMessagesController.CallMessageListener
+    public void onPopGroupCallMessage() {
+        List list = this.messages;
+        if (list == null || list.isEmpty()) {
+            return;
+        }
+        int size = this.messages.size() - 1;
+        this.messages.remove(size);
+        notifyItemRemoved(size);
+    }
+
+    public void attach() {
+        this.isAttachedToRecyclerView = true;
+        int i = this.currentAccount;
+        if (i == -1 || this.inputGroupCall == null) {
+            return;
+        }
+        this.messages = GroupCallMessagesController.getInstance(i).getCallMessages(this.inputGroupCall.f1682id);
+        notifyDataSetChanged();
+        GroupCallMessagesController.getInstance(this.currentAccount).subscribeToCallMessages(this.inputGroupCall.f1682id, this);
+    }
+
+    public void detach() {
+        this.isAttachedToRecyclerView = false;
+        int i = this.currentAccount;
+        if (i == -1 || this.inputGroupCall == null) {
+            return;
+        }
+        GroupCallMessagesController.getInstance(i).unsubscribeFromCallMessages(this.inputGroupCall.f1682id, this);
+    }
+
+    public void setGroupCall(int i, TLRPC.InputGroupCall inputGroupCall) {
+        int i2;
+        if (this.isAttachedToRecyclerView && (i2 = this.currentAccount) != -1 && this.inputGroupCall != null) {
+            GroupCallMessagesController.getInstance(i2).unsubscribeFromCallMessages(this.inputGroupCall.f1682id, this);
+        }
+        this.currentAccount = i;
+        this.inputGroupCall = inputGroupCall;
+        if (this.isAttachedToRecyclerView) {
+            this.messages = GroupCallMessagesController.getInstance(i).getCallMessages(this.inputGroupCall.f1682id);
+            notifyDataSetChanged();
+            GroupCallMessagesController.getInstance(i).subscribeToCallMessages(this.inputGroupCall.f1682id, this);
+        }
+    }
+}

@@ -1,0 +1,64 @@
+package org.telegram.p029ui.web;
+
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.os.AsyncTask;
+import java.io.BufferedInputStream;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.HashMap;
+import java.util.Map;
+import org.telegram.messenger.SvgHelper;
+import org.telegram.messenger.Utilities;
+
+/* JADX INFO: loaded from: classes7.dex */
+public class HttpGetBitmapTask extends AsyncTask {
+    private final Utilities.Callback callback;
+    private Exception exception;
+    private final HashMap headers = new HashMap();
+
+    public HttpGetBitmapTask(Utilities.Callback callback) {
+        this.callback = callback;
+    }
+
+    /* JADX INFO: Access modifiers changed from: protected */
+    @Override // android.os.AsyncTask
+    public Bitmap doInBackground(String... strArr) {
+        try {
+            HttpURLConnection httpURLConnection = (HttpURLConnection) new URL(strArr[0]).openConnection();
+            for (Map.Entry entry : this.headers.entrySet()) {
+                if (entry.getKey() != null && entry.getValue() != null) {
+                    httpURLConnection.setRequestProperty((String) entry.getKey(), (String) entry.getValue());
+                }
+            }
+            httpURLConnection.setRequestMethod("GET");
+            httpURLConnection.setDoInput(true);
+            int responseCode = httpURLConnection.getResponseCode();
+            if (responseCode >= 200 && responseCode < 300) {
+                if (httpURLConnection.getContentType() != null && httpURLConnection.getContentType().contains("svg")) {
+                    return SvgHelper.getBitmap((InputStream) new BufferedInputStream(httpURLConnection.getInputStream()), 64, 64, false);
+                }
+                return BitmapFactory.decodeStream(new BufferedInputStream(httpURLConnection.getInputStream()));
+            }
+            httpURLConnection.disconnect();
+            return null;
+        } catch (Exception e) {
+            this.exception = e;
+            return null;
+        }
+    }
+
+    /* JADX INFO: Access modifiers changed from: protected */
+    @Override // android.os.AsyncTask
+    public void onPostExecute(Bitmap bitmap) {
+        Utilities.Callback callback = this.callback;
+        if (callback != null) {
+            if (this.exception == null) {
+                callback.run(bitmap);
+            } else {
+                callback.run(null);
+            }
+        }
+    }
+}

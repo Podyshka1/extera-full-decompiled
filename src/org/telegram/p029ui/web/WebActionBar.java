@@ -1,0 +1,1219 @@
+package org.telegram.p029ui.web;
+
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.ValueAnimator;
+import android.content.Context;
+import android.graphics.Canvas;
+import android.graphics.ColorFilter;
+import android.graphics.Paint;
+import android.graphics.Path;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
+import android.graphics.RectF;
+import android.graphics.drawable.Drawable;
+import android.text.Editable;
+import android.text.TextPaint;
+import android.text.TextUtils;
+import android.text.TextWatcher;
+import android.view.KeyEvent;
+import android.view.MotionEvent;
+import android.view.View;
+import android.view.ViewConfiguration;
+import android.view.ViewGroup;
+import android.widget.FrameLayout;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+import androidx.core.graphics.ColorUtils;
+import okhttp3.internal.url._UrlKt;
+import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.C2888R;
+import org.telegram.messenger.Emoji;
+import org.telegram.messenger.LocaleController;
+import org.telegram.messenger.SharedConfig;
+import org.telegram.messenger.Utilities;
+import org.telegram.p029ui.ActionBar.ActionBarMenuSubItem;
+import org.telegram.p029ui.ActionBar.BackDrawable;
+import org.telegram.p029ui.ActionBar.OKLCH;
+import org.telegram.p029ui.ActionBar.Theme;
+import org.telegram.p029ui.Components.AnimatedFloat;
+import org.telegram.p029ui.Components.AnimatedTextView;
+import org.telegram.p029ui.Components.CubicBezierInterpolator;
+import org.telegram.p029ui.Components.EditTextBoldCursor;
+import org.telegram.p029ui.Components.ItemOptions;
+import org.telegram.p029ui.Components.LayoutHelper;
+import org.telegram.p029ui.Components.LineProgressView;
+import org.telegram.p029ui.GradientClip;
+import org.telegram.p029ui.web.WebInstantView;
+import org.telegram.tgnet.TLObject;
+
+/* JADX INFO: loaded from: classes7.dex */
+public abstract class WebActionBar extends FrameLayout {
+    private ValueAnimator addressAnimator;
+    public int addressBackgroundColor;
+    public final Paint addressBackgroundPaint;
+    public final FrameLayout addressContainer;
+    public final EditTextBoldCursor addressEditText;
+    public final Paint addressRoundPaint;
+    public int addressTextColor;
+    public boolean addressing;
+    public float addressingProgress;
+    public final ImageView backButton;
+    public final BackDrawable backButtonDrawable;
+    public final Drawable backButtonSelector;
+    private boolean backButtonShown;
+    private int backgroundColor;
+    public final Paint[] backgroundPaint;
+    public final ImageView clearButton;
+    public final Drawable clearButtonSelector;
+    public final GradientClip clip;
+    private ValueAnimator colorAnimator;
+    public boolean[] colorSet;
+    public boolean drawShadow;
+    public final ImageView forwardButton;
+    public final ForwardDrawable forwardButtonDrawable;
+    public final Drawable forwardButtonSelector;
+    private int fromBackgroundColor;
+    public boolean hasForward;
+    public boolean hasLoaded;
+    public int height;
+    public int iconColor;
+    public boolean isMenuShown;
+    public boolean isTonsite;
+    public final LinearLayout leftmenu;
+    public final LineProgressView lineProgressView;
+    public boolean longClicked;
+    private Runnable longPressRunnable;
+    public int menuBackgroundColor;
+    public final ImageView menuButton;
+    public final Drawable menuButtonSelector;
+    public int menuIconColor;
+    private Utilities.Callback menuListener;
+    public int menuTextColor;
+    private int menuType;
+    private boolean occupyStatusBar;
+    private long pressTime;
+    private float pressX;
+    private float pressY;
+    public final float[] progress;
+    public final Paint[] progressBackgroundPaint;
+    public final RectF rect;
+    private final Theme.ResourcesProvider resourcesProvider;
+    public final LinearLayout rightmenu;
+    private int rippleColor;
+    public float scale;
+    public final Paint scrimPaint;
+    private ValueAnimator searchAnimator;
+    public final FrameLayout searchContainer;
+    public final EditTextBoldCursor searchEditText;
+    private int searchEngineIndex;
+    public boolean searching;
+    public float searchingProgress;
+    public final Paint[] shadowPaint;
+    public int textColor;
+    public final TextPaint titlePaint;
+    public float titleProgress;
+    public final Title[] titles;
+    private Utilities.Callback urlCallback;
+
+    protected WebInstantView.Loader getInstantViewLoader() {
+        return null;
+    }
+
+    protected abstract void onAddressColorsChanged(int i, int i2);
+
+    protected abstract void onColorsUpdated();
+
+    protected abstract void onScrolledProgress(float f);
+
+    protected abstract void onSearchUpdated(String str);
+
+    @Override // android.view.View
+    protected boolean verifyDrawable(Drawable drawable) {
+        return true;
+    }
+
+    public WebActionBar(Context context, Theme.ResourcesProvider resourcesProvider) {
+        super(context);
+        this.rect = new RectF();
+        this.titles = new Title[2];
+        this.titleProgress = 0.0f;
+        this.progress = new float[2];
+        this.colorSet = new boolean[3];
+        this.backgroundPaint = new Paint[2];
+        this.progressBackgroundPaint = new Paint[2];
+        this.shadowPaint = new Paint[2];
+        this.scrimPaint = new Paint(1);
+        this.addressBackgroundPaint = new Paint(1);
+        this.addressRoundPaint = new Paint(1);
+        TextPaint textPaint = new TextPaint(1);
+        this.titlePaint = textPaint;
+        this.isMenuShown = false;
+        this.height = AndroidUtilities.m1124dp(56.0f);
+        this.scale = 1.0f;
+        this.searchingProgress = 0.0f;
+        this.addressingProgress = 0.0f;
+        this.menuType = -1;
+        this.clip = new GradientClip();
+        this.longPressRunnable = new Runnable() { // from class: org.telegram.ui.web.WebActionBar$$ExternalSyntheticLambda2
+            @Override // java.lang.Runnable
+            public final void run() {
+                this.f$0.lambda$new$11();
+            }
+        };
+        this.longClicked = false;
+        this.resourcesProvider = resourcesProvider;
+        textPaint.setTypeface(AndroidUtilities.bold());
+        textPaint.setTextSize(AndroidUtilities.m1124dp(18.33f));
+        for (int i = 0; i < 2; i++) {
+            this.backgroundPaint[i] = new Paint(1);
+            this.progressBackgroundPaint[i] = new Paint(1);
+            this.shadowPaint[i] = new Paint(1);
+        }
+        FrameLayout frameLayout = new FrameLayout(context);
+        this.searchContainer = frameLayout;
+        addView(frameLayout, LayoutHelper.createFrame(-1, 56, 87));
+        FrameLayout frameLayout2 = new FrameLayout(context);
+        this.addressContainer = frameLayout2;
+        addView(frameLayout2, LayoutHelper.createFrame(-1, 56, 87));
+        LinearLayout linearLayout = new LinearLayout(context) { // from class: org.telegram.ui.web.WebActionBar.1
+            @Override // android.widget.LinearLayout, android.view.View
+            protected void onMeasure(int i2, int i3) {
+                super.onMeasure(i2, i3);
+                setPivotY(0.0f);
+                setPivotX(0.0f);
+            }
+        };
+        this.leftmenu = linearLayout;
+        linearLayout.setOrientation(0);
+        addView(linearLayout, LayoutHelper.createFrame(-2, 56, 83));
+        ImageView imageView = new ImageView(context);
+        this.backButton = imageView;
+        ImageView.ScaleType scaleType = ImageView.ScaleType.CENTER;
+        imageView.setScaleType(scaleType);
+        BackDrawable backDrawable = new BackDrawable(false);
+        this.backButtonDrawable = backDrawable;
+        backDrawable.setAnimationTime(200.0f);
+        backDrawable.setRotation(1.0f, false);
+        imageView.setImageDrawable(backDrawable);
+        Drawable drawableCreateSelectorDrawable = Theme.createSelectorDrawable(1090519039);
+        this.backButtonSelector = drawableCreateSelectorDrawable;
+        imageView.setBackground(drawableCreateSelectorDrawable);
+        linearLayout.addView(imageView, LayoutHelper.createLinear(54, 56));
+        LinearLayout linearLayout2 = new LinearLayout(context) { // from class: org.telegram.ui.web.WebActionBar.2
+            @Override // android.widget.LinearLayout, android.view.View
+            protected void onMeasure(int i2, int i3) {
+                super.onMeasure(i2, i3);
+                setPivotY(0.0f);
+                setPivotX(getMeasuredWidth());
+            }
+        };
+        this.rightmenu = linearLayout2;
+        linearLayout2.setOrientation(0);
+        addView(linearLayout2, LayoutHelper.createFrame(-2, 56, 85));
+        ImageView imageView2 = new ImageView(context);
+        this.forwardButton = imageView2;
+        imageView2.setScaleType(scaleType);
+        ForwardDrawable forwardDrawable = new ForwardDrawable();
+        this.forwardButtonDrawable = forwardDrawable;
+        imageView2.setImageDrawable(forwardDrawable);
+        forwardDrawable.setState(false);
+        Drawable drawableCreateSelectorDrawable2 = Theme.createSelectorDrawable(1090519039);
+        this.forwardButtonSelector = drawableCreateSelectorDrawable2;
+        imageView2.setBackground(drawableCreateSelectorDrawable2);
+        linearLayout2.addView(imageView2, LayoutHelper.createLinear(54, 56));
+        ImageView imageView3 = new ImageView(context);
+        this.menuButton = imageView3;
+        imageView3.setScaleType(scaleType);
+        imageView3.setImageResource(C2888R.drawable.ic_ab_other);
+        imageView3.setColorFilter(new PorterDuffColorFilter(0, PorterDuff.Mode.SRC_IN));
+        imageView3.setOnClickListener(new View.OnClickListener() { // from class: org.telegram.ui.web.WebActionBar$$ExternalSyntheticLambda3
+            @Override // android.view.View.OnClickListener
+            public final void onClick(View view) {
+                this.f$0.lambda$new$4(view);
+            }
+        });
+        Drawable drawableCreateSelectorDrawable3 = Theme.createSelectorDrawable(1090519039);
+        this.menuButtonSelector = drawableCreateSelectorDrawable3;
+        imageView3.setBackground(drawableCreateSelectorDrawable3);
+        imageView3.setContentDescription(LocaleController.getString("AccDescrMoreOptions", C2888R.string.AccDescrMoreOptions));
+        linearLayout2.addView(imageView3, LayoutHelper.createLinear(54, 56));
+        EditTextBoldCursor editTextBoldCursor = new EditTextBoldCursor(context) { // from class: org.telegram.ui.web.WebActionBar.3
+            @Override // org.telegram.p029ui.Components.EditTextBoldCursor, android.widget.TextView, android.view.View
+            public boolean onTouchEvent(MotionEvent motionEvent) {
+                if (motionEvent.getAction() == 0 && !AndroidUtilities.showKeyboard(this)) {
+                    clearFocus();
+                    requestFocus();
+                }
+                return super.onTouchEvent(motionEvent);
+            }
+        };
+        this.searchEditText = editTextBoldCursor;
+        editTextBoldCursor.setVisibility(8);
+        editTextBoldCursor.setAlpha(0.0f);
+        editTextBoldCursor.setTextSize(1, 18.0f);
+        editTextBoldCursor.setSingleLine(true);
+        editTextBoldCursor.setHint(LocaleController.getString(C2888R.string.Search));
+        editTextBoldCursor.setBackgroundResource(0);
+        editTextBoldCursor.setCursorWidth(1.5f);
+        editTextBoldCursor.setGravity(112);
+        editTextBoldCursor.setClipToPadding(true);
+        editTextBoldCursor.setPadding(AndroidUtilities.m1124dp(58.0f), 0, AndroidUtilities.m1124dp(112.0f), 0);
+        editTextBoldCursor.setTranslationY(-AndroidUtilities.m1124dp(0.66f));
+        editTextBoldCursor.setInputType(editTextBoldCursor.getInputType() | 524288);
+        editTextBoldCursor.setImeOptions(33554435);
+        editTextBoldCursor.setTextIsSelectable(false);
+        editTextBoldCursor.setOnEditorActionListener(new TextView.OnEditorActionListener() { // from class: org.telegram.ui.web.WebActionBar$$ExternalSyntheticLambda4
+            @Override // android.widget.TextView.OnEditorActionListener
+            public final boolean onEditorAction(TextView textView, int i2, KeyEvent keyEvent) {
+                return this.f$0.lambda$new$5(textView, i2, keyEvent);
+            }
+        });
+        editTextBoldCursor.addTextChangedListener(new TextWatcher() { // from class: org.telegram.ui.web.WebActionBar.4
+            @Override // android.text.TextWatcher
+            public void beforeTextChanged(CharSequence charSequence, int i2, int i3, int i4) {
+            }
+
+            @Override // android.text.TextWatcher
+            public void onTextChanged(CharSequence charSequence, int i2, int i3, int i4) {
+            }
+
+            @Override // android.text.TextWatcher
+            public void afterTextChanged(Editable editable) {
+                AndroidUtilities.updateViewShow(WebActionBar.this.clearButton, editable.length() > 0 && WebActionBar.this.searching, true, true);
+                WebActionBar.this.onSearchUpdated(editable.toString());
+            }
+        });
+        frameLayout.addView(editTextBoldCursor, LayoutHelper.createFrame(-1, -1, 119));
+        EditTextBoldCursor editTextBoldCursor2 = new EditTextBoldCursor(context) { // from class: org.telegram.ui.web.WebActionBar.5
+            @Override // org.telegram.p029ui.Components.EditTextBoldCursor, android.widget.TextView, android.view.View
+            public boolean onTouchEvent(MotionEvent motionEvent) {
+                if (motionEvent.getAction() == 0 && !AndroidUtilities.showKeyboard(this)) {
+                    clearFocus();
+                    requestFocus();
+                }
+                return super.onTouchEvent(motionEvent);
+            }
+        };
+        this.addressEditText = editTextBoldCursor2;
+        editTextBoldCursor2.setVisibility(8);
+        editTextBoldCursor2.setAlpha(0.0f);
+        editTextBoldCursor2.setTextSize(1, 15.66f);
+        editTextBoldCursor2.setSingleLine(true);
+        this.searchEngineIndex = SharedConfig.searchEngineType;
+        editTextBoldCursor2.setHint(LocaleController.formatString(C2888R.string.AddressPlaceholder, SearchEngine.getCurrent().name));
+        editTextBoldCursor2.setBackgroundResource(0);
+        editTextBoldCursor2.setCursorWidth(1.5f);
+        editTextBoldCursor2.setGravity(112);
+        editTextBoldCursor2.setInputType(editTextBoldCursor2.getInputType() | 524304);
+        editTextBoldCursor2.setImeOptions(33554434);
+        editTextBoldCursor2.setTextIsSelectable(false);
+        editTextBoldCursor2.setOnEditorActionListener(new TextView.OnEditorActionListener() { // from class: org.telegram.ui.web.WebActionBar$$ExternalSyntheticLambda5
+            @Override // android.widget.TextView.OnEditorActionListener
+            public final boolean onEditorAction(TextView textView, int i2, KeyEvent keyEvent) {
+                return this.f$0.lambda$new$6(textView, i2, keyEvent);
+            }
+        });
+        frameLayout2.addView(editTextBoldCursor2, LayoutHelper.createFrame(-1, -1.0f, 119, 48.0f, 0.0f, 12.0f, 0.0f));
+        ImageView imageView4 = new ImageView(context);
+        this.clearButton = imageView4;
+        imageView4.setScaleType(scaleType);
+        imageView4.setImageResource(C2888R.drawable.ic_close_white);
+        Drawable drawableCreateSelectorDrawable4 = Theme.createSelectorDrawable(1090519039);
+        this.clearButtonSelector = drawableCreateSelectorDrawable4;
+        imageView4.setBackground(drawableCreateSelectorDrawable4);
+        imageView4.setVisibility(8);
+        imageView4.setAlpha(0.0f);
+        imageView4.setOnClickListener(new View.OnClickListener() { // from class: org.telegram.ui.web.WebActionBar$$ExternalSyntheticLambda6
+            @Override // android.view.View.OnClickListener
+            public final void onClick(View view) {
+                this.f$0.lambda$new$7(view);
+            }
+        });
+        addView(imageView4, LayoutHelper.createFrame(54, 56, 85));
+        LineProgressView lineProgressView = new LineProgressView(context);
+        this.lineProgressView = lineProgressView;
+        lineProgressView.setHideAfterMaxProgress(true);
+        lineProgressView.setShowAnimationBehavior(1);
+        lineProgressView.setHideAnimationBehavior(2);
+        lineProgressView.setPivotX(0.0f);
+        lineProgressView.setPivotY(AndroidUtilities.m1124dp(2.0f));
+        addView(lineProgressView, LayoutHelper.createFrame(-1, 2, 87));
+        setWillNotDraw(false);
+        this.titles[0] = new Title();
+        this.titles[1] = new Title();
+        int i2 = Theme.key_iv_background;
+        setColors(Theme.getColor(i2, resourcesProvider), false);
+        setMenuColors(Theme.getColor(i2, resourcesProvider));
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public /* synthetic */ void lambda$new$0(Integer num) {
+        this.menuListener.run(num);
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public /* synthetic */ Runnable lambda$new$1(final Integer num) {
+        return new Runnable() { // from class: org.telegram.ui.web.WebActionBar$$ExternalSyntheticLambda12
+            @Override // java.lang.Runnable
+            public final void run() {
+                this.f$0.lambda$new$0(num);
+            }
+        };
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public /* synthetic */ void lambda$new$4(View view) {
+        if (getParent() instanceof ViewGroup) {
+            Utilities.CallbackReturn callbackReturn = new Utilities.CallbackReturn() { // from class: org.telegram.ui.web.WebActionBar$$ExternalSyntheticLambda7
+                @Override // org.telegram.messenger.Utilities.CallbackReturn
+                public final Object run(Object obj) {
+                    return this.f$0.lambda$new$1((Integer) obj);
+                }
+            };
+            ItemOptions itemOptionsMakeOptions = ItemOptions.makeOptions((ViewGroup) getParent(), this.menuButton);
+            itemOptionsMakeOptions.setDimAlpha(0);
+            itemOptionsMakeOptions.setColors(this.menuTextColor, this.menuIconColor);
+            itemOptionsMakeOptions.translate(0.0f, -AndroidUtilities.m1124dp(52.0f));
+            itemOptionsMakeOptions.setMinWidth(200);
+            itemOptionsMakeOptions.setSelectorColor(Theme.blendOver(this.menuBackgroundColor, Theme.multAlpha(this.menuTextColor, 0.1f)));
+            if (AndroidUtilities.computePerceivedBrightness(this.menuBackgroundColor) > 0.721f) {
+                itemOptionsMakeOptions.setBackgroundColor(-1);
+                itemOptionsMakeOptions.setGapBackgroundColor(-986896);
+            } else {
+                itemOptionsMakeOptions.setBackgroundColor(-14737633);
+                itemOptionsMakeOptions.setGapBackgroundColor(-15592942);
+            }
+            int i = this.menuType;
+            if (i == 0) {
+                itemOptionsMakeOptions.add(C2888R.drawable.msg_openin, LocaleController.getString(C2888R.string.OpenInExternalApp), (Runnable) callbackReturn.run(3));
+                itemOptionsMakeOptions.add(C2888R.drawable.msg_search, LocaleController.getString(C2888R.string.Search), (Runnable) callbackReturn.run(1));
+                itemOptionsMakeOptions.add(C2888R.drawable.msg_share, LocaleController.getString(C2888R.string.ShareFile), (Runnable) callbackReturn.run(2));
+                itemOptionsMakeOptions.add(C2888R.drawable.msg_settings_old, LocaleController.getString(C2888R.string.Settings), (Runnable) callbackReturn.run(4));
+            } else if (i == 1) {
+                if (!this.isTonsite) {
+                    itemOptionsMakeOptions.add(C2888R.drawable.msg_openin, LocaleController.getString(C2888R.string.OpenInExternalApp), (Runnable) callbackReturn.run(3));
+                    itemOptionsMakeOptions.addGap();
+                }
+                if (this.hasForward) {
+                    itemOptionsMakeOptions.add(C2888R.drawable.msg_arrow_forward, LocaleController.getString(C2888R.string.WebForward), (Runnable) callbackReturn.run(9));
+                }
+                final WebInstantView.Loader instantViewLoader = getInstantViewLoader();
+                if (instantViewLoader != null && (!instantViewLoader.isDone() || instantViewLoader.getWebPage() != null)) {
+                    itemOptionsMakeOptions.add(C2888R.drawable.menu_instant_view, LocaleController.getString(C2888R.string.OpenLocalInstantView), (Runnable) callbackReturn.run(10));
+                    final ActionBarMenuSubItem last = itemOptionsMakeOptions.getLast();
+                    last.setEnabled(instantViewLoader.getWebPage() != null);
+                    last.setAlpha(last.isEnabled() ? 1.0f : 0.5f);
+                    itemOptionsMakeOptions.setOnDismiss(instantViewLoader.listen(new Runnable() { // from class: org.telegram.ui.web.WebActionBar$$ExternalSyntheticLambda8
+                        @Override // java.lang.Runnable
+                        public final void run() {
+                            WebActionBar.m20820$r8$lambda$zKzXttVJ6e13AUVkJ7gntuI9R8(last, instantViewLoader);
+                        }
+                    }));
+                }
+                itemOptionsMakeOptions.add(C2888R.drawable.msg_reset, LocaleController.getString(C2888R.string.Refresh), (Runnable) callbackReturn.run(5));
+                itemOptionsMakeOptions.add(C2888R.drawable.msg_search, LocaleController.getString(C2888R.string.Search), (Runnable) callbackReturn.run(1));
+                itemOptionsMakeOptions.add(C2888R.drawable.msg_saved, LocaleController.getString(C2888R.string.WebBookmark), (Runnable) callbackReturn.run(6));
+                itemOptionsMakeOptions.add(C2888R.drawable.msg_share, LocaleController.getString(C2888R.string.ShareFile), (Runnable) callbackReturn.run(2));
+                itemOptionsMakeOptions.addGap();
+                if (!BrowserHistory.getHistory().isEmpty()) {
+                    itemOptionsMakeOptions.add(C2888R.drawable.menu_views_recent, LocaleController.getString(C2888R.string.WebHistory), (Runnable) callbackReturn.run(8));
+                }
+                itemOptionsMakeOptions.add(C2888R.drawable.menu_browser_bookmarks, LocaleController.getString(C2888R.string.WebBookmarks), (Runnable) callbackReturn.run(7));
+                itemOptionsMakeOptions.add(C2888R.drawable.msg_settings_old, LocaleController.getString(C2888R.string.Settings), (Runnable) callbackReturn.run(4));
+            }
+            itemOptionsMakeOptions.setOnDismiss(new Runnable() { // from class: org.telegram.ui.web.WebActionBar$$ExternalSyntheticLambda9
+                @Override // java.lang.Runnable
+                public final void run() {
+                    this.f$0.lambda$new$3();
+                }
+            });
+            itemOptionsMakeOptions.show();
+            this.isMenuShown = true;
+        }
+    }
+
+    /* JADX INFO: renamed from: $r8$lambda$-zKzXttVJ6e13AUVkJ7gntuI9R8, reason: not valid java name */
+    public static /* synthetic */ void m20820$r8$lambda$zKzXttVJ6e13AUVkJ7gntuI9R8(ActionBarMenuSubItem actionBarMenuSubItem, WebInstantView.Loader loader) {
+        actionBarMenuSubItem.setEnabled(loader.getWebPage() != null);
+        actionBarMenuSubItem.animate().alpha(actionBarMenuSubItem.isEnabled() ? 1.0f : 0.5f);
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public /* synthetic */ void lambda$new$3() {
+        this.isMenuShown = false;
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public /* synthetic */ boolean lambda$new$5(TextView textView, int i, KeyEvent keyEvent) {
+        if (keyEvent == null) {
+            return false;
+        }
+        if ((keyEvent.getAction() != 1 || keyEvent.getKeyCode() != 84) && (keyEvent.getAction() != 0 || keyEvent.getKeyCode() != 66)) {
+            return false;
+        }
+        AndroidUtilities.hideKeyboard(this.searchEditText);
+        return false;
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public /* synthetic */ boolean lambda$new$6(TextView textView, int i, KeyEvent keyEvent) {
+        if (i == 2) {
+            Utilities.Callback callback = this.urlCallback;
+            if (callback != null) {
+                callback.run(this.addressEditText.getText().toString());
+            }
+            showAddress(false, true);
+        }
+        return false;
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public /* synthetic */ void lambda$new$7(View view) {
+        this.searchEditText.setText(_UrlKt.FRAGMENT_ENCODE_SET);
+    }
+
+    public void occupyStatusBar(boolean z) {
+        this.occupyStatusBar = z;
+    }
+
+    public void setTitle(int i, String str, boolean z) {
+        CharSequence text = this.titles[i].title.getText();
+        if (text == null || !TextUtils.equals(text.toString(), str)) {
+            this.titles[i].title.setText(Emoji.replaceEmoji(str, this.titles[i].title.getPaint().getFontMetricsInt(), false), z);
+        }
+    }
+
+    public void setSubtitle(int i, String str, boolean z) {
+        CharSequence text = this.titles[i].subtitle.getText();
+        if (text == null || !TextUtils.equals(text.toString(), str)) {
+            this.titles[i].subtitle.setText(Emoji.replaceEmoji(str, this.titles[i].subtitle.getPaint().getFontMetricsInt(), false), z);
+        }
+    }
+
+    public void setIsDangerous(int i, boolean z, boolean z2) {
+        Title title = this.titles[i];
+        if (title.isDangerous != z) {
+            title.isDangerous = z;
+            if (!z2) {
+                title.animatedDangerous.set(z ? 1.0f : 0.0f, true);
+            }
+            invalidate();
+        }
+    }
+
+    public String getTitle() {
+        CharSequence text = this.titles[0].title.getText();
+        if (text == null) {
+            return _UrlKt.FRAGMENT_ENCODE_SET;
+        }
+        return text.toString();
+    }
+
+    public void swap() {
+        Title[] titleArr = this.titles;
+        Title title = titleArr[0];
+        titleArr[0] = titleArr[1];
+        titleArr[1] = title;
+        float[] fArr = this.progress;
+        float f = fArr[0];
+        fArr[0] = fArr[1];
+        fArr[1] = f;
+        int backgroundColor = getBackgroundColor(0);
+        setBackgroundColor(0, getBackgroundColor(1));
+        setBackgroundColor(1, backgroundColor);
+        invalidate();
+    }
+
+    public void setMenuListener(Utilities.Callback<Integer> callback) {
+        this.menuListener = callback;
+    }
+
+    public void setMenuType(int i) {
+        if (this.menuType != i) {
+            this.menuType = i;
+        }
+    }
+
+    public void setTransitionProgress(float f) {
+        this.titleProgress = f;
+        invalidate();
+    }
+
+    public void setProgress(float f) {
+        setProgress(0, f);
+    }
+
+    public void setProgress(int i, float f) {
+        this.progress[i] = f;
+        invalidate();
+    }
+
+    @Override // android.widget.FrameLayout, android.view.View
+    protected void onMeasure(int i, int i2) {
+        super.onMeasure(i, View.MeasureSpec.makeMeasureSpec(topPadding() + AndroidUtilities.m1124dp(56.0f), TLObject.FLAG_30));
+    }
+
+    @Override // android.widget.FrameLayout, android.view.ViewGroup, android.view.View
+    protected void onLayout(boolean z, int i, int i2, int i3, int i4) {
+        super.onLayout(z, i, i2, i3, i4);
+    }
+
+    public void setBackgroundColor(int i, int i2) {
+        if (this.colorSet[i] && this.backgroundPaint[i].getColor() == i2) {
+            return;
+        }
+        this.colorSet[i] = true;
+        this.backgroundPaint[i].setColor(i2);
+        float f = AndroidUtilities.computePerceivedBrightness(i2) <= 0.721f ? 1.0f : 0.0f;
+        int iBlendARGB = ColorUtils.blendARGB(-16777216, -1, f);
+        this.progressBackgroundPaint[i].setColor(Theme.blendOver(i2, Theme.multAlpha(iBlendARGB, AndroidUtilities.lerp(0.07f, 0.2f, f))));
+        this.shadowPaint[i].setColor(Theme.blendOver(i2, Theme.multAlpha(iBlendARGB, AndroidUtilities.lerp(0.14f, 0.24f, f))));
+        this.titles[i].title.setTextColor(iBlendARGB);
+        this.titles[i].subtitleColor = Theme.blendOver(i2, Theme.multAlpha(iBlendARGB, 0.6f));
+        Title title = this.titles[i];
+        title.subtitle.setTextColor(ColorUtils.blendARGB(title.subtitleColor, Theme.getColor(Theme.key_text_RedBold), this.titles[i].animatedDangerous.get()));
+        invalidate();
+    }
+
+    public int getBackgroundColor(int i) {
+        return this.backgroundPaint[i].getColor();
+    }
+
+    public void setHasForward(boolean z) {
+        this.hasForward = z;
+    }
+
+    public void setIsLoaded(boolean z) {
+        this.hasLoaded = z;
+    }
+
+    public void setMenuColors(int i) {
+        boolean z = OKLCH.rgb2oklch(OKLCH.rgb(i))[0] < 0.5d;
+        this.menuBackgroundColor = z ? -16777216 : -1;
+        int i2 = z ? -1 : -16777216;
+        this.menuTextColor = i2;
+        this.menuIconColor = Theme.multAlpha(i2, 0.6f);
+    }
+
+    public void setIsTonsite(boolean z) {
+        this.isTonsite = z;
+    }
+
+    public void setColors(int i, boolean z) {
+        setColors(i, -1.0f, z);
+    }
+
+    public void setColors(final int i, float f, boolean z) {
+        boolean[] zArr = this.colorSet;
+        if (zArr[2] && this.backgroundColor == i) {
+            return;
+        }
+        if (!z) {
+            zArr[2] = true;
+            if (f < 0.0f) {
+                f = AndroidUtilities.computePerceivedBrightness(i) <= 0.721f ? 1.0f : 0.0f;
+            }
+            int iBlendARGB = ColorUtils.blendARGB(-16777216, -1, f);
+            this.textColor = iBlendARGB;
+            this.iconColor = Theme.multAlpha(iBlendARGB, 0.55f);
+            this.backgroundColor = i;
+            this.addressBackgroundColor = ColorUtils.blendARGB(-1, -16777216, f);
+            int iBlendARGB2 = ColorUtils.blendARGB(-1, -16777216, 1.0f - f);
+            this.addressTextColor = iBlendARGB2;
+            onAddressColorsChanged(this.addressBackgroundColor, iBlendARGB2);
+            this.addressBackgroundPaint.setColor(this.addressBackgroundColor);
+            this.addressRoundPaint.setColor(Theme.blendOver(this.addressBackgroundColor, Theme.multAlpha(this.textColor, AndroidUtilities.lerp(0.07f, 0.2f, f))));
+            this.addressEditText.setHintTextColor(Theme.multAlpha(this.addressTextColor, 0.6f));
+            this.addressEditText.setTextColor(this.addressTextColor);
+            this.addressEditText.setCursorColor(this.addressTextColor);
+            this.addressEditText.setHandlesColor(this.addressTextColor);
+            this.lineProgressView.setProgressColor(Theme.getColor(Theme.key_iv_ab_progress, this.resourcesProvider));
+            this.backButtonDrawable.setColor(ColorUtils.blendARGB(this.textColor, this.addressTextColor, this.addressingProgress));
+            this.backButtonDrawable.setRotatedColor(ColorUtils.blendARGB(this.textColor, this.addressTextColor, this.addressingProgress));
+            this.forwardButtonDrawable.setColor(this.textColor);
+            ImageView imageView = this.menuButton;
+            int i2 = this.textColor;
+            PorterDuff.Mode mode = PorterDuff.Mode.SRC_IN;
+            imageView.setColorFilter(new PorterDuffColorFilter(i2, mode));
+            this.forwardButton.setColorFilter(new PorterDuffColorFilter(this.textColor, mode));
+            this.clearButton.setColorFilter(new PorterDuffColorFilter(this.textColor, mode));
+            int iBlendOver = Theme.blendOver(i, Theme.multAlpha(this.textColor, 0.22f));
+            this.rippleColor = iBlendOver;
+            Theme.setSelectorDrawableColor(this.backButtonSelector, iBlendOver, true);
+            Theme.setSelectorDrawableColor(this.forwardButtonSelector, this.rippleColor, true);
+            Theme.setSelectorDrawableColor(this.menuButtonSelector, this.rippleColor, true);
+            Theme.setSelectorDrawableColor(this.clearButtonSelector, this.rippleColor, true);
+            this.searchEditText.setHintTextColor(Theme.multAlpha(this.textColor, 0.6f));
+            this.searchEditText.setTextColor(this.textColor);
+            this.searchEditText.setCursorColor(this.textColor);
+            this.searchEditText.setHandlesColor(this.textColor);
+            onColorsUpdated();
+            invalidate();
+            return;
+        }
+        ValueAnimator valueAnimator = this.colorAnimator;
+        if (valueAnimator != null) {
+            valueAnimator.cancel();
+        }
+        int i3 = this.backgroundColor;
+        this.fromBackgroundColor = i3;
+        final float f2 = AndroidUtilities.computePerceivedBrightness(i3) <= 0.721f ? 1.0f : 0.0f;
+        final float f3 = AndroidUtilities.computePerceivedBrightness(i) > 0.721f ? 0.0f : 1.0f;
+        ValueAnimator valueAnimatorOfFloat = ValueAnimator.ofFloat(0.0f, 1.0f);
+        this.colorAnimator = valueAnimatorOfFloat;
+        valueAnimatorOfFloat.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() { // from class: org.telegram.ui.web.WebActionBar$$ExternalSyntheticLambda1
+            @Override // android.animation.ValueAnimator.AnimatorUpdateListener
+            public final void onAnimationUpdate(ValueAnimator valueAnimator2) {
+                this.f$0.lambda$setColors$8(i, f2, f3, valueAnimator2);
+            }
+        });
+        this.colorAnimator.addListener(new AnimatorListenerAdapter() { // from class: org.telegram.ui.web.WebActionBar.6
+            @Override // android.animation.AnimatorListenerAdapter, android.animation.Animator.AnimatorListener
+            public void onAnimationEnd(Animator animator) {
+                WebActionBar.this.setColors(i, f3, false);
+            }
+        });
+        this.colorAnimator.start();
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public /* synthetic */ void lambda$setColors$8(int i, float f, float f2, ValueAnimator valueAnimator) {
+        float fFloatValue = ((Float) valueAnimator.getAnimatedValue()).floatValue();
+        setColors(ColorUtils.blendARGB(this.fromBackgroundColor, i, fFloatValue), AndroidUtilities.lerp(f, f2, fFloatValue), false);
+    }
+
+    public int getBackgroundColor() {
+        return this.backgroundColor;
+    }
+
+    public int getTextColor() {
+        return this.textColor;
+    }
+
+    public void setHeight(int i) {
+        if (this.height != i) {
+            this.height = i;
+            float fPow = (float) Math.pow(i / AndroidUtilities.m1124dp(56.0f), 0.5d);
+            this.scale = fPow;
+            this.leftmenu.setScaleX(fPow);
+            this.leftmenu.setScaleY(this.scale);
+            this.leftmenu.setTranslationX(AndroidUtilities.m1124dp(42.0f) * (1.0f - this.scale));
+            this.leftmenu.setTranslationY(AndroidUtilities.m1124dp(-12.0f) * (1.0f - this.scale));
+            this.rightmenu.setScaleX(this.scale);
+            this.rightmenu.setScaleY(this.scale);
+            this.rightmenu.setTranslationX((-AndroidUtilities.m1124dp(42.0f)) * (1.0f - this.scale));
+            this.rightmenu.setTranslationY(AndroidUtilities.m1124dp(-12.0f) * (1.0f - this.scale));
+            this.lineProgressView.setTranslationY(this.height - AndroidUtilities.m1124dp(56.0f));
+            invalidate();
+        }
+    }
+
+    public class Title {
+        public final AnimatedFloat animatedDangerous;
+        public boolean isDangerous;
+        public final AnimatedTextView.AnimatedTextDrawable subtitle;
+        public int subtitleColor;
+        public final AnimatedTextView.AnimatedTextDrawable title;
+        public final Drawable warningDrawable;
+        public int warningDrawableColor;
+
+        public Title() {
+            AnimatedTextView.AnimatedTextDrawable animatedTextDrawable = new AnimatedTextView.AnimatedTextDrawable(true, true, true);
+            this.title = animatedTextDrawable;
+            AnimatedTextView.AnimatedTextDrawable animatedTextDrawable2 = new AnimatedTextView.AnimatedTextDrawable(true, true, true);
+            this.subtitle = animatedTextDrawable2;
+            this.animatedDangerous = new AnimatedFloat(WebActionBar.this, 0L, 300L, CubicBezierInterpolator.EASE_OUT_QUINT);
+            this.isDangerous = false;
+            animatedTextDrawable.ignoreRTL = true;
+            animatedTextDrawable.setTextSize(AndroidUtilities.m1124dp(18.33f));
+            animatedTextDrawable.setScaleProperty(0.6f);
+            animatedTextDrawable.setTypeface(AndroidUtilities.bold());
+            animatedTextDrawable.setEllipsizeByGradient(false);
+            animatedTextDrawable.setCallback(WebActionBar.this);
+            animatedTextDrawable.setOverrideFullWidth(9999999);
+            animatedTextDrawable2.ignoreRTL = true;
+            animatedTextDrawable2.setTextSize(AndroidUtilities.m1124dp(14.0f));
+            animatedTextDrawable2.setEllipsizeByGradient(false);
+            animatedTextDrawable2.setCallback(WebActionBar.this);
+            animatedTextDrawable2.setOverrideFullWidth(9999999);
+            this.warningDrawable = WebActionBar.this.getContext().getResources().getDrawable(C2888R.drawable.warning_sign).mutate();
+        }
+
+        public void draw(Canvas canvas, float f, float f2, float f3) {
+            WebActionBar.this.rect.set(0.0f, 0.0f, f, f2);
+            canvas.saveLayerAlpha(WebActionBar.this.rect, (int) (f3 * 255.0f), 31);
+            float fIsNotEmpty = this.title.isNotEmpty() * this.subtitle.isNotEmpty();
+            canvas.save();
+            float f4 = 0.82f * f2;
+            canvas.translate(0.0f, (-AndroidUtilities.m1124dp(1.0f)) + ((1.0f - WebActionBar.this.scale) * f4));
+            canvas.translate(0.0f, (-AndroidUtilities.m1124dp(4.0f)) * fIsNotEmpty);
+            float fLerp = WebActionBar.this.scale * AndroidUtilities.lerp(1.0f, 0.86f, fIsNotEmpty);
+            canvas.scale(fLerp, fLerp, 0.0f, 0.0f);
+            this.title.setBounds(0.0f, 0.0f, f, f2);
+            this.title.draw(canvas);
+            canvas.restore();
+            float f5 = this.animatedDangerous.set(this.isDangerous);
+            canvas.save();
+            canvas.translate(0.0f, (((-AndroidUtilities.m1124dp(1.0f)) + ((f4 * (1.0f - WebActionBar.this.scale)) * fIsNotEmpty)) + (AndroidUtilities.m1124dp(14.0f) * fIsNotEmpty)) - (AndroidUtilities.m1124dp(4.0f) * (1.0f - fIsNotEmpty)));
+            float fLerp2 = WebActionBar.this.scale * AndroidUtilities.lerp(1.15f, 0.9f, fIsNotEmpty);
+            canvas.scale(fLerp2, fLerp2, 0.0f, 0.0f);
+            this.subtitle.setTextColor(ColorUtils.blendARGB(this.subtitleColor, Theme.getColor(Theme.key_text_RedBold), f5));
+            if (f5 > 0.0f) {
+                if (this.warningDrawableColor != this.subtitle.getTextColor()) {
+                    Drawable drawable = this.warningDrawable;
+                    int textColor = this.subtitle.getTextColor();
+                    this.warningDrawableColor = textColor;
+                    drawable.setColorFilter(new PorterDuffColorFilter(textColor, PorterDuff.Mode.SRC_IN));
+                }
+                this.warningDrawable.setAlpha((int) (255.0f * f5));
+                this.warningDrawable.setBounds(0, ((int) (f2 - AndroidUtilities.m1124dp(16.0f))) / 2, AndroidUtilities.m1124dp(16.0f), ((int) (AndroidUtilities.m1124dp(16.0f) + f2)) / 2);
+                this.warningDrawable.draw(canvas);
+            }
+            this.subtitle.setBounds(AndroidUtilities.m1124dp(20.0f) * f5, 0.0f, f, f2);
+            this.subtitle.draw(canvas);
+            canvas.restore();
+            WebActionBar.this.rect.set(f - AndroidUtilities.m1124dp(12.0f), 0.0f, f, f2);
+            WebActionBar webActionBar = WebActionBar.this;
+            webActionBar.clip.draw(canvas, webActionBar.rect, 2, 1.0f);
+            canvas.restore();
+        }
+    }
+
+    public int topPadding() {
+        if (this.occupyStatusBar) {
+            return AndroidUtilities.statusBarHeight;
+        }
+        return 0;
+    }
+
+    public void drawBackground(Canvas canvas, float f, float f2, float f3, boolean z) {
+        float fMax = Math.max(AndroidUtilities.m1124dp(0.66f), 1);
+        float f4 = f - fMax;
+        float width = getWidth() * this.titleProgress;
+        this.rect.set(0.0f, 0.0f, getWidth(), f);
+        int alpha = this.backgroundPaint[1].getAlpha();
+        this.backgroundPaint[1].setAlpha((int) (alpha * f2));
+        canvas.drawRect(this.rect, this.backgroundPaint[1]);
+        this.backgroundPaint[1].setAlpha(alpha);
+        if (this.titleProgress > 0.0f) {
+            this.rect.set(0.0f, 0.0f, this.progress[1] * getWidth(), f);
+            int alpha2 = this.progressBackgroundPaint[1].getAlpha();
+            this.progressBackgroundPaint[1].setAlpha((int) (alpha2 * f2 * (1.0f - this.searchingProgress) * (1.0f - this.addressingProgress)));
+            canvas.drawRect(this.rect, this.progressBackgroundPaint[1]);
+            this.progressBackgroundPaint[1].setAlpha(alpha2);
+            if (z) {
+                this.rect.set(0.0f, f4, width, f4 + fMax);
+                int alpha3 = this.shadowPaint[1].getAlpha();
+                this.shadowPaint[1].setAlpha((int) (alpha3 * f2 * f3 * (1.0f - this.addressingProgress)));
+                canvas.drawRect(this.rect, this.shadowPaint[1]);
+                this.shadowPaint[1].setAlpha(alpha3);
+            }
+        }
+        float f5 = this.titleProgress;
+        if (f5 < 1.0f) {
+            this.scrimPaint.setColor(Theme.multAlpha(1610612736, (1.0f - f5) * f2));
+            this.rect.set(0.0f, 0.0f, width, f);
+            canvas.drawRect(this.rect, this.scrimPaint);
+            this.rect.set(width, 0.0f, getWidth(), f);
+            int alpha4 = this.backgroundPaint[0].getAlpha();
+            this.backgroundPaint[0].setAlpha((int) (alpha4 * f2));
+            canvas.drawRect(this.rect, this.backgroundPaint[0]);
+            this.backgroundPaint[0].setAlpha(alpha4);
+        }
+        this.rect.set(width, 0.0f, (this.progress[0] * getWidth()) + width, f);
+        int alpha5 = this.progressBackgroundPaint[0].getAlpha();
+        this.progressBackgroundPaint[0].setAlpha((int) ((1.0f - Utilities.clamp01(this.titleProgress * 4.0f)) * alpha5 * f2 * (1.0f - this.searchingProgress) * (1.0f - this.addressingProgress)));
+        canvas.drawRect(this.rect, this.progressBackgroundPaint[0]);
+        this.progressBackgroundPaint[0].setAlpha(alpha5);
+        if (z) {
+            this.rect.set(width, f4, getWidth() + width, fMax + f4);
+            int alpha6 = this.shadowPaint[0].getAlpha();
+            this.shadowPaint[0].setAlpha((int) (alpha6 * f2 * f3 * (1.0f - this.addressingProgress)));
+            canvas.drawRect(this.rect, this.shadowPaint[0]);
+            this.shadowPaint[0].setAlpha(alpha6);
+        }
+    }
+
+    @Override // android.view.ViewGroup, android.view.View
+    protected void dispatchDraw(Canvas canvas) {
+        drawBackground(canvas, topPadding() + this.height, 1.0f, 1.0f, this.drawShadow);
+        float right = this.leftmenu.getRight();
+        float left = this.rightmenu.getLeft();
+        float f = topPadding();
+        float f2 = topPadding() + this.height;
+        if (this.titleProgress < 1.0f) {
+            canvas.save();
+            float width = (getWidth() * this.titleProgress) - (AndroidUtilities.m1124dp(30.0f) * Utilities.clamp01(this.titleProgress * 2.0f));
+            canvas.translate(right + width, f);
+            AndroidUtilities.lerp(1.0f, 0.5f, this.titleProgress);
+            this.titles[0].draw(canvas, (left - right) - width, f2 - f, (1.0f - this.titleProgress) * (1.0f - this.searchingProgress));
+            canvas.restore();
+        }
+        if (this.titleProgress > 0.0f) {
+            float width2 = getWidth() * this.titleProgress;
+            canvas.save();
+            canvas.clipRect(0.0f, 0.0f, width2, getHeight());
+            canvas.translate(right, f);
+            canvas.translate(AndroidUtilities.m1124dp(-12.0f) * (1.0f - this.titleProgress), 0.0f);
+            float fLerp = AndroidUtilities.lerp(1.0f, 0.5f, 1.0f - this.titleProgress);
+            float f3 = f2 - f;
+            canvas.scale(fLerp, fLerp, 0.0f, f3 / 2.0f);
+            this.titles[1].draw(canvas, left - right, f3, this.titleProgress * (1.0f - this.searchingProgress) * (1.0f - this.addressingProgress));
+            canvas.restore();
+        }
+        if (this.addressingProgress > 0.0f) {
+            int alpha = this.addressBackgroundPaint.getAlpha();
+            this.addressBackgroundPaint.setAlpha((int) (alpha * this.addressingProgress));
+            canvas.drawRect(0.0f, 0.0f, getWidth(), topPadding() + this.height, this.addressBackgroundPaint);
+            this.addressBackgroundPaint.setAlpha(alpha);
+            float f4 = (f + f2) / 2.0f;
+            float fM1124dp = AndroidUtilities.m1124dp(42.0f) / 2.0f;
+            this.rect.set(AndroidUtilities.m1124dp(6.0f), f4 - fM1124dp, AndroidUtilities.lerp(left, getWidth() - AndroidUtilities.m1124dp(6.0f), this.addressingProgress), f4 + fM1124dp);
+            int alpha2 = this.addressRoundPaint.getAlpha();
+            this.addressRoundPaint.setAlpha((int) (alpha2 * this.addressingProgress));
+            canvas.drawRoundRect(this.rect, AndroidUtilities.m1124dp(50.0f), AndroidUtilities.m1124dp(50.0f), this.addressRoundPaint);
+            this.addressRoundPaint.setAlpha(alpha2);
+        }
+        this.rect.set(0.0f, f, getWidth(), f2);
+        canvas.save();
+        canvas.clipRect(this.rect);
+        super.dispatchDraw(canvas);
+        canvas.restore();
+    }
+
+    public void showSearch(final boolean z, boolean z2) {
+        if (this.searching == z) {
+            return;
+        }
+        ValueAnimator valueAnimator = this.searchAnimator;
+        if (valueAnimator != null) {
+            valueAnimator.cancel();
+        }
+        this.searching = z;
+        boolean z3 = false;
+        if (z2) {
+            this.searchEditText.setVisibility(0);
+            this.backButtonDrawable.setRotation((this.backButtonShown || z) ? 0.0f : 1.0f, true);
+            ValueAnimator valueAnimatorOfFloat = ValueAnimator.ofFloat(this.searchingProgress, z ? 1.0f : 0.0f);
+            this.searchAnimator = valueAnimatorOfFloat;
+            valueAnimatorOfFloat.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() { // from class: org.telegram.ui.web.WebActionBar$$ExternalSyntheticLambda0
+                @Override // android.animation.ValueAnimator.AnimatorUpdateListener
+                public final void onAnimationUpdate(ValueAnimator valueAnimator2) {
+                    this.f$0.lambda$showSearch$9(valueAnimator2);
+                }
+            });
+            this.searchAnimator.addListener(new AnimatorListenerAdapter() { // from class: org.telegram.ui.web.WebActionBar.7
+                @Override // android.animation.AnimatorListenerAdapter, android.animation.Animator.AnimatorListener
+                public void onAnimationEnd(Animator animator) {
+                    WebActionBar webActionBar = WebActionBar.this;
+                    if (!webActionBar.searching) {
+                        webActionBar.searchEditText.setVisibility(8);
+                        WebActionBar.this.searchEditText.setText(_UrlKt.FRAGMENT_ENCODE_SET);
+                    }
+                    WebActionBar webActionBar2 = WebActionBar.this;
+                    EditTextBoldCursor editTextBoldCursor = webActionBar2.searchEditText;
+                    float f = z ? 1.0f : 0.0f;
+                    webActionBar2.searchingProgress = f;
+                    editTextBoldCursor.setAlpha(f);
+                    WebActionBar.this.invalidate();
+                    WebActionBar webActionBar3 = WebActionBar.this;
+                    if (webActionBar3.searching) {
+                        webActionBar3.searchEditText.requestFocus();
+                        AndroidUtilities.showKeyboard(WebActionBar.this.searchEditText);
+                    } else {
+                        webActionBar3.searchEditText.clearFocus();
+                        AndroidUtilities.hideKeyboard(WebActionBar.this.searchEditText);
+                    }
+                }
+            });
+            this.searchAnimator.setInterpolator(CubicBezierInterpolator.EASE_OUT_QUINT);
+            this.searchAnimator.setDuration(320L);
+            this.searchAnimator.start();
+        } else {
+            this.searchingProgress = z ? 1.0f : 0.0f;
+            invalidate();
+            this.searchEditText.setAlpha(z ? 1.0f : 0.0f);
+            this.searchEditText.setVisibility(z ? 0 : 8);
+            BackDrawable backDrawable = this.backButtonDrawable;
+            if (!this.backButtonShown && !z) {
+                f = 1.0f;
+            }
+            backDrawable.setRotation(f, true);
+            if (this.searching) {
+                this.searchEditText.requestFocus();
+                AndroidUtilities.showKeyboard(this.searchEditText);
+            } else {
+                this.searchEditText.clearFocus();
+                AndroidUtilities.hideKeyboard(this.searchEditText);
+            }
+        }
+        AndroidUtilities.updateViewShow(this.forwardButton, !z, true, z2);
+        AndroidUtilities.updateViewShow(this.menuButton, !z, true, z2);
+        ImageView imageView = this.clearButton;
+        if (this.searchEditText.length() > 0 && this.searching) {
+            z3 = true;
+        }
+        AndroidUtilities.updateViewShow(imageView, z3, true, z2);
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public /* synthetic */ void lambda$showSearch$9(ValueAnimator valueAnimator) {
+        float fFloatValue = ((Float) valueAnimator.getAnimatedValue()).floatValue();
+        this.searchingProgress = fFloatValue;
+        this.searchEditText.setAlpha(fFloatValue);
+        invalidate();
+    }
+
+    public void setBackButton(boolean z) {
+        this.backButtonShown = z;
+        if (isSearching() || isAddressing()) {
+            return;
+        }
+        this.backButtonDrawable.setRotation(this.backButtonShown ? 0.0f : 1.0f, true);
+    }
+
+    public void setBackButtonCached(boolean z) {
+        this.backButtonShown = z;
+    }
+
+    public boolean isSearching() {
+        return this.searching;
+    }
+
+    public void showAddress(String str, Utilities.Callback callback) {
+        this.addressEditText.setText(str);
+        EditTextBoldCursor editTextBoldCursor = this.addressEditText;
+        editTextBoldCursor.setSelection(0, editTextBoldCursor.getText().length());
+        this.addressEditText.setScrollX(0);
+        this.urlCallback = callback;
+        showAddress(true, true);
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public void showAddressKeyboard() {
+        if (this.addressing) {
+            this.addressEditText.requestFocus();
+            AndroidUtilities.showKeyboard(this.addressEditText);
+        } else {
+            this.addressEditText.clearFocus();
+            AndroidUtilities.hideKeyboard(this.addressEditText);
+        }
+    }
+
+    public void showAddress(final boolean z, boolean z2) {
+        if (this.addressing == z) {
+            return;
+        }
+        ValueAnimator valueAnimator = this.addressAnimator;
+        if (valueAnimator != null) {
+            valueAnimator.cancel();
+        }
+        this.addressing = z;
+        if (z) {
+            int i = this.searchEngineIndex;
+            int i2 = SharedConfig.searchEngineType;
+            if (i != i2) {
+                this.searchEngineIndex = i2;
+                this.addressEditText.setHint(LocaleController.formatString(C2888R.string.AddressPlaceholder, SearchEngine.getCurrent().name));
+            }
+        }
+        if (z2) {
+            this.addressEditText.setVisibility(0);
+            this.backButtonDrawable.setRotation((this.backButtonShown || z) ? 0.0f : 1.0f, true);
+            ValueAnimator valueAnimatorOfFloat = ValueAnimator.ofFloat(this.addressingProgress, z ? 1.0f : 0.0f);
+            this.addressAnimator = valueAnimatorOfFloat;
+            valueAnimatorOfFloat.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() { // from class: org.telegram.ui.web.WebActionBar$$ExternalSyntheticLambda10
+                @Override // android.animation.ValueAnimator.AnimatorUpdateListener
+                public final void onAnimationUpdate(ValueAnimator valueAnimator2) {
+                    this.f$0.lambda$showAddress$10(valueAnimator2);
+                }
+            });
+            this.addressAnimator.addListener(new AnimatorListenerAdapter() { // from class: org.telegram.ui.web.WebActionBar.8
+                @Override // android.animation.AnimatorListenerAdapter, android.animation.Animator.AnimatorListener
+                public void onAnimationEnd(Animator animator) {
+                    WebActionBar webActionBar = WebActionBar.this;
+                    if (!webActionBar.addressing) {
+                        webActionBar.addressEditText.setVisibility(8);
+                    }
+                    WebActionBar webActionBar2 = WebActionBar.this;
+                    EditTextBoldCursor editTextBoldCursor = webActionBar2.addressEditText;
+                    float f = z ? 1.0f : 0.0f;
+                    webActionBar2.addressingProgress = f;
+                    editTextBoldCursor.setAlpha(f);
+                    WebActionBar webActionBar3 = WebActionBar.this;
+                    webActionBar3.onAddressingProgress(webActionBar3.addressingProgress);
+                    WebActionBar.this.menuButton.setTranslationX(AndroidUtilities.m1124dp(56.0f) * WebActionBar.this.addressingProgress);
+                    WebActionBar.this.forwardButton.setTranslationX(AndroidUtilities.m1124dp(112.0f) * WebActionBar.this.addressingProgress);
+                    WebActionBar.this.invalidate();
+                }
+            });
+            this.addressAnimator.setInterpolator(CubicBezierInterpolator.EASE_OUT_QUINT);
+            this.addressAnimator.setDuration(360L);
+            this.addressAnimator.start();
+        } else {
+            float f = z ? 1.0f : 0.0f;
+            this.addressingProgress = f;
+            onAddressingProgress(f);
+            invalidate();
+            this.addressEditText.setAlpha(z ? 1.0f : 0.0f);
+            this.addressEditText.setVisibility(z ? 0 : 8);
+            this.menuButton.setTranslationX(AndroidUtilities.m1124dp(56.0f) * this.addressingProgress);
+            this.forwardButton.setTranslationX(AndroidUtilities.m1124dp(112.0f) * this.addressingProgress);
+            BackDrawable backDrawable = this.backButtonDrawable;
+            if (!this.backButtonShown && !z) {
+                f = 1.0f;
+            }
+            backDrawable.setRotation(f, true);
+        }
+        AndroidUtilities.cancelRunOnUIThread(new Runnable() { // from class: org.telegram.ui.web.WebActionBar$$ExternalSyntheticLambda11
+            @Override // java.lang.Runnable
+            public final void run() {
+                this.f$0.showAddressKeyboard();
+            }
+        });
+        AndroidUtilities.runOnUIThread(new Runnable() { // from class: org.telegram.ui.web.WebActionBar$$ExternalSyntheticLambda11
+            @Override // java.lang.Runnable
+            public final void run() {
+                this.f$0.showAddressKeyboard();
+            }
+        }, this.addressing ? 100L : 0L);
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public /* synthetic */ void lambda$showAddress$10(ValueAnimator valueAnimator) {
+        float fFloatValue = ((Float) valueAnimator.getAnimatedValue()).floatValue();
+        this.addressingProgress = fFloatValue;
+        onAddressingProgress(fFloatValue);
+        this.addressEditText.setAlpha(this.addressingProgress);
+        this.menuButton.setTranslationX(AndroidUtilities.m1124dp(56.0f) * this.addressingProgress);
+        this.forwardButton.setTranslationX(AndroidUtilities.m1124dp(112.0f) * this.addressingProgress);
+        invalidate();
+    }
+
+    protected void onAddressingProgress(float f) {
+        this.backButtonDrawable.setColor(ColorUtils.blendARGB(this.textColor, this.addressTextColor, this.addressingProgress));
+        this.backButtonDrawable.setRotatedColor(ColorUtils.blendARGB(this.textColor, this.addressTextColor, this.addressingProgress));
+        this.backButton.invalidate();
+    }
+
+    public boolean isAddressing() {
+        return this.addressing;
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public /* synthetic */ void lambda$new$11() {
+        this.longClicked = true;
+        if (getParent() != null) {
+            getParent().requestDisallowInterceptTouchEvent(true);
+        }
+        try {
+            performHapticFeedback(0, 1);
+        } catch (Exception unused) {
+        }
+    }
+
+    @Override // android.view.ViewGroup, android.view.View
+    public boolean dispatchTouchEvent(MotionEvent motionEvent) {
+        if (motionEvent.getAction() == 0) {
+            this.longClicked = false;
+            AndroidUtilities.cancelRunOnUIThread(this.longPressRunnable);
+            if (motionEvent.getX() > this.leftmenu.getRight() && motionEvent.getX() < this.rightmenu.getLeft() && !isSearching() && !isAddressing()) {
+                this.pressX = motionEvent.getX();
+                this.pressY = motionEvent.getY();
+                this.pressTime = System.currentTimeMillis();
+                AndroidUtilities.runOnUIThread(this.longPressRunnable, (long) (ViewConfiguration.getLongPressTimeout() * 0.8f));
+            }
+        } else if (motionEvent.getAction() == 2 && System.currentTimeMillis() - this.pressTime > ViewConfiguration.getLongPressTimeout() * 0.8f) {
+            AndroidUtilities.cancelRunOnUIThread(this.longPressRunnable);
+            this.longClicked = true;
+            onScrolledProgress((motionEvent.getX() - this.pressX) / (getWidth() * 0.8f));
+            getParent().requestDisallowInterceptTouchEvent(true);
+        } else if (motionEvent.getAction() == 1 || motionEvent.getAction() == 3) {
+            AndroidUtilities.cancelRunOnUIThread(this.longPressRunnable);
+            this.pressTime = 0L;
+        }
+        this.pressX = motionEvent.getX();
+        return super.dispatchTouchEvent(motionEvent);
+    }
+
+    public class ForwardDrawable extends Drawable {
+        private AnimatedFloat animatedState;
+        private final Paint paint;
+        private final Path path = new Path();
+        private boolean state;
+
+        @Override // android.graphics.drawable.Drawable
+        public int getOpacity() {
+            return -2;
+        }
+
+        @Override // android.graphics.drawable.Drawable
+        public void setAlpha(int i) {
+        }
+
+        @Override // android.graphics.drawable.Drawable
+        public void setColorFilter(ColorFilter colorFilter) {
+        }
+
+        public ForwardDrawable() {
+            Paint paint = new Paint(1);
+            this.paint = paint;
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeJoin(Paint.Join.ROUND);
+            paint.setStrokeCap(Paint.Cap.ROUND);
+            this.animatedState = new AnimatedFloat(new Runnable() { // from class: org.telegram.ui.web.WebActionBar$ForwardDrawable$$ExternalSyntheticLambda0
+                @Override // java.lang.Runnable
+                public final void run() {
+                    this.f$0.invalidateSelf();
+                }
+            }, 0L, 350L, CubicBezierInterpolator.EASE_OUT_QUINT);
+        }
+
+        public void setState(boolean z) {
+            this.state = z;
+            invalidateSelf();
+        }
+
+        @Override // android.graphics.drawable.Drawable
+        public void draw(Canvas canvas) {
+            float f = this.animatedState.set(!this.state);
+            float fCenterX = getBounds().centerX();
+            float fCenterY = getBounds().centerY();
+            float fWidth = getBounds().width();
+            float f2 = 0.57f * fWidth;
+            this.path.rewind();
+            float f3 = f2 / 2.0f;
+            this.path.moveTo(fCenterX - AndroidUtilities.lerp(f3, (-f2) / 2.0f, f), fCenterY);
+            float f4 = f3 + fCenterX;
+            this.path.lineTo(f4, fCenterY);
+            float f5 = f4 - (0.27f * fWidth);
+            float f6 = (0.54f * fWidth) / 2.0f;
+            this.path.moveTo(f5, fCenterY - f6);
+            this.path.lineTo(f4, fCenterY);
+            this.path.lineTo(f5, f6 + fCenterY);
+            canvas.save();
+            this.paint.setStrokeWidth(AndroidUtilities.m1124dp(2.0f));
+            canvas.translate(0.0f, (-fWidth) * 0.1f * f);
+            canvas.rotate(f * 90.0f, fCenterX, fCenterY);
+            canvas.drawPath(this.path, this.paint);
+            canvas.restore();
+        }
+
+        public void setColor(int i) {
+            this.paint.setColor(i);
+            invalidateSelf();
+        }
+
+        @Override // android.graphics.drawable.Drawable
+        public int getIntrinsicHeight() {
+            return AndroidUtilities.m1124dp(24.0f);
+        }
+
+        @Override // android.graphics.drawable.Drawable
+        public int getIntrinsicWidth() {
+            return AndroidUtilities.m1124dp(24.0f);
+        }
+    }
+}

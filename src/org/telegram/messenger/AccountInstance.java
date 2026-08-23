@@ -1,0 +1,117 @@
+package org.telegram.messenger;
+
+import android.content.SharedPreferences;
+import org.telegram.p029ui.Components.Paint.PersistColorPalette;
+import org.telegram.tgnet.ConnectionsManager;
+
+/* JADX INFO: loaded from: classes.dex */
+public class AccountInstance {
+    private static volatile AccountInstance[] Instance = new AccountInstance[16];
+    private int currentAccount;
+
+    public static AccountInstance getInstance(int i) {
+        AccountInstance accountInstance;
+        AccountInstance accountInstance2 = Instance[i];
+        if (accountInstance2 != null) {
+            return accountInstance2;
+        }
+        synchronized (AccountInstance.class) {
+            try {
+                accountInstance = Instance[i];
+                if (accountInstance == null) {
+                    AccountInstance[] accountInstanceArr = Instance;
+                    AccountInstance accountInstance3 = new AccountInstance(i);
+                    accountInstanceArr[i] = accountInstance3;
+                    accountInstance = accountInstance3;
+                }
+            } catch (Throwable th) {
+                throw th;
+            }
+        }
+        return accountInstance;
+    }
+
+    public AccountInstance(int i) {
+        this.currentAccount = i;
+    }
+
+    public MessagesController getMessagesController() {
+        return MessagesController.getInstance(this.currentAccount);
+    }
+
+    public GiftAuctionController getGiftAuctionsController() {
+        return GiftAuctionController.getInstance(this.currentAccount);
+    }
+
+    public MessagesStorage getMessagesStorage() {
+        return MessagesStorage.getInstance(this.currentAccount);
+    }
+
+    public ContactsController getContactsController() {
+        return ContactsController.getInstance(this.currentAccount);
+    }
+
+    public PersistColorPalette getColorPalette() {
+        return PersistColorPalette.getInstance(this.currentAccount);
+    }
+
+    public MediaDataController getMediaDataController() {
+        return MediaDataController.getInstance(this.currentAccount);
+    }
+
+    public ConnectionsManager getConnectionsManager() {
+        return ConnectionsManager.getInstance(this.currentAccount);
+    }
+
+    public NotificationsController getNotificationsController() {
+        return NotificationsController.getInstance(this.currentAccount);
+    }
+
+    public NotificationCenter getNotificationCenter() {
+        return NotificationCenter.getInstance(this.currentAccount);
+    }
+
+    public LocationController getLocationController() {
+        return LocationController.getInstance(this.currentAccount);
+    }
+
+    public UserConfig getUserConfig() {
+        return UserConfig.getInstance(this.currentAccount);
+    }
+
+    public DownloadController getDownloadController() {
+        return DownloadController.getInstance(this.currentAccount);
+    }
+
+    public SendMessagesHelper getSendMessagesHelper() {
+        return SendMessagesHelper.getInstance(this.currentAccount);
+    }
+
+    public SecretChatHelper getSecretChatHelper() {
+        return SecretChatHelper.getInstance(this.currentAccount);
+    }
+
+    public StatsController getStatsController() {
+        return StatsController.getInstance(this.currentAccount);
+    }
+
+    public FileLoader getFileLoader() {
+        return FileLoader.getInstance(this.currentAccount);
+    }
+
+    public FileRefController getFileRefController() {
+        return FileRefController.getInstance(this.currentAccount);
+    }
+
+    public SharedPreferences getNotificationsSettings() {
+        return MessagesController.getNotificationsSettings(this.currentAccount);
+    }
+
+    public MemberRequestsController getMemberRequestsController() {
+        return MemberRequestsController.getInstance(this.currentAccount);
+    }
+
+    public int getCurrentAccount() {
+        return this.currentAccount;
+    }
+}

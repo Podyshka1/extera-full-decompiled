@@ -1,0 +1,69 @@
+package org.telegram.p029ui.Components.blur3.drawable.color;
+
+import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.LiteMode;
+import org.telegram.p029ui.ActionBar.Theme;
+
+/* JADX INFO: loaded from: classes3.dex */
+public class BlurredBackgroundColorProviderThemed implements BlurredBackgroundColorProvider {
+    private float alpha;
+    private int backgroundColor;
+    private final int backgroundColorId;
+    private final Theme.ResourcesProvider resourcesProvider;
+    private int shadowColor;
+    private int strokeColorBottom;
+    private int strokeColorTop;
+
+    @Override // org.telegram.p029ui.Components.blur3.drawable.color.BlurredBackgroundColorProvider
+    public /* synthetic */ int getStrokeColorFull() {
+        return Theme.getColor(Theme.key_divider);
+    }
+
+    public BlurredBackgroundColorProviderThemed(Theme.ResourcesProvider resourcesProvider, int i) {
+        this(resourcesProvider, i, LiteMode.isEnabled(262144) ? 0.85f : 0.76f);
+    }
+
+    public BlurredBackgroundColorProviderThemed(Theme.ResourcesProvider resourcesProvider, int i, float f) {
+        this.resourcesProvider = resourcesProvider;
+        this.backgroundColorId = i;
+        this.alpha = f;
+        updateColors();
+    }
+
+    public boolean isDark() {
+        return AndroidUtilities.computePerceivedBrightness(Theme.getColor(this.backgroundColorId, this.resourcesProvider)) < 0.721f;
+    }
+
+    public void updateColors() {
+        this.backgroundColor = Theme.multAlpha(Theme.getColor(this.backgroundColorId, this.resourcesProvider), this.alpha);
+        if (isDark()) {
+            this.strokeColorTop = 687865855;
+            this.strokeColorBottom = 352321535;
+            this.shadowColor = 0;
+        } else {
+            this.strokeColorTop = -1;
+            this.strokeColorBottom = -1;
+            this.shadowColor = 536870912;
+        }
+    }
+
+    @Override // org.telegram.p029ui.Components.blur3.drawable.color.BlurredBackgroundColorProvider
+    public int getShadowColor() {
+        return this.shadowColor;
+    }
+
+    @Override // org.telegram.p029ui.Components.blur3.drawable.color.BlurredBackgroundColorProvider
+    public int getBackgroundColor() {
+        return this.backgroundColor;
+    }
+
+    @Override // org.telegram.p029ui.Components.blur3.drawable.color.BlurredBackgroundColorProvider
+    public int getStrokeColorTop() {
+        return this.strokeColorTop;
+    }
+
+    @Override // org.telegram.p029ui.Components.blur3.drawable.color.BlurredBackgroundColorProvider
+    public int getStrokeColorBottom() {
+        return this.strokeColorBottom;
+    }
+}

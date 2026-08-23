@@ -1,0 +1,59 @@
+package com.google.android.datatransport.runtime.logging;
+
+import android.os.Build;
+import android.util.Log;
+
+/* JADX INFO: loaded from: classes.dex */
+public abstract class Logging {
+    private static String getTag(String str) {
+        if (Build.VERSION.SDK_INT < 26) {
+            return concatTag("TRuntime.", str);
+        }
+        return "TRuntime." + str;
+    }
+
+    private static String concatTag(String str, String str2) {
+        String str3 = str + str2;
+        return str3.length() > 23 ? str3.substring(0, 23) : str3;
+    }
+
+    /* JADX INFO: renamed from: d */
+    public static void m297d(String str, String str2, Object obj) {
+        String tag = getTag(str);
+        if (Log.isLoggable(tag, 3)) {
+            Log.d(tag, String.format(str2, obj));
+        }
+    }
+
+    /* JADX INFO: renamed from: d */
+    public static void m298d(String str, String str2, Object... objArr) {
+        String tag = getTag(str);
+        if (Log.isLoggable(tag, 3)) {
+            Log.d(tag, String.format(str2, objArr));
+        }
+    }
+
+    /* JADX INFO: renamed from: i */
+    public static void m300i(String str, String str2, Object obj) {
+        String tag = getTag(str);
+        if (Log.isLoggable(tag, 4)) {
+            Log.i(tag, String.format(str2, obj));
+        }
+    }
+
+    /* JADX INFO: renamed from: e */
+    public static void m299e(String str, String str2, Throwable th) {
+        String tag = getTag(str);
+        if (Log.isLoggable(tag, 6)) {
+            Log.e(tag, str2, th);
+        }
+    }
+
+    /* JADX INFO: renamed from: w */
+    public static void m301w(String str, String str2, Object obj) {
+        String tag = getTag(str);
+        if (Log.isLoggable(tag, 5)) {
+            Log.w(tag, String.format(str2, obj));
+        }
+    }
+}

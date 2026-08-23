@@ -1,0 +1,485 @@
+package org.telegram.ui.Components;
+
+import android.animation.ValueAnimator;
+import android.content.Context;
+import android.content.res.Resources;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.ColorFilter;
+import android.graphics.ColorMatrix;
+import android.graphics.ColorMatrixColorFilter;
+import android.graphics.Path;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
+import android.graphics.RectF;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
+import android.text.TextUtils;
+import android.view.View;
+import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.ImageLocation;
+import org.telegram.messenger.ImageReceiver;
+import org.telegram.messenger.SecureDocument;
+import org.telegram.messenger.Utilities;
+import org.telegram.tgnet.TLObject;
+
+/* JADX INFO: loaded from: classes3.dex */
+public class BackupImageView extends View {
+    public AnimatedEmojiDrawable animatedEmojiDrawable;
+    public ColorFilter animatedEmojiDrawableColorFilter;
+    public boolean applyAttach;
+    boolean attached;
+    private AvatarDrawable avatarDrawable;
+    protected boolean blurAllowed;
+    protected ImageReceiver blurImageReceiver;
+    public Text blurText;
+    private ColorFilter blurTextBgColorFilter;
+    private Path blurTextClipPath;
+    public boolean drawFromStart;
+    protected boolean hasBlur;
+    protected int height;
+    protected ImageReceiver imageReceiver;
+    ValueAnimator roundRadiusAnimator;
+    protected int width;
+
+    public BackupImageView(Context context) {
+        super(context);
+        this.width = -1;
+        this.height = -1;
+        this.applyAttach = true;
+        ImageReceiver imageReceiverCreateImageReciever = createImageReciever();
+        this.imageReceiver = imageReceiverCreateImageReciever;
+        imageReceiverCreateImageReciever.setCrossfadeByScale(0.0f);
+        this.imageReceiver.setAllowLoadingOnAttachedOnly(true);
+        this.imageReceiver.setDelegate(new ImageReceiver.ImageReceiverDelegate() { // from class: org.telegram.ui.Components.BackupImageView$$ExternalSyntheticLambda0
+            @Override // org.telegram.messenger.ImageReceiver.ImageReceiverDelegate
+            public final void didSetImage(ImageReceiver imageReceiver, boolean z, boolean z2, boolean z3) {
+                this.f$0.lambda$new$0(imageReceiver, z, z2, z3);
+            }
+
+            @Override // org.telegram.messenger.ImageReceiver.ImageReceiverDelegate
+            public /* synthetic */ void didSetImageBitmap(int i, String str, Drawable drawable) {
+                ImageReceiver.ImageReceiverDelegate.CC.$default$didSetImageBitmap(this, i, str, drawable);
+            }
+
+            @Override // org.telegram.messenger.ImageReceiver.ImageReceiverDelegate
+            public /* synthetic */ void onAnimationReady(ImageReceiver imageReceiver) {
+                ImageReceiver.ImageReceiverDelegate.CC.$default$onAnimationReady(this, imageReceiver);
+            }
+        });
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public /* synthetic */ void lambda$new$0(ImageReceiver imageReceiver, boolean z, boolean z2, boolean z3) {
+        if (!z || z2) {
+            return;
+        }
+        checkCreateBlurredImage();
+    }
+
+    protected ImageReceiver createImageReciever() {
+        return new ImageReceiver(this);
+    }
+
+    public void setBlurAllowed(boolean z) {
+        if (this.attached) {
+            throw new IllegalStateException("You should call setBlurAllowed(...) only when detached!");
+        }
+        this.blurAllowed = z;
+        if (z) {
+            this.blurImageReceiver = new ImageReceiver();
+        }
+    }
+
+    public void setHasBlur(boolean z) {
+        if (z && !this.blurAllowed) {
+            throw new IllegalStateException("You should call setBlurAllowed(...) before calling setHasBlur(true)!");
+        }
+        this.hasBlur = z;
+        if (!z) {
+            if (this.blurImageReceiver.getBitmap() != null && !this.blurImageReceiver.getBitmap().isRecycled()) {
+                this.blurImageReceiver.getBitmap().recycle();
+            }
+            this.blurImageReceiver.setImageBitmap((Bitmap) null);
+        }
+        checkCreateBlurredImage();
+    }
+
+    public void onNewImageSet() {
+        if (this.hasBlur) {
+            if (this.blurImageReceiver.getBitmap() != null && !this.blurImageReceiver.getBitmap().isRecycled()) {
+                this.blurImageReceiver.getBitmap().recycle();
+            }
+            this.blurImageReceiver.setImageBitmap((Bitmap) null);
+            checkCreateBlurredImage();
+        }
+    }
+
+    private void checkCreateBlurredImage() {
+        Bitmap bitmap;
+        if (!this.hasBlur || this.blurImageReceiver.getBitmap() != null || this.imageReceiver.getBitmap() == null || (bitmap = this.imageReceiver.getBitmap()) == null || bitmap.isRecycled()) {
+            return;
+        }
+        this.blurImageReceiver.setImageBitmap(Utilities.stackBlurBitmapMax(bitmap));
+        invalidate();
+    }
+
+    public void setOrientation(int i, boolean z) {
+        this.imageReceiver.setOrientation(i, z);
+    }
+
+    public void setOrientation(int i, int i2, boolean z) {
+        this.imageReceiver.setOrientation(i, i2, z);
+    }
+
+    public void setImage(SecureDocument secureDocument, String str) {
+        setImage(ImageLocation.getForSecureDocument(secureDocument), str, (ImageLocation) null, (String) null, (Drawable) null, (Bitmap) null, (String) null, 0, (Object) null);
+    }
+
+    public void setImage(ImageLocation imageLocation, String str, String str2, Drawable drawable, Object obj) {
+        setImage(imageLocation, str, (ImageLocation) null, (String) null, drawable, (Bitmap) null, str2, 0, obj);
+    }
+
+    public void setImage(ImageLocation imageLocation, String str, Drawable drawable, Object obj) {
+        setImage(imageLocation, str, (ImageLocation) null, (String) null, drawable, (Bitmap) null, (String) null, 0, obj);
+    }
+
+    public void setImage(ImageLocation imageLocation, String str, ImageLocation imageLocation2, String str2, Drawable drawable, Object obj) {
+        this.imageReceiver.setImage(imageLocation, str, imageLocation2, str2, null, null, drawable, 0L, null, obj, 1);
+        onNewImageSet();
+    }
+
+    public void setImage(ImageLocation imageLocation, String str, ImageLocation imageLocation2, String str2, ImageLocation imageLocation3, String str3, Drawable drawable, Object obj) {
+        this.imageReceiver.setImage(imageLocation, str, imageLocation2, str2, imageLocation3, str3, drawable, 0L, null, obj, 1);
+        onNewImageSet();
+    }
+
+    public void setImage(ImageLocation imageLocation, String str, Bitmap bitmap, Object obj) {
+        setImage(imageLocation, str, (ImageLocation) null, (String) null, (Drawable) null, bitmap, (String) null, 0, obj);
+    }
+
+    public void setImage(ImageLocation imageLocation, String str, Drawable drawable, int i, Object obj) {
+        setImage(imageLocation, str, (ImageLocation) null, (String) null, drawable, (Bitmap) null, (String) null, i, obj);
+    }
+
+    public void setImage(ImageLocation imageLocation, String str, Bitmap bitmap, int i, int i2, Object obj) {
+        this.imageReceiver.setImage(imageLocation, str, null, null, bitmap != null ? new BitmapDrawable((Resources) null, bitmap) : null, i, null, obj, i2);
+        onNewImageSet();
+    }
+
+    public void clearImage() {
+        this.imageReceiver.clearImage();
+    }
+
+    public void setForUserOrChat(TLObject tLObject, AvatarDrawable avatarDrawable) {
+        this.imageReceiver.setForUserOrChat(tLObject, avatarDrawable);
+        onNewImageSet();
+    }
+
+    public void setForUserOrChat(TLObject tLObject, AvatarDrawable avatarDrawable, Object obj) {
+        this.imageReceiver.setForUserOrChat(tLObject, avatarDrawable, obj);
+        onNewImageSet();
+    }
+
+    public void setImageMedia(ImageLocation imageLocation, String str, ImageLocation imageLocation2, String str2, Bitmap bitmap, int i, int i2, Object obj) {
+        this.imageReceiver.setImage(imageLocation, str, imageLocation2, str2, null, null, bitmap != null ? new BitmapDrawable((Resources) null, bitmap) : null, i, null, obj, i2);
+        onNewImageSet();
+    }
+
+    public void setImage(ImageLocation imageLocation, String str, ImageLocation imageLocation2, String str2, int i, Object obj) {
+        setImage(imageLocation, str, imageLocation2, str2, (Drawable) null, (Bitmap) null, (String) null, i, obj);
+    }
+
+    public void setImage(String str, String str2, Drawable drawable) {
+        setImage(ImageLocation.getForPath(str), str2, (ImageLocation) null, (String) null, drawable, (Bitmap) null, (String) null, 0, (Object) null);
+    }
+
+    public void setImage(String str, String str2, String str3, String str4) {
+        setImage(ImageLocation.getForPath(str), str2, ImageLocation.getForPath(str3), str4, (Drawable) null, (Bitmap) null, (String) null, 0, (Object) null);
+    }
+
+    public void setImage(ImageLocation imageLocation, String str, ImageLocation imageLocation2, String str2, Drawable drawable, Bitmap bitmap, String str3, int i, Object obj) {
+        this.imageReceiver.setImage(imageLocation, str, imageLocation2, str2, bitmap != null ? new BitmapDrawable((Resources) null, bitmap) : drawable, i, str3, obj, 0);
+        onNewImageSet();
+    }
+
+    public void setImage(ImageLocation imageLocation, String str, ImageLocation imageLocation2, String str2, Drawable drawable, String str3, long j, int i, Object obj) {
+        this.imageReceiver.setImage(imageLocation, str, imageLocation2, str2, drawable, j, str3, obj, i);
+        onNewImageSet();
+    }
+
+    public void setImage(ImageLocation imageLocation, String str, ImageLocation imageLocation2, String str2, ImageLocation imageLocation3, String str3, String str4, long j, int i, Object obj) {
+        this.imageReceiver.setImage(imageLocation, str, imageLocation2, str2, imageLocation3, str3, null, j, str4, obj, i);
+        onNewImageSet();
+    }
+
+    public void setImage(ImageLocation imageLocation, String str, ImageLocation imageLocation2, String str2, String str3, long j, int i, Object obj) {
+        this.imageReceiver.setImage(imageLocation, str, imageLocation2, str2, null, j, str3, obj, i);
+        onNewImageSet();
+    }
+
+    public void setImageMedia(VectorAvatarThumbDrawable vectorAvatarThumbDrawable, ImageLocation imageLocation, String str, ImageLocation imageLocation2, String str2, ImageLocation imageLocation3, String str3, String str4, int i, int i2, Object obj) {
+        if (vectorAvatarThumbDrawable != null) {
+            this.imageReceiver.setImageBitmap(vectorAvatarThumbDrawable);
+        } else {
+            this.imageReceiver.setImage(imageLocation, str, imageLocation2, str2, imageLocation3, str3, null, i, str4, obj, i2);
+        }
+        onNewImageSet();
+    }
+
+    public void setImageBitmap(Bitmap bitmap) {
+        this.imageReceiver.setImageBitmap(bitmap);
+        onNewImageSet();
+    }
+
+    public void setImageResource(int i) {
+        this.imageReceiver.setImageBitmap(getResources().getDrawable(i));
+        invalidate();
+        onNewImageSet();
+    }
+
+    public void setImageResource(int i, int i2) {
+        Drawable drawable = getResources().getDrawable(i);
+        if (drawable != null) {
+            drawable.setColorFilter(new PorterDuffColorFilter(i2, PorterDuff.Mode.MULTIPLY));
+        }
+        this.imageReceiver.setImageBitmap(drawable);
+        invalidate();
+        onNewImageSet();
+    }
+
+    public void setImageDrawable(Drawable drawable) {
+        this.imageReceiver.setImageBitmap(drawable);
+        onNewImageSet();
+    }
+
+    public void setLayerNum(int i) {
+        this.imageReceiver.setLayerNum(i);
+    }
+
+    public void setRoundRadius(int i) {
+        this.imageReceiver.setRoundRadius(i);
+        if (this.blurAllowed) {
+            this.blurImageReceiver.setRoundRadius(i);
+        }
+        invalidate();
+    }
+
+    public void setRoundRadius(int i, int i2, int i3, int i4) {
+        this.imageReceiver.setRoundRadius(i, i2, i3, i4);
+        if (this.blurAllowed) {
+            this.blurImageReceiver.setRoundRadius(i, i2, i3, i4);
+        }
+        invalidate();
+    }
+
+    public int[] getRoundRadius() {
+        return this.imageReceiver.getRoundRadius();
+    }
+
+    public void setAspectFit(boolean z) {
+        this.imageReceiver.setAspectFit(z);
+    }
+
+    public ImageReceiver getImageReceiver() {
+        return this.imageReceiver;
+    }
+
+    public void setSize(int i, int i2) {
+        this.width = i;
+        this.height = i2;
+        invalidate();
+    }
+
+    public AvatarDrawable getAvatarDrawable() {
+        if (this.avatarDrawable == null) {
+            this.avatarDrawable = new AvatarDrawable();
+        }
+        return this.avatarDrawable;
+    }
+
+    @Override // android.view.View
+    protected void onDetachedFromWindow() {
+        super.onDetachedFromWindow();
+        this.attached = false;
+        if (this.applyAttach) {
+            this.imageReceiver.onDetachedFromWindow();
+        }
+        if (this.blurAllowed) {
+            this.blurImageReceiver.onDetachedFromWindow();
+        }
+        AnimatedEmojiDrawable animatedEmojiDrawable = this.animatedEmojiDrawable;
+        if (animatedEmojiDrawable != null) {
+            animatedEmojiDrawable.removeView(this);
+        }
+    }
+
+    @Override // android.view.View
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        this.attached = true;
+        if (this.applyAttach) {
+            this.imageReceiver.onAttachedToWindow();
+        }
+        if (this.blurAllowed) {
+            this.blurImageReceiver.onAttachedToWindow();
+        }
+        AnimatedEmojiDrawable animatedEmojiDrawable = this.animatedEmojiDrawable;
+        if (animatedEmojiDrawable != null) {
+            animatedEmojiDrawable.addView(this);
+        }
+    }
+
+    @Override // android.view.View
+    protected void onDraw(Canvas canvas) {
+        int i;
+        ColorFilter colorFilter;
+        AnimatedEmojiDrawable animatedEmojiDrawable = this.animatedEmojiDrawable;
+        ImageReceiver imageReceiver = animatedEmojiDrawable != null ? animatedEmojiDrawable.getImageReceiver() : this.imageReceiver;
+        if (imageReceiver == null) {
+            return;
+        }
+        AnimatedEmojiDrawable animatedEmojiDrawable2 = this.animatedEmojiDrawable;
+        if (animatedEmojiDrawable2 != null && (colorFilter = this.animatedEmojiDrawableColorFilter) != null) {
+            animatedEmojiDrawable2.setColorFilter(colorFilter);
+        }
+        int i2 = this.width;
+        if (i2 != -1 && (i = this.height) != -1) {
+            if (this.drawFromStart) {
+                imageReceiver.setImageCoords(0.0f, 0.0f, i2, i);
+                if (this.blurAllowed) {
+                    this.blurImageReceiver.setImageCoords(0.0f, 0.0f, this.width, this.height);
+                }
+            } else {
+                float width = (getWidth() - this.width) / 2;
+                int height = getHeight();
+                imageReceiver.setImageCoords(width, (height - r3) / 2, this.width, this.height);
+                if (this.blurAllowed) {
+                    ImageReceiver imageReceiver2 = this.blurImageReceiver;
+                    float width2 = (getWidth() - this.width) / 2;
+                    int height2 = getHeight();
+                    imageReceiver2.setImageCoords(width2, (height2 - r4) / 2, this.width, this.height);
+                }
+            }
+        } else {
+            imageReceiver.setImageCoords(0.0f, 0.0f, getWidth(), getHeight());
+            if (this.blurAllowed) {
+                this.blurImageReceiver.setImageCoords(0.0f, 0.0f, getWidth(), getHeight());
+            }
+        }
+        imageReceiver.draw(canvas);
+        if (this.blurAllowed) {
+            this.blurImageReceiver.draw(canvas);
+        }
+    }
+
+    public void setColorFilter(ColorFilter colorFilter) {
+        this.imageReceiver.setColorFilter(colorFilter);
+    }
+
+    public void setAnimatedEmojiDrawable(AnimatedEmojiDrawable animatedEmojiDrawable) {
+        AnimatedEmojiDrawable animatedEmojiDrawable2 = this.animatedEmojiDrawable;
+        if (animatedEmojiDrawable2 == animatedEmojiDrawable) {
+            return;
+        }
+        if (this.attached && animatedEmojiDrawable2 != null) {
+            animatedEmojiDrawable2.removeView(this);
+        }
+        this.animatedEmojiDrawable = animatedEmojiDrawable;
+        if (this.attached && animatedEmojiDrawable != null) {
+            animatedEmojiDrawable.addView(this);
+        }
+        invalidate();
+    }
+
+    public void setEmojiColorFilter(ColorFilter colorFilter) {
+        this.animatedEmojiDrawableColorFilter = colorFilter;
+        invalidate();
+    }
+
+    public AnimatedEmojiDrawable getAnimatedEmojiDrawable() {
+        return this.animatedEmojiDrawable;
+    }
+
+    public void animateToRoundRadius(int i) {
+        if (getRoundRadius()[0] != i) {
+            ValueAnimator valueAnimator = this.roundRadiusAnimator;
+            if (valueAnimator != null) {
+                valueAnimator.cancel();
+            }
+            ValueAnimator valueAnimatorOfInt = ValueAnimator.ofInt(getRoundRadius()[0], i);
+            this.roundRadiusAnimator = valueAnimatorOfInt;
+            valueAnimatorOfInt.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() { // from class: org.telegram.ui.Components.BackupImageView.1
+                @Override // android.animation.ValueAnimator.AnimatorUpdateListener
+                public void onAnimationUpdate(ValueAnimator valueAnimator2) {
+                    BackupImageView.this.setRoundRadius(((Integer) valueAnimator2.getAnimatedValue()).intValue());
+                }
+            });
+            this.roundRadiusAnimator.setDuration(200L);
+            this.roundRadiusAnimator.start();
+        }
+    }
+
+    public void setBlurredText(CharSequence charSequence) {
+        if (TextUtils.isEmpty(charSequence)) {
+            this.blurText = null;
+            return;
+        }
+        this.blurText = new Text(charSequence, 16.5f, AndroidUtilities.bold());
+        if (this.blurTextBgColorFilter == null) {
+            ColorMatrix colorMatrix = new ColorMatrix();
+            colorMatrix.setSaturation(1.2f);
+            AndroidUtilities.adjustBrightnessColorMatrix(colorMatrix, -0.2f);
+            this.blurTextBgColorFilter = new ColorMatrixColorFilter(colorMatrix);
+        }
+    }
+
+    public void drawBlurredText(Canvas canvas, float f) {
+        float measuredWidth;
+        float measuredHeight;
+        int i;
+        if (this.blurText == null) {
+            return;
+        }
+        Path path = this.blurTextClipPath;
+        if (path == null) {
+            this.blurTextClipPath = new Path();
+        } else {
+            path.rewind();
+        }
+        int i2 = this.width;
+        if (i2 == -1 || (i = this.height) == -1) {
+            measuredWidth = getMeasuredWidth();
+            measuredHeight = getMeasuredHeight();
+        } else {
+            measuredWidth = i2;
+            measuredHeight = i;
+        }
+        float currentWidth = this.blurText.getCurrentWidth() + AndroidUtilities.dp(18.0f);
+        float fDp = AndroidUtilities.dp(28.0f);
+        float f2 = (measuredWidth - currentWidth) / 2.0f;
+        float f3 = measuredHeight / 2.0f;
+        RectF rectF = AndroidUtilities.rectTmp;
+        float f4 = fDp / 2.0f;
+        rectF.set(f2, f3 - f4, currentWidth + f2, f3 + f4);
+        this.blurTextClipPath.addRoundRect(rectF, f4, f4, Path.Direction.CW);
+        canvas.save();
+        canvas.clipPath(this.blurTextClipPath);
+        ImageReceiver imageReceiver = this.blurImageReceiver;
+        if (imageReceiver != null && this.blurAllowed) {
+            imageReceiver.setColorFilter(this.blurTextBgColorFilter);
+            float alpha = this.blurImageReceiver.getAlpha();
+            this.blurImageReceiver.setAlpha(f);
+            this.blurImageReceiver.draw(canvas);
+            this.blurImageReceiver.setAlpha(alpha);
+            this.blurImageReceiver.setColorFilter(null);
+        }
+        this.blurText.draw(canvas, f2 + AndroidUtilities.dp(9.0f), f3, -1, f);
+        canvas.restore();
+    }
+
+    @Override // android.view.View
+    protected boolean verifyDrawable(Drawable drawable) {
+        return drawable == this.imageReceiver.getDrawable() || drawable == this.imageReceiver.getImageDrawable() || super.verifyDrawable(drawable);
+    }
+}

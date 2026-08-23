@@ -1,0 +1,812 @@
+package org.telegram.p029ui.Cells;
+
+import android.content.Context;
+import android.graphics.Canvas;
+import android.graphics.drawable.Drawable;
+import android.text.Layout;
+import android.text.SpannableStringBuilder;
+import android.text.StaticLayout;
+import android.text.TextPaint;
+import android.text.TextUtils;
+import android.view.MotionEvent;
+import android.view.View;
+import android.view.accessibility.AccessibilityNodeInfo;
+import android.widget.FrameLayout;
+import okhttp3.internal.url._UrlKt;
+import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.C2888R;
+import org.telegram.messenger.DownloadController;
+import org.telegram.messenger.Emoji;
+import org.telegram.messenger.FileLoader;
+import org.telegram.messenger.FileLog;
+import org.telegram.messenger.ImageLoader;
+import org.telegram.messenger.LocaleController;
+import org.telegram.messenger.MediaController;
+import org.telegram.messenger.MessageObject;
+import org.telegram.messenger.NotificationCenter;
+import org.telegram.messenger.SharedConfig;
+import org.telegram.messenger.UserConfig;
+import org.telegram.messenger.Utilities;
+import org.telegram.p029ui.ActionBar.Theme;
+import org.telegram.p029ui.Components.AnimatedEmojiSpan;
+import org.telegram.p029ui.Components.CheckBox2;
+import org.telegram.p029ui.Components.DotDividerSpan;
+import org.telegram.p029ui.Components.FlickerLoadingView;
+import org.telegram.p029ui.Components.LayoutHelper;
+import org.telegram.p029ui.Components.RadialProgress2;
+import org.telegram.p029ui.Components.RecyclerListView;
+import org.telegram.p029ui.Components.UItem;
+import org.telegram.p029ui.Components.UniversalAdapter;
+import org.telegram.p029ui.Components.UniversalRecyclerView;
+import org.telegram.p029ui.FilteredSearchView;
+import org.telegram.tgnet.TLRPC;
+
+/* JADX INFO: loaded from: classes6.dex */
+public class SharedAudioCell extends FrameLayout implements DownloadController.FileDownloadProgressListener, NotificationCenter.NotificationCenterDelegate {
+    private int TAG;
+    private boolean buttonPressed;
+    private int buttonState;
+    private int buttonX;
+    private int buttonY;
+    private StaticLayout captionLayout;
+    AnimatedEmojiSpan.EmojiGroupedSpans captionLayoutEmojis;
+    private float captionLayoutLeft;
+    private float captionLayoutWidth;
+    private TextPaint captionTextPaint;
+    private int captionY;
+    private CheckBox2 checkBox;
+    private boolean checkForButtonPress;
+    private int currentAccount;
+    private MessageObject currentMessageObject;
+    private StaticLayout dateLayout;
+    private int dateLayoutX;
+    private TextPaint description2TextPaint;
+    private StaticLayout descriptionLayout;
+    AnimatedEmojiSpan.EmojiGroupedSpans descriptionLayoutEmojis;
+    private float descriptionLayoutLeft;
+    private float descriptionLayoutWidth;
+    private int descriptionY;
+    private SpannableStringBuilder dotSpan;
+    float enterAlpha;
+    FlickerLoadingView globalGradientView;
+    private int hasMiniProgress;
+    private boolean miniButtonPressed;
+    private int miniButtonState;
+    private boolean needDivider;
+    private RadialProgress2 radialProgress;
+    private final Theme.ResourcesProvider resourcesProvider;
+    boolean showName;
+    float showNameProgress;
+    boolean showReorderIcon;
+    float showReorderIconProgress;
+    private StaticLayout titleLayout;
+    AnimatedEmojiSpan.EmojiGroupedSpans titleLayoutEmojis;
+    private float titleLayoutLeft;
+    private float titleLayoutWidth;
+    TextPaint titlePaint;
+    private int titleY;
+    private int viewType;
+
+    protected boolean needPlayMessage(MessageObject messageObject) {
+        return false;
+    }
+
+    @Override // org.telegram.messenger.DownloadController.FileDownloadProgressListener
+    public void onProgressUpload(String str, long j, long j2, boolean z) {
+    }
+
+    public SharedAudioCell(Context context) {
+        this(context, 0, null);
+    }
+
+    public SharedAudioCell(Context context, Theme.ResourcesProvider resourcesProvider) {
+        this(context, 0, resourcesProvider);
+    }
+
+    public SharedAudioCell(Context context, int i, Theme.ResourcesProvider resourcesProvider) {
+        super(context);
+        this.titleY = AndroidUtilities.m1124dp(9.0f);
+        this.descriptionY = AndroidUtilities.m1124dp(29.0f);
+        this.captionY = AndroidUtilities.m1124dp(29.0f);
+        this.currentAccount = UserConfig.selectedAccount;
+        this.showName = true;
+        this.showNameProgress = 0.0f;
+        this.enterAlpha = 1.0f;
+        this.resourcesProvider = resourcesProvider;
+        this.viewType = i;
+        setFocusable(true);
+        setImportantForAccessibility(1);
+        RadialProgress2 radialProgress2 = new RadialProgress2(this, resourcesProvider);
+        this.radialProgress = radialProgress2;
+        radialProgress2.setStyle(1);
+        this.radialProgress.setNeedDrawBackground(true);
+        this.radialProgress.setColorKeys(Theme.key_chat_inLoader, Theme.key_chat_inLoaderSelected, Theme.key_chat_inMediaIcon, Theme.key_chat_inMediaIconSelected);
+        this.TAG = DownloadController.getInstance(this.currentAccount).generateObserverTag();
+        setWillNotDraw(false);
+        CheckBox2 checkBox2 = new CheckBox2(context, 22, resourcesProvider);
+        this.checkBox = checkBox2;
+        checkBox2.setVisibility(4);
+        this.checkBox.setColor(-1, Theme.key_windowBackgroundWhite, Theme.key_checkboxCheck);
+        this.checkBox.setDrawUnchecked(false);
+        this.checkBox.setDrawBackgroundAsArc(3);
+        CheckBox2 checkBox22 = this.checkBox;
+        boolean z = LocaleController.isRTL;
+        addView(checkBox22, LayoutHelper.createFrame(24, 24.0f, (z ? 5 : 3) | 48, z ? 0.0f : 38.1f, 32.1f, z ? 6.0f : 0.0f, 0.0f));
+        if (i == 1) {
+            TextPaint textPaint = new TextPaint(1);
+            this.description2TextPaint = textPaint;
+            textPaint.setTextSize(AndroidUtilities.m1124dp(13.0f));
+            SpannableStringBuilder spannableStringBuilder = new SpannableStringBuilder(".");
+            this.dotSpan = spannableStringBuilder;
+            spannableStringBuilder.setSpan(new DotDividerSpan(), 0, 1, 0);
+        }
+        TextPaint textPaint2 = new TextPaint(1);
+        this.captionTextPaint = textPaint2;
+        textPaint2.setTextSize(AndroidUtilities.m1124dp(13.0f));
+        if (resourcesProvider != null) {
+            TextPaint textPaint3 = new TextPaint(1);
+            this.titlePaint = textPaint3;
+            textPaint3.setTypeface(AndroidUtilities.bold());
+            this.titlePaint.setTextSize(AndroidUtilities.m1124dp(15.0f));
+            this.titlePaint.setColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
+        }
+    }
+
+    @Override // android.widget.FrameLayout, android.view.View
+    protected void onMeasure(int i, int i2) {
+        int iM1124dp;
+        CharSequence charSequenceReplace;
+        this.descriptionLayout = null;
+        this.titleLayout = null;
+        this.captionLayout = null;
+        int size = (View.MeasureSpec.getSize(i) - AndroidUtilities.m1124dp(AndroidUtilities.leftBaseline)) - AndroidUtilities.m1124dp(28.0f);
+        if (this.viewType == 1) {
+            String strStringForMessageListDate = LocaleController.stringForMessageListDate(this.currentMessageObject.messageOwner.date);
+            int iCeil = (int) Math.ceil(this.description2TextPaint.measureText(strStringForMessageListDate));
+            this.dateLayout = ChatMessageCell.generateStaticLayout(strStringForMessageListDate, this.description2TextPaint, iCeil, iCeil, 0, 1);
+            this.dateLayoutX = ((size - iCeil) - AndroidUtilities.m1124dp(8.0f)) + AndroidUtilities.m1124dp(20.0f);
+            iM1124dp = iCeil + AndroidUtilities.m1124dp(12.0f);
+        } else {
+            iM1124dp = 0;
+        }
+        try {
+            if (this.viewType == 1 && (this.currentMessageObject.isVoice() || this.currentMessageObject.isRoundVideo())) {
+                charSequenceReplace = FilteredSearchView.createFromInfoString(this.currentMessageObject, 1);
+            } else {
+                charSequenceReplace = this.currentMessageObject.getMusicTitle().replace('\n', ' ');
+            }
+            CharSequence charSequenceHighlightText = AndroidUtilities.highlightText(charSequenceReplace, this.currentMessageObject.highlightedWords, this.resourcesProvider);
+            if (charSequenceHighlightText != null) {
+                charSequenceReplace = charSequenceHighlightText;
+            }
+            TextPaint textPaint = this.titlePaint;
+            if (textPaint == null) {
+                textPaint = Theme.chat_contextResult_titleTextPaint;
+            }
+            TextPaint textPaint2 = textPaint;
+            StaticLayout staticLayout = new StaticLayout(TextUtils.ellipsize(charSequenceReplace, textPaint2, size - iM1124dp, TextUtils.TruncateAt.END), textPaint2, (AndroidUtilities.m1124dp(4.0f) + size) - iM1124dp, Layout.Alignment.ALIGN_NORMAL, 1.0f, 0.0f, false);
+            this.titleLayout = staticLayout;
+            this.titleLayoutLeft = staticLayout.getLineCount() > 0 ? this.titleLayout.getLineLeft(0) : 0.0f;
+            this.titleLayoutWidth = this.titleLayout.getLineCount() > 0 ? this.titleLayout.getLineWidth(0) : 0.0f;
+            this.titleLayoutEmojis = AnimatedEmojiSpan.update(0, this, this.titleLayoutEmojis, this.titleLayout);
+        } catch (Exception e) {
+            FileLog.m1136e(e);
+        }
+        boolean zHasHighlightedWords = this.currentMessageObject.hasHighlightedWords();
+        String str = _UrlKt.FRAGMENT_ENCODE_SET;
+        if (zHasHighlightedWords) {
+            CharSequence charSequenceHighlightText2 = AndroidUtilities.highlightText(TextUtils.isEmpty(this.currentMessageObject.messageOwner.message) ? _UrlKt.FRAGMENT_ENCODE_SET : Emoji.replaceEmoji(this.currentMessageObject.messageOwner.message.replace("\n", " ").replaceAll(" +", " ").trim(), Theme.chat_msgTextPaint.getFontMetricsInt(), false), this.currentMessageObject.highlightedWords, this.resourcesProvider);
+            if (charSequenceHighlightText2 != null) {
+                StaticLayout staticLayout2 = new StaticLayout(TextUtils.ellipsize(AndroidUtilities.ellipsizeCenterEnd(charSequenceHighlightText2, this.currentMessageObject.highlightedWords.get(0), size, this.captionTextPaint, 130), this.captionTextPaint, size, TextUtils.TruncateAt.END), this.captionTextPaint, size + AndroidUtilities.m1124dp(4.0f), Layout.Alignment.ALIGN_NORMAL, 1.0f, 0.0f, false);
+                this.captionLayout = staticLayout2;
+                this.captionLayoutLeft = staticLayout2.getLineCount() > 0 ? this.captionLayout.getLineLeft(0) : 0.0f;
+                this.captionLayoutWidth = this.captionLayout.getLineCount() > 0 ? this.captionLayout.getLineWidth(0) : 0.0f;
+            }
+            this.captionLayoutEmojis = AnimatedEmojiSpan.update(0, this, this.captionLayoutEmojis, this.captionLayout);
+        }
+        try {
+            if (this.currentMessageObject.isVoice() || this.currentMessageObject.isRoundVideo()) {
+                String str2 = AndroidUtilities.formatDuration((int) this.currentMessageObject.getDuration(), false) + " • " + this.currentMessageObject.getMusicAuthor().replace('\n', ' ');
+                TextPaint textPaint3 = this.viewType == 1 ? this.description2TextPaint : Theme.chat_contextResult_descriptionTextPaint;
+                this.descriptionLayout = new StaticLayout(TextUtils.ellipsize(str2, textPaint3, size, TextUtils.TruncateAt.END), textPaint3, size + AndroidUtilities.m1124dp(4.0f), Layout.Alignment.ALIGN_NORMAL, 1.0f, 0.0f, false);
+            } else {
+                CharSequence charSequenceReplace2 = this.currentMessageObject.getMusicAuthor().replace('\n', ' ');
+                CharSequence charSequenceHighlightText3 = AndroidUtilities.highlightText(charSequenceReplace2, this.currentMessageObject.highlightedWords, this.resourcesProvider);
+                if (charSequenceHighlightText3 != null) {
+                    charSequenceReplace2 = charSequenceHighlightText3;
+                }
+                if (this.viewType == 1) {
+                    charSequenceReplace2 = new SpannableStringBuilder(charSequenceReplace2).append(' ').append((CharSequence) this.dotSpan).append(' ').append(FilteredSearchView.createFromInfoString(this.currentMessageObject, 1));
+                }
+                TextPaint textPaint4 = this.viewType == 1 ? this.description2TextPaint : Theme.chat_contextResult_descriptionTextPaint;
+                if (this.currentMessageObject.getDuration() > 0.0d) {
+                    str = " • " + LocaleController.formatShortDuration((int) Math.ceil(this.currentMessageObject.getDuration()));
+                }
+                this.descriptionLayout = new StaticLayout(SpannableStringBuilder.valueOf(TextUtils.ellipsize(charSequenceReplace2, textPaint4, size - textPaint4.measureText(str), TextUtils.TruncateAt.END)).append((CharSequence) str), textPaint4, size + AndroidUtilities.m1124dp(4.0f), Layout.Alignment.ALIGN_NORMAL, 1.0f, 0.0f, false);
+            }
+            this.descriptionLayoutLeft = this.descriptionLayout.getLineCount() > 0 ? this.descriptionLayout.getLineLeft(0) : 0.0f;
+            this.descriptionLayoutWidth = this.descriptionLayout.getLineCount() > 0 ? this.descriptionLayout.getLineWidth(0) : 0.0f;
+            this.descriptionLayoutEmojis = AnimatedEmojiSpan.update(0, this, this.descriptionLayoutEmojis, this.descriptionLayout);
+        } catch (Exception e2) {
+            FileLog.m1136e(e2);
+        }
+        setMeasuredDimension(View.MeasureSpec.getSize(i), AndroidUtilities.m1124dp(56.0f) + (this.captionLayout != null ? AndroidUtilities.m1124dp(18.0f) : 0) + (this.needDivider ? 1 : 0));
+        int size2 = LocaleController.isRTL ? (View.MeasureSpec.getSize(i) - AndroidUtilities.m1124dp(8.0f)) - AndroidUtilities.m1124dp(52.0f) : AndroidUtilities.m1124dp(8.0f);
+        RadialProgress2 radialProgress2 = this.radialProgress;
+        int iM1124dp2 = AndroidUtilities.m1124dp(4.0f) + size2;
+        this.buttonX = iM1124dp2;
+        int iM1124dp3 = AndroidUtilities.m1124dp(6.0f);
+        this.buttonY = iM1124dp3;
+        radialProgress2.setProgressRect(iM1124dp2, iM1124dp3, size2 + AndroidUtilities.m1124dp(48.0f), AndroidUtilities.m1124dp(50.0f));
+        measureChildWithMargins(this.checkBox, i, 0, i2, 0);
+        if (this.captionLayout != null) {
+            this.captionY = AndroidUtilities.m1124dp(29.0f);
+            this.descriptionY = AndroidUtilities.m1124dp(29.0f) + AndroidUtilities.m1124dp(18.0f);
+        } else {
+            this.descriptionY = AndroidUtilities.m1124dp(29.0f);
+        }
+    }
+
+    public void setMessageObject(MessageObject messageObject, boolean z) {
+        this.needDivider = z;
+        this.currentMessageObject = messageObject;
+        TLRPC.Document document = messageObject.getDocument();
+        TLRPC.PhotoSize closestPhotoSizeWithSize = document != null ? FileLoader.getClosestPhotoSizeWithSize(document.thumbs, 360) : null;
+        if ((closestPhotoSizeWithSize instanceof TLRPC.TL_photoSize) || (closestPhotoSizeWithSize instanceof TLRPC.TL_photoSizeProgressive)) {
+            this.radialProgress.setImageOverlay(closestPhotoSizeWithSize, document, messageObject);
+        } else {
+            String artworkUrl = messageObject.getArtworkUrl(true);
+            if (!TextUtils.isEmpty(artworkUrl)) {
+                this.radialProgress.setImageOverlay(artworkUrl);
+            } else {
+                this.radialProgress.setImageOverlay(null, null, null);
+            }
+        }
+        updateButtonState(false, false);
+        requestLayout();
+    }
+
+    public void setChecked(boolean z, boolean z2) {
+        if (this.checkBox.getVisibility() != 0) {
+            this.checkBox.setVisibility(0);
+        }
+        this.checkBox.setChecked(z, z2);
+    }
+
+    public void setCheckForButtonPress(boolean z) {
+        this.checkForButtonPress = z;
+    }
+
+    @Override // android.view.ViewGroup, android.view.View
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        this.radialProgress.onAttachedToWindow();
+        updateButtonState(false, false);
+        NotificationCenter.getInstance(this.currentAccount).addObserver(this, NotificationCenter.messagePlayingDidReset);
+        NotificationCenter.getInstance(this.currentAccount).addObserver(this, NotificationCenter.messagePlayingPlayStateChanged);
+        NotificationCenter.getInstance(this.currentAccount).addObserver(this, NotificationCenter.messagePlayingDidStart);
+        this.titleLayoutEmojis = AnimatedEmojiSpan.update(0, this, this.titleLayoutEmojis, this.titleLayout);
+        this.descriptionLayoutEmojis = AnimatedEmojiSpan.update(0, this, this.descriptionLayoutEmojis, this.descriptionLayout);
+        this.captionLayoutEmojis = AnimatedEmojiSpan.update(0, this, this.captionLayoutEmojis, this.captionLayout);
+    }
+
+    @Override // android.view.ViewGroup, android.view.View
+    protected void onDetachedFromWindow() {
+        super.onDetachedFromWindow();
+        DownloadController.getInstance(this.currentAccount).removeLoadingFileObserver(this);
+        this.radialProgress.onDetachedFromWindow();
+        NotificationCenter.getInstance(this.currentAccount).removeObserver(this, NotificationCenter.messagePlayingDidReset);
+        NotificationCenter.getInstance(this.currentAccount).removeObserver(this, NotificationCenter.messagePlayingPlayStateChanged);
+        NotificationCenter.getInstance(this.currentAccount).removeObserver(this, NotificationCenter.messagePlayingDidStart);
+        AnimatedEmojiSpan.release(this, this.titleLayoutEmojis);
+        AnimatedEmojiSpan.release(this, this.descriptionLayoutEmojis);
+        AnimatedEmojiSpan.release(this, this.captionLayoutEmojis);
+    }
+
+    public MessageObject getMessage() {
+        return this.currentMessageObject;
+    }
+
+    public void initStreamingIcons() {
+        this.radialProgress.initMiniIcons();
+    }
+
+    @Override // android.view.ViewGroup
+    public boolean onInterceptTouchEvent(MotionEvent motionEvent) {
+        return onTouchEvent(motionEvent);
+    }
+
+    /* JADX WARN: Removed duplicated region for block: B:13:0x0032  */
+    /*
+        Code decompiled incorrectly, please refer to instructions dump.
+    */
+    private boolean checkAudioMotionEvent(MotionEvent motionEvent) {
+        boolean z;
+        boolean z2;
+        int x = (int) motionEvent.getX();
+        int y = (int) motionEvent.getY();
+        int iM1124dp = AndroidUtilities.m1124dp(36.0f);
+        if (this.miniButtonState >= 0) {
+            int iM1124dp2 = AndroidUtilities.m1124dp(27.0f);
+            int i = this.buttonX;
+            if (x < i + iM1124dp2 || x > i + iM1124dp2 + iM1124dp) {
+                z = false;
+            } else {
+                int i2 = this.buttonY;
+                if (y >= i2 + iM1124dp2 && y <= i2 + iM1124dp2 + iM1124dp) {
+                    z = true;
+                }
+            }
+        }
+        if (motionEvent.getAction() != 0) {
+            if (motionEvent.getAction() == 1) {
+                if (this.miniButtonPressed) {
+                    this.miniButtonPressed = false;
+                    playSoundEffect(0);
+                    didPressedMiniButton(true);
+                    invalidate();
+                } else if (this.buttonPressed) {
+                    this.buttonPressed = false;
+                    playSoundEffect(0);
+                    didPressedButton();
+                    invalidate();
+                }
+                requestDisallowInterceptTouchEvent(false);
+            } else if (motionEvent.getAction() == 3) {
+                requestDisallowInterceptTouchEvent(false);
+                this.miniButtonPressed = false;
+                this.buttonPressed = false;
+                invalidate();
+            } else if (motionEvent.getAction() == 2 && !z && this.miniButtonPressed) {
+                this.miniButtonPressed = false;
+                invalidate();
+            }
+        } else {
+            if (z) {
+                this.miniButtonPressed = true;
+                this.radialProgress.setPressed(true, true);
+                invalidate();
+            } else if (this.checkForButtonPress && this.radialProgress.getProgressRect().contains(x, y)) {
+                requestDisallowInterceptTouchEvent(true);
+                this.buttonPressed = true;
+                this.radialProgress.setPressed(true, false);
+                invalidate();
+            }
+            z2 = true;
+            this.radialProgress.setPressed(this.miniButtonPressed, true);
+            return !z2 || this.buttonPressed;
+        }
+        z2 = false;
+        this.radialProgress.setPressed(this.miniButtonPressed, true);
+        if (z2) {
+        }
+    }
+
+    @Override // android.view.View
+    public boolean onTouchEvent(MotionEvent motionEvent) {
+        if (this.currentMessageObject == null) {
+            return super.onTouchEvent(motionEvent);
+        }
+        boolean zCheckAudioMotionEvent = checkAudioMotionEvent(motionEvent);
+        if (motionEvent.getAction() != 3) {
+            return zCheckAudioMotionEvent;
+        }
+        this.miniButtonPressed = false;
+        this.buttonPressed = false;
+        this.radialProgress.setPressed(false, false);
+        this.radialProgress.setPressed(this.miniButtonPressed, true);
+        return false;
+    }
+
+    private void didPressedMiniButton(boolean z) {
+        int i = this.miniButtonState;
+        if (i == 0) {
+            this.miniButtonState = 1;
+            this.radialProgress.setProgress(0.0f, false);
+            FileLoader.getInstance(this.currentAccount).loadFile(this.currentMessageObject.getDocument(), this.currentMessageObject, 1, 0);
+            this.radialProgress.setMiniIcon(getMiniIconForCurrentState(), false, true);
+            invalidate();
+            return;
+        }
+        if (i == 1) {
+            if (MediaController.getInstance().isPlayingMessage(this.currentMessageObject)) {
+                MediaController.getInstance().cleanupPlayer(true, true);
+            }
+            this.miniButtonState = 0;
+            FileLoader.getInstance(this.currentAccount).cancelLoadFile(this.currentMessageObject.getDocument());
+            this.radialProgress.setMiniIcon(getMiniIconForCurrentState(), false, true);
+            invalidate();
+        }
+    }
+
+    public void didPressedButton() {
+        int i = this.buttonState;
+        if (i == 0) {
+            if (this.miniButtonState == 0) {
+                this.currentMessageObject.putInDownloadsStore = true;
+                FileLoader.getInstance(this.currentAccount).loadFile(this.currentMessageObject.getDocument(), this.currentMessageObject, 1, 0);
+            }
+            if (needPlayMessage(this.currentMessageObject)) {
+                if (this.hasMiniProgress == 2 && this.miniButtonState != 1) {
+                    this.miniButtonState = 1;
+                    this.radialProgress.setProgress(0.0f, false);
+                    this.radialProgress.setMiniIcon(getMiniIconForCurrentState(), false, true);
+                }
+                this.buttonState = 1;
+                this.radialProgress.setIcon(getIconForCurrentState(), false, true);
+                invalidate();
+                return;
+            }
+            return;
+        }
+        if (i == 1) {
+            if (MediaController.getInstance().lambda$startAudioAgain$7(this.currentMessageObject)) {
+                this.buttonState = 0;
+                this.radialProgress.setIcon(getIconForCurrentState(), false, true);
+                invalidate();
+                return;
+            }
+            return;
+        }
+        if (i == 2) {
+            this.radialProgress.setProgress(0.0f, false);
+            this.currentMessageObject.putInDownloadsStore = true;
+            FileLoader.getInstance(this.currentAccount).loadFile(this.currentMessageObject.getDocument(), this.currentMessageObject, 1, 0);
+            this.buttonState = 4;
+            this.radialProgress.setIcon(getIconForCurrentState(), false, true);
+            invalidate();
+            return;
+        }
+        if (i == 4) {
+            FileLoader.getInstance(this.currentAccount).cancelLoadFile(this.currentMessageObject.getDocument());
+            this.buttonState = 2;
+            this.radialProgress.setIcon(getIconForCurrentState(), false, true);
+            invalidate();
+        }
+    }
+
+    private int getMiniIconForCurrentState() {
+        int i = this.miniButtonState;
+        if (i < 0) {
+            return 4;
+        }
+        return i == 0 ? 2 : 3;
+    }
+
+    private int getIconForCurrentState() {
+        int i = this.buttonState;
+        if (i == 1) {
+            return 1;
+        }
+        if (i == 2) {
+            return 2;
+        }
+        return i == 4 ? 3 : 0;
+    }
+
+    public void updateButtonState(boolean z, boolean z2) {
+        String fileName = this.currentMessageObject.getFileName();
+        if (TextUtils.isEmpty(fileName)) {
+            return;
+        }
+        MessageObject messageObject = this.currentMessageObject;
+        boolean z3 = messageObject.attachPathExists || messageObject.mediaExists;
+        if (SharedConfig.streamMedia && messageObject.isMusic() && ((int) this.currentMessageObject.getDialogId()) != 0) {
+            this.hasMiniProgress = z3 ? 1 : 2;
+            z3 = true;
+        } else {
+            this.hasMiniProgress = 0;
+            this.miniButtonState = -1;
+        }
+        if (this.hasMiniProgress == 0) {
+            if (z3) {
+                DownloadController.getInstance(this.currentAccount).removeLoadingFileObserver(this);
+                boolean zIsPlayingMessage = MediaController.getInstance().isPlayingMessage(this.currentMessageObject);
+                if (!zIsPlayingMessage || (zIsPlayingMessage && MediaController.getInstance().isMessagePaused())) {
+                    this.buttonState = 0;
+                } else {
+                    this.buttonState = 1;
+                }
+                this.radialProgress.setProgress(1.0f, z2);
+                this.radialProgress.setIcon(getIconForCurrentState(), z, z2);
+                invalidate();
+                return;
+            }
+            DownloadController.getInstance(this.currentAccount).addLoadingFileObserver(fileName, this.currentMessageObject, this);
+            if (!FileLoader.getInstance(this.currentAccount).isLoadingFile(fileName)) {
+                this.buttonState = 2;
+                this.radialProgress.setProgress(0.0f, z2);
+            } else {
+                this.buttonState = 4;
+                Float fileProgress = ImageLoader.getInstance().getFileProgress(fileName);
+                if (fileProgress != null) {
+                    this.radialProgress.setProgress(fileProgress.floatValue(), z2);
+                } else {
+                    this.radialProgress.setProgress(0.0f, z2);
+                }
+            }
+            this.radialProgress.setIcon(getIconForCurrentState(), z, z2);
+            invalidate();
+            return;
+        }
+        this.radialProgress.setMiniProgressBackgroundColor(getThemedColor(this.currentMessageObject.isOutOwner() ? Theme.key_chat_outLoader : Theme.key_chat_inLoader));
+        boolean zIsPlayingMessage2 = MediaController.getInstance().isPlayingMessage(this.currentMessageObject);
+        if (!zIsPlayingMessage2 || (zIsPlayingMessage2 && MediaController.getInstance().isMessagePaused())) {
+            this.buttonState = 0;
+        } else {
+            this.buttonState = 1;
+        }
+        this.radialProgress.setIcon(getIconForCurrentState(), z, z2);
+        if (this.hasMiniProgress == 1) {
+            DownloadController.getInstance(this.currentAccount).removeLoadingFileObserver(this);
+            this.miniButtonState = -1;
+            this.radialProgress.setMiniIcon(getMiniIconForCurrentState(), z, z2);
+            return;
+        }
+        DownloadController.getInstance(this.currentAccount).addLoadingFileObserver(fileName, this.currentMessageObject, this);
+        if (!FileLoader.getInstance(this.currentAccount).isLoadingFile(fileName)) {
+            this.miniButtonState = 0;
+            this.radialProgress.setMiniIcon(getMiniIconForCurrentState(), z, z2);
+            return;
+        }
+        this.miniButtonState = 1;
+        this.radialProgress.setMiniIcon(getMiniIconForCurrentState(), z, z2);
+        Float fileProgress2 = ImageLoader.getInstance().getFileProgress(fileName);
+        if (fileProgress2 != null) {
+            this.radialProgress.setProgress(fileProgress2.floatValue(), z2);
+        } else {
+            this.radialProgress.setProgress(0.0f, z2);
+        }
+    }
+
+    @Override // org.telegram.messenger.DownloadController.FileDownloadProgressListener
+    public void onFailedDownload(String str, boolean z) {
+        updateButtonState(true, z);
+    }
+
+    @Override // org.telegram.messenger.DownloadController.FileDownloadProgressListener
+    public void onSuccessDownload(String str) {
+        this.radialProgress.setProgress(1.0f, true);
+        updateButtonState(false, true);
+    }
+
+    @Override // org.telegram.messenger.DownloadController.FileDownloadProgressListener
+    public void onProgressDownload(String str, long j, long j2) {
+        this.radialProgress.setProgress(Math.min(1.0f, j / j2), true);
+        if (this.hasMiniProgress != 0) {
+            if (this.miniButtonState != 1) {
+                updateButtonState(false, true);
+            }
+        } else if (this.buttonState != 4) {
+            updateButtonState(false, true);
+        }
+    }
+
+    @Override // org.telegram.messenger.DownloadController.FileDownloadProgressListener
+    public int getObserverTag() {
+        return this.TAG;
+    }
+
+    @Override // android.view.View
+    public void onInitializeAccessibilityNodeInfo(AccessibilityNodeInfo accessibilityNodeInfo) {
+        super.onInitializeAccessibilityNodeInfo(accessibilityNodeInfo);
+        accessibilityNodeInfo.setEnabled(true);
+        if (this.currentMessageObject.isMusic()) {
+            accessibilityNodeInfo.setText(LocaleController.formatString("AccDescrMusicInfo", C2888R.string.AccDescrMusicInfo, this.currentMessageObject.getMusicAuthor(), this.currentMessageObject.getMusicTitle()));
+        } else if (this.titleLayout != null && this.descriptionLayout != null) {
+            accessibilityNodeInfo.setText(((Object) this.titleLayout.getText()) + ", " + ((Object) this.descriptionLayout.getText()));
+        }
+        if (this.checkBox.isChecked()) {
+            accessibilityNodeInfo.setCheckable(true);
+            accessibilityNodeInfo.setChecked(true);
+        }
+    }
+
+    @Override // org.telegram.messenger.NotificationCenter.NotificationCenterDelegate
+    public void didReceivedNotification(int i, int i2, Object... objArr) {
+        updateButtonState(false, true);
+    }
+
+    private int getThemedColor(int i) {
+        return Theme.getColor(i, this.resourcesProvider);
+    }
+
+    public void setGlobalGradientView(FlickerLoadingView flickerLoadingView) {
+        this.globalGradientView = flickerLoadingView;
+    }
+
+    /* JADX WARN: Removed duplicated region for block: B:7:0x0019  */
+    @Override // android.view.ViewGroup, android.view.View
+    /*
+        Code decompiled incorrectly, please refer to instructions dump.
+    */
+    protected void dispatchDraw(Canvas canvas) {
+        boolean z = this.showName;
+        if (z) {
+            float f = this.showNameProgress;
+            if (f != 1.0f) {
+                this.showNameProgress = f + 0.10666667f;
+                invalidate();
+            } else if (!z) {
+                float f2 = this.showNameProgress;
+                if (f2 != 0.0f) {
+                    this.showNameProgress = f2 - 0.10666667f;
+                    invalidate();
+                }
+            }
+        }
+        this.showNameProgress = Utilities.clamp(this.showNameProgress, 1.0f, 0.0f);
+        if (this.enterAlpha != 1.0f && this.globalGradientView != null) {
+            canvas.saveLayerAlpha(0.0f, 0.0f, getMeasuredWidth(), getMeasuredHeight(), (int) ((1.0f - this.enterAlpha) * 255.0f), 31);
+            this.globalGradientView.setViewType(4);
+            this.globalGradientView.updateColors();
+            this.globalGradientView.updateGradient();
+            this.globalGradientView.draw(canvas);
+            canvas.restore();
+            canvas.saveLayerAlpha(0.0f, 0.0f, getMeasuredWidth(), getMeasuredHeight(), (int) (this.enterAlpha * 255.0f), 31);
+            drawInternal(canvas);
+            super.dispatchDraw(canvas);
+            drawReorder(canvas);
+            canvas.restore();
+            return;
+        }
+        drawInternal(canvas);
+        drawReorder(canvas);
+        super.dispatchDraw(canvas);
+    }
+
+    /* JADX WARN: Removed duplicated region for block: B:13:0x0021  */
+    /*
+        Code decompiled incorrectly, please refer to instructions dump.
+    */
+    private void drawReorder(Canvas canvas) {
+        boolean z = this.showReorderIcon;
+        if (z || this.showReorderIconProgress != 0.0f) {
+            if (z) {
+                float f = this.showReorderIconProgress;
+                if (f != 1.0f) {
+                    this.showReorderIconProgress = f + 0.10666667f;
+                    invalidate();
+                } else if (!z) {
+                    float f2 = this.showReorderIconProgress;
+                    if (f2 != 0.0f) {
+                        this.showReorderIconProgress = f2 - 0.10666667f;
+                        invalidate();
+                    }
+                }
+            }
+            this.showReorderIconProgress = Utilities.clamp(this.showReorderIconProgress, 1.0f, 0.0f);
+            int measuredWidth = (getMeasuredWidth() - AndroidUtilities.m1124dp(12.0f)) - Theme.dialogs_reorderDrawable.getIntrinsicWidth();
+            int measuredHeight = (getMeasuredHeight() - Theme.dialogs_reorderDrawable.getIntrinsicHeight()) >> 1;
+            canvas.save();
+            float f3 = this.showReorderIconProgress;
+            canvas.scale(f3, f3, measuredWidth + (Theme.dialogs_reorderDrawable.getIntrinsicWidth() / 2.0f), measuredHeight + (Theme.dialogs_reorderDrawable.getIntrinsicHeight() / 2.0f));
+            Drawable drawable = Theme.dialogs_reorderDrawable;
+            drawable.setBounds(measuredWidth, measuredHeight, drawable.getIntrinsicWidth() + measuredWidth, Theme.dialogs_reorderDrawable.getIntrinsicHeight() + measuredHeight);
+            Theme.dialogs_reorderDrawable.draw(canvas);
+            canvas.restore();
+        }
+    }
+
+    private void drawInternal(Canvas canvas) {
+        StaticLayout staticLayout;
+        if (this.viewType == 1) {
+            this.description2TextPaint.setColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText3));
+        }
+        int width = 0;
+        if (this.dateLayout != null) {
+            canvas.save();
+            canvas.translate(AndroidUtilities.m1124dp(LocaleController.isRTL ? 24.0f : AndroidUtilities.leftBaseline) + (LocaleController.isRTL ? 0 : this.dateLayoutX), this.titleY);
+            this.dateLayout.draw(canvas);
+            canvas.restore();
+        }
+        if (this.titleLayout != null) {
+            int alpha = Theme.chat_contextResult_titleTextPaint.getAlpha();
+            float f = this.showNameProgress;
+            if (f != 1.0f) {
+                Theme.chat_contextResult_titleTextPaint.setAlpha((int) (alpha * f));
+            }
+            canvas.save();
+            int iM1124dp = AndroidUtilities.m1124dp(LocaleController.isRTL ? 24.0f : AndroidUtilities.leftBaseline);
+            if (LocaleController.isRTL && (staticLayout = this.dateLayout) != null) {
+                width = staticLayout.getWidth() + AndroidUtilities.m1124dp(LocaleController.isRTL ? 12.0f : 4.0f);
+            }
+            canvas.translate(((iM1124dp + width) + (LocaleController.isRTL ? this.titleLayout.getWidth() - this.titleLayoutWidth : 0.0f)) - this.titleLayoutLeft, this.titleY);
+            this.titleLayout.draw(canvas);
+            AnimatedEmojiSpan.drawAnimatedEmojis(canvas, this.titleLayout, this.titleLayoutEmojis, 0.0f, null, 0.0f, 0.0f, 0.0f, 1.0f);
+            canvas.restore();
+            if (this.showNameProgress != 1.0f) {
+                Theme.chat_contextResult_titleTextPaint.setAlpha(alpha);
+            }
+        }
+        if (this.captionLayout != null) {
+            this.captionTextPaint.setColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
+            canvas.save();
+            canvas.translate((AndroidUtilities.m1124dp(LocaleController.isRTL ? 24.0f : AndroidUtilities.leftBaseline) + (LocaleController.isRTL ? this.captionLayout.getWidth() - this.captionLayoutWidth : 0.0f)) - this.captionLayoutLeft, this.captionY);
+            this.captionLayout.draw(canvas);
+            canvas.restore();
+        }
+        if (this.descriptionLayout != null) {
+            Theme.chat_contextResult_descriptionTextPaint.setColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText2));
+            int alpha2 = Theme.chat_contextResult_descriptionTextPaint.getAlpha();
+            float f2 = this.showNameProgress;
+            if (f2 != 1.0f) {
+                Theme.chat_contextResult_descriptionTextPaint.setAlpha((int) (alpha2 * f2));
+            }
+            canvas.save();
+            canvas.translate((AndroidUtilities.m1124dp(LocaleController.isRTL ? 24.0f : AndroidUtilities.leftBaseline) + (LocaleController.isRTL ? this.descriptionLayout.getWidth() - this.descriptionLayoutWidth : 0.0f)) - this.descriptionLayoutLeft, this.descriptionY);
+            this.descriptionLayout.draw(canvas);
+            AnimatedEmojiSpan.drawAnimatedEmojis(canvas, this.descriptionLayout, this.descriptionLayoutEmojis, 0.0f, null, 0.0f, 0.0f, 0.0f, 1.0f);
+            canvas.restore();
+            if (this.showNameProgress != 1.0f) {
+                Theme.chat_contextResult_descriptionTextPaint.setAlpha(alpha2);
+            }
+        }
+        this.radialProgress.setProgressColor(getThemedColor(this.buttonPressed ? Theme.key_chat_inAudioSelectedProgress : Theme.key_chat_inAudioProgress));
+        this.radialProgress.setOverlayImageAlpha(this.showNameProgress);
+        this.radialProgress.draw(canvas);
+        if (this.needDivider) {
+            if (LocaleController.isRTL) {
+                canvas.drawLine(0.0f, getHeight() - 1, (getWidth() - AndroidUtilities.m1124dp(72.0f)) - getPaddingRight(), getHeight() - 1, Theme.getThemePaint("paintDivider", this.resourcesProvider));
+            } else {
+                canvas.drawLine(AndroidUtilities.m1124dp(72.0f), getHeight() - 1, getWidth() - getPaddingRight(), getHeight() - 1, Theme.getThemePaint("paintDivider", this.resourcesProvider));
+            }
+        }
+    }
+
+    public void setEnterAnimationAlpha(float f) {
+        if (this.enterAlpha != f) {
+            this.enterAlpha = f;
+            invalidate();
+        }
+    }
+
+    public void showReorderIcon(boolean z, boolean z2) {
+        if (this.showReorderIcon == z) {
+            return;
+        }
+        this.showReorderIcon = z;
+        if (!z2) {
+            this.showReorderIconProgress = z ? 1.0f : 0.0f;
+        }
+        invalidate();
+    }
+
+    public void showName(boolean z, boolean z2) {
+        if (!z2) {
+            this.showNameProgress = z ? 1.0f : 0.0f;
+        }
+        if (this.showName == z) {
+            return;
+        }
+        this.showName = z;
+        invalidate();
+    }
+
+    public static final class Factory extends UItem.UItemFactory {
+        static {
+            UItem.UItemFactory.setup(new Factory());
+        }
+
+        @Override // org.telegram.ui.Components.UItem.UItemFactory
+        public SharedAudioCell createView(Context context, RecyclerListView recyclerListView, int i, int i2, Theme.ResourcesProvider resourcesProvider) {
+            SharedAudioCell sharedAudioCell = new SharedAudioCell(context, resourcesProvider);
+            sharedAudioCell.setPadding(AndroidUtilities.m1124dp(12.0f), 0, AndroidUtilities.m1124dp(12.0f), 0);
+            return sharedAudioCell;
+        }
+
+        @Override // org.telegram.ui.Components.UItem.UItemFactory
+        public void bindView(View view, UItem uItem, boolean z, UniversalAdapter universalAdapter, UniversalRecyclerView universalRecyclerView) {
+            SharedAudioCell sharedAudioCell = (SharedAudioCell) view;
+            sharedAudioCell.setMessageObject((MessageObject) uItem.object, z);
+            sharedAudioCell.setChecked(uItem.checked, false);
+        }
+
+        /* JADX INFO: renamed from: as */
+        public static UItem m1232as(MessageObject messageObject) {
+            UItem uItemOfFactory = UItem.ofFactory(Factory.class);
+            uItemOfFactory.object = messageObject;
+            return uItemOfFactory;
+        }
+    }
+}

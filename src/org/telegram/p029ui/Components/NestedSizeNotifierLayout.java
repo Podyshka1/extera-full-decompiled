@@ -1,0 +1,190 @@
+package org.telegram.p029ui.Components;
+
+import android.content.Context;
+import android.view.View;
+import androidx.core.view.NestedScrollingParent3;
+import androidx.core.view.NestedScrollingParentHelper;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import org.telegram.messenger.AndroidUtilities;
+import org.telegram.p029ui.ActionBar.BottomSheet;
+import org.telegram.p029ui.CachedMediaLayout;
+
+/* JADX INFO: loaded from: classes7.dex */
+public abstract class NestedSizeNotifierLayout extends SizeNotifierFrameLayout implements NestedScrollingParent3, View.OnLayoutChangeListener {
+    boolean attached;
+    BottomSheet.ContainerView bottomSheetContainerView;
+    ChildLayout childLayout;
+    int maxTop;
+    private NestedScrollingParentHelper nestedScrollingParentHelper;
+    View targetListView;
+
+    public interface ChildLayout {
+        void addOnLayoutChangeListener(View.OnLayoutChangeListener onLayoutChangeListener);
+
+        RecyclerListView getListView();
+
+        int getMeasuredHeight();
+
+        int getTop();
+
+        boolean isAttached();
+
+        void removeOnLayoutChangeListener(View.OnLayoutChangeListener onLayoutChangeListener);
+    }
+
+    @Override // androidx.core.view.NestedScrollingParent2
+    public void onNestedScroll(View view, int i, int i2, int i3, int i4, int i5) {
+    }
+
+    @Override // android.view.ViewGroup, android.view.ViewParent
+    public void onStopNestedScroll(View view) {
+    }
+
+    public NestedSizeNotifierLayout(Context context) {
+        super(context);
+        this.nestedScrollingParentHelper = new NestedScrollingParentHelper(this);
+    }
+
+    private boolean childAttached() {
+        ChildLayout childLayout = this.childLayout;
+        return (childLayout == null || !childLayout.isAttached() || this.childLayout.getListView() == null) ? false : true;
+    }
+
+    @Override // android.widget.FrameLayout, android.view.View
+    protected void onMeasure(int i, int i2) {
+        super.onMeasure(i, i2);
+        updateMaxTop();
+    }
+
+    private void updateMaxTop() {
+        ChildLayout childLayout;
+        View view = this.targetListView;
+        if (view == null || (childLayout = this.childLayout) == null) {
+            return;
+        }
+        if (childLayout instanceof CachedMediaLayout) {
+            this.maxTop = view.getPaddingTop() + AndroidUtilities.m1124dp(40.0f);
+        } else {
+            this.maxTop = (view.getMeasuredHeight() - this.targetListView.getPaddingBottom()) - this.childLayout.getMeasuredHeight();
+        }
+    }
+
+    @Override // androidx.core.view.NestedScrollingParent3
+    public void onNestedScroll(View view, int i, int i2, int i3, int i4, int i5, int[] iArr) {
+        if (view == this.targetListView && childAttached()) {
+            RecyclerListView listView = this.childLayout.getListView();
+            if (this.childLayout.getTop() <= this.maxTop + AndroidUtilities.m1124dp(4.0f)) {
+                iArr[1] = i4;
+                listView.scrollBy(0, i4);
+            }
+        }
+    }
+
+    @Override // android.view.ViewGroup, android.view.ViewParent
+    public boolean onNestedPreFling(View view, float f, float f2) {
+        return super.onNestedPreFling(view, f, f2);
+    }
+
+    @Override // androidx.core.view.NestedScrollingParent2
+    public void onNestedPreScroll(View view, int i, int i2, int[] iArr, int i3) {
+        if (view == this.targetListView && childAttached()) {
+            int top = this.childLayout.getTop();
+            RecyclerListView listView = this.childLayout.getListView();
+            if (i2 < 0) {
+                if (top <= this.maxTop + AndroidUtilities.m1124dp(4.0f)) {
+                    int iFindFirstVisibleItemPosition = ((LinearLayoutManager) listView.getLayoutManager()).findFirstVisibleItemPosition();
+                    if (iFindFirstVisibleItemPosition != -1) {
+                        RecyclerView.ViewHolder viewHolderFindViewHolderForAdapterPosition = listView.findViewHolderForAdapterPosition(iFindFirstVisibleItemPosition);
+                        int top2 = viewHolderFindViewHolderForAdapterPosition != null ? viewHolderFindViewHolderForAdapterPosition.itemView.getTop() : -1;
+                        int paddingTop = listView.getPaddingTop();
+                        if (top2 == paddingTop && iFindFirstVisibleItemPosition == 0) {
+                            return;
+                        }
+                        iArr[1] = iFindFirstVisibleItemPosition != 0 ? i2 : Math.max(i2, top2 - paddingTop);
+                        listView.scrollBy(0, i2);
+                        return;
+                    }
+                    return;
+                }
+                if (this.bottomSheetContainerView == null || this.targetListView.canScrollVertically(i2)) {
+                    return;
+                }
+                this.bottomSheetContainerView.onNestedScroll(view, 0, 0, i, i2);
+                return;
+            }
+            BottomSheet.ContainerView containerView = this.bottomSheetContainerView;
+            if (containerView != null) {
+                containerView.onNestedPreScroll(view, i, i2, iArr);
+            }
+        }
+    }
+
+    @Override // androidx.core.view.NestedScrollingParent2
+    public boolean onStartNestedScroll(View view, View view2, int i, int i2) {
+        return view != null && view.isAttachedToWindow() && i == 2;
+    }
+
+    @Override // androidx.core.view.NestedScrollingParent2
+    public void onNestedScrollAccepted(View view, View view2, int i, int i2) {
+        this.nestedScrollingParentHelper.onNestedScrollAccepted(view, view2, i);
+    }
+
+    @Override // androidx.core.view.NestedScrollingParent2
+    public void onStopNestedScroll(View view, int i) {
+        this.nestedScrollingParentHelper.onStopNestedScroll(view);
+        BottomSheet.ContainerView containerView = this.bottomSheetContainerView;
+        if (containerView != null) {
+            containerView.onStopNestedScroll(view);
+        }
+    }
+
+    public void setTargetListView(View view) {
+        this.targetListView = view;
+        updateMaxTop();
+    }
+
+    public void setChildLayout(ChildLayout childLayout) {
+        if (this.childLayout != childLayout) {
+            this.childLayout = childLayout;
+            if (this.attached && childLayout != null && childLayout.getListView() != null) {
+                childLayout.getListView().addOnLayoutChangeListener(this);
+            }
+            updateMaxTop();
+        }
+    }
+
+    @Override // org.telegram.p029ui.Components.SizeNotifierFrameLayout, android.view.ViewGroup, android.view.View
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        this.attached = true;
+        ChildLayout childLayout = this.childLayout;
+        if (childLayout != null) {
+            childLayout.addOnLayoutChangeListener(this);
+        }
+    }
+
+    @Override // org.telegram.p029ui.Components.SizeNotifierFrameLayout, android.view.ViewGroup, android.view.View
+    protected void onDetachedFromWindow() {
+        super.onDetachedFromWindow();
+        this.attached = false;
+        ChildLayout childLayout = this.childLayout;
+        if (childLayout != null) {
+            childLayout.removeOnLayoutChangeListener(this);
+        }
+    }
+
+    public boolean isPinnedToTop() {
+        ChildLayout childLayout = this.childLayout;
+        return childLayout != null && childLayout.getTop() == this.maxTop;
+    }
+
+    @Override // android.view.View.OnLayoutChangeListener
+    public void onLayoutChange(View view, int i, int i2, int i3, int i4, int i5, int i6, int i7, int i8) {
+        updateMaxTop();
+    }
+
+    public void setBottomSheetContainerView(BottomSheet.ContainerView containerView) {
+        this.bottomSheetContainerView = containerView;
+    }
+}

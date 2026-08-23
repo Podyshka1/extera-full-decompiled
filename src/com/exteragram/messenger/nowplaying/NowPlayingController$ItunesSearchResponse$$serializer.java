@@ -1,0 +1,102 @@
+package com.exteragram.messenger.nowplaying;
+
+import com.exteragram.messenger.nowplaying.NowPlayingController;
+import java.util.List;
+import kotlin.Lazy;
+import kotlin.jvm.internal.Intrinsics;
+import kotlinx.serialization.DeserializationStrategy;
+import kotlinx.serialization.KSerializer;
+import kotlinx.serialization.UnknownFieldException;
+import kotlinx.serialization.descriptors.SerialDescriptor;
+import kotlinx.serialization.encoding.CompositeDecoder;
+import kotlinx.serialization.encoding.CompositeEncoder;
+import kotlinx.serialization.encoding.Decoder;
+import kotlinx.serialization.encoding.Encoder;
+import kotlinx.serialization.internal.GeneratedSerializer;
+import kotlinx.serialization.internal.IntSerializer;
+import kotlinx.serialization.internal.PluginGeneratedSerialDescriptor;
+
+/* JADX INFO: loaded from: classes.dex */
+public final /* synthetic */ class NowPlayingController$ItunesSearchResponse$$serializer implements GeneratedSerializer {
+    public static final NowPlayingController$ItunesSearchResponse$$serializer INSTANCE;
+    private static final SerialDescriptor descriptor;
+
+    @Override // kotlinx.serialization.KSerializer, kotlinx.serialization.SerializationStrategy, kotlinx.serialization.DeserializationStrategy
+    public final SerialDescriptor getDescriptor() {
+        return descriptor;
+    }
+
+    static {
+        NowPlayingController$ItunesSearchResponse$$serializer nowPlayingController$ItunesSearchResponse$$serializer = new NowPlayingController$ItunesSearchResponse$$serializer();
+        INSTANCE = nowPlayingController$ItunesSearchResponse$$serializer;
+        PluginGeneratedSerialDescriptor pluginGeneratedSerialDescriptor = new PluginGeneratedSerialDescriptor("com.exteragram.messenger.nowplaying.NowPlayingController.ItunesSearchResponse", nowPlayingController$ItunesSearchResponse$$serializer, 2);
+        pluginGeneratedSerialDescriptor.addElement("resultCount", false);
+        pluginGeneratedSerialDescriptor.addElement("results", false);
+        descriptor = pluginGeneratedSerialDescriptor;
+    }
+
+    private NowPlayingController$ItunesSearchResponse$$serializer() {
+    }
+
+    /* JADX WARN: Multi-variable type inference failed */
+    @Override // kotlinx.serialization.internal.GeneratedSerializer
+    public final KSerializer[] childSerializers() {
+        return new KSerializer[]{IntSerializer.INSTANCE, NowPlayingController.ItunesSearchResponse.$childSerializers[1].getValue()};
+    }
+
+    @Override // kotlinx.serialization.DeserializationStrategy
+    public final NowPlayingController.ItunesSearchResponse deserialize(Decoder decoder) {
+        List list;
+        int iDecodeIntElement;
+        int i;
+        Intrinsics.checkNotNullParameter(decoder, "decoder");
+        SerialDescriptor serialDescriptor = descriptor;
+        CompositeDecoder compositeDecoderBeginStructure = decoder.beginStructure(serialDescriptor);
+        Lazy[] lazyArr = NowPlayingController.ItunesSearchResponse.$childSerializers;
+        if (compositeDecoderBeginStructure.decodeSequentially()) {
+            iDecodeIntElement = compositeDecoderBeginStructure.decodeIntElement(serialDescriptor, 0);
+            list = (List) compositeDecoderBeginStructure.decodeSerializableElement(serialDescriptor, 1, (DeserializationStrategy) lazyArr[1].getValue(), null);
+            i = 3;
+        } else {
+            boolean z = true;
+            int iDecodeIntElement2 = 0;
+            int i2 = 0;
+            List list2 = null;
+            while (z) {
+                int iDecodeElementIndex = compositeDecoderBeginStructure.decodeElementIndex(serialDescriptor);
+                if (iDecodeElementIndex == -1) {
+                    z = false;
+                } else if (iDecodeElementIndex == 0) {
+                    iDecodeIntElement2 = compositeDecoderBeginStructure.decodeIntElement(serialDescriptor, 0);
+                    i2 |= 1;
+                } else {
+                    if (iDecodeElementIndex != 1) {
+                        throw new UnknownFieldException(iDecodeElementIndex);
+                    }
+                    list2 = (List) compositeDecoderBeginStructure.decodeSerializableElement(serialDescriptor, 1, (DeserializationStrategy) lazyArr[1].getValue(), list2);
+                    i2 |= 2;
+                }
+            }
+            list = list2;
+            iDecodeIntElement = iDecodeIntElement2;
+            i = i2;
+        }
+        compositeDecoderBeginStructure.endStructure(serialDescriptor);
+        return new NowPlayingController.ItunesSearchResponse(i, iDecodeIntElement, list, null);
+    }
+
+    @Override // kotlinx.serialization.SerializationStrategy
+    public final void serialize(Encoder encoder, NowPlayingController.ItunesSearchResponse value) {
+        Intrinsics.checkNotNullParameter(encoder, "encoder");
+        Intrinsics.checkNotNullParameter(value, "value");
+        SerialDescriptor serialDescriptor = descriptor;
+        CompositeEncoder compositeEncoderBeginStructure = encoder.beginStructure(serialDescriptor);
+        NowPlayingController.ItunesSearchResponse.write$Self$TMessagesProj_fullAfatRelease(value, compositeEncoderBeginStructure, serialDescriptor);
+        compositeEncoderBeginStructure.endStructure(serialDescriptor);
+    }
+
+    @Override // kotlinx.serialization.internal.GeneratedSerializer
+    public /* bridge */ KSerializer[] typeParametersSerializers() {
+        return GeneratedSerializer.CC.$default$typeParametersSerializers(this);
+    }
+}

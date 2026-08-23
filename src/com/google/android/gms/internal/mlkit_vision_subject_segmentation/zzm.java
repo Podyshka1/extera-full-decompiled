@@ -1,0 +1,47 @@
+package com.google.android.gms.internal.mlkit_vision_subject_segmentation;
+
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
+
+/* JADX INFO: loaded from: classes4.dex */
+final class zzm extends zzbd {
+    final /* synthetic */ zzo zza;
+
+    zzm(zzo zzoVar) {
+        this.zza = zzoVar;
+    }
+
+    @Override // com.google.android.gms.internal.mlkit_vision_subject_segmentation.zzbd, java.util.AbstractCollection, java.util.Collection, java.util.Set
+    public final boolean contains(Object obj) {
+        Set setEntrySet = this.zza.zza.entrySet();
+        setEntrySet.getClass();
+        try {
+            return setEntrySet.contains(obj);
+        } catch (ClassCastException | NullPointerException unused) {
+            return false;
+        }
+    }
+
+    @Override // java.util.AbstractCollection, java.util.Collection, java.lang.Iterable, java.util.Set
+    public final Iterator iterator() {
+        return new zzn(this.zza);
+    }
+
+    @Override // java.util.AbstractCollection, java.util.Collection, java.util.Set
+    public final boolean remove(Object obj) {
+        if (!contains(obj)) {
+            return false;
+        }
+        Map.Entry entry = (Map.Entry) obj;
+        entry.getClass();
+        zzo zzoVar = this.zza;
+        zzw.zzk(zzoVar.zzb, entry.getKey());
+        return true;
+    }
+
+    @Override // com.google.android.gms.internal.mlkit_vision_subject_segmentation.zzbd
+    final Map zza() {
+        return this.zza;
+    }
+}
