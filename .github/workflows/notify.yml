@@ -1,4 +1,4 @@
-name: Notify Telegram
+name: Notify
 
 on:
   push:
@@ -7,44 +7,204 @@ on:
   watch:
   fork:
   issues:
-    types: [opened, closed, reopened]
+    types: [opened, closed, reopened, edited, assigned, labeled]
   pull_request:
-    types: [opened, closed, reopened]
+    types: [opened, closed, reopened, synchronize, edited, assigned, labeled]
+  pull_request_review:
+    types: [submitted, edited, dismissed]
+  release:
+    types: [published, created, edited, deleted, prereleased]
+  discussion:
+    types: [created, edited, deleted, answered]
+  gollum:
+  member:
+    types: [added, edited, removed]
+  public:
+  deployment:
+    types: [created]
+  deployment_status:
+  page_build:
+  project:
+    types: [created, edited, closed, reopened, deleted]
+  project_card:
+    types: [created, edited, moved, converted, deleted]
+  project_column:
+    types: [created, edited, moved, deleted]
+  registry_package:
+    types: [published, updated]
+  status:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
 
 jobs:
   notify:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
-      - name: Send to Telegram Topic
-        uses: appleboy/telegram-action@master
-        with:
-          to: ${{ secrets.TELEGRAM_CHAT_ID }}
-          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          message_thread_id: ${{ secrets.CHAT_THREAD_ID }}
-          format: markdown
-          message: |
-            ${{ github.event_name == 'push' && format('📝 Push in `{0}`
-            
-            {1}
-            
-            [View commit]({2})', github.repository, github.event.head_commit.message, github.event.head_commit.url) || '' }}${{ github.event_name == 'create' && format('✨ Created `{0}` in `{1}`
-            
-            [View on GitHub]({2})', github.event.ref, github.repository, github.event.repository.html_url) || '' }}${{ github.event_name == 'delete' && format('🗑️ Deleted `{0}` from `{1}`
-            
-            [View on GitHub]({2})', github.event.ref, github.repository, github.event.repository.html_url) || '' }}${{ github.event_name == 'watch' && format('⭐ New star on `{0}`
-            
-            Total stars: {1}
-            
-            [View on GitHub]({2})', github.repository, github.event.repository.stargazers_count, github.event.repository.html_url) || '' }}${{ github.event_name == 'fork' && format('🍴 New fork of `{0}`
-            
-            By: `{1}`
-            
-            [View fork]({2})', github.repository, github.event.forkee.owner.login, github.event.forkee.html_url) || '' }}${{ github.event_name == 'issues' && format('📌 Issue {0} in `{1}`
-            
-            {2}
-            
-            [View issue]({3})', github.event.action, github.repository, github.event.issue.title, github.event.issue.html_url) || '' }}${{ github.event_name == 'pull_request' && format('🔀 PR {0} in `{1}`
-            
-            {2}
-            
-            [View PR]({3})', github.event.action, github.repository, github.event.pull_request.title, github.event.pull_request.html_url) || '' }}
+      - name: Build message
+        id: build
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REPO: ${{ github.repository }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          EVENT_PATH="${GITHUB_EVENT_PATH:-}"
+          REPO_URL="https://github.com/${REPO}"
+
+          jqval() {
+            if [ -n "$EVENT_PATH" ] && [ -f "$EVENT_PATH" ]; then
+              jq -r "$1 // empty" "$EVENT_PATH"
+            fi
+          }
+
+          TITLE=""
+          LINK="$REPO_URL"
+
+          case "$EVENT_NAME" in
+            push)
+              TITLE=$(jqval '.head_commit.message')
+              LINK=$(jqval '.head_commit.url // .compare')
+              ;;
+            create|delete)
+              REF_TYPE=$(jqval '.ref_type')
+              REF=$(jqval '.ref')
+              TITLE="${REF_TYPE}: ${REF}"
+              ;;
+            fork)
+              TITLE=$(jqval '.forkee.full_name')
+              LINK=$(jqval '.forkee.html_url')
+              ;;
+            watch)
+              WHO=$(jqval '.sender.login')
+              TITLE="⭐ ${WHO} поставил звезду"
+              LINK=$(jqval '.sender.html_url')
+              ;;
+            public)
+              TITLE="Репозиторий стал публичным"
+              ;;
+            issues)
+              TITLE=$(jqval '.issue.title')
+              LINK=$(jqval '.issue.html_url')
+              ;;
+            pull_request)
+              TITLE=$(jqval '.pull_request.title')
+              LINK=$(jqval '.pull_request.html_url')
+              ;;
+            pull_request_review)
+              STATE=$(jqval '.review.state')
+              BODY=$(jqval '.review.body')
+              TITLE="${BODY:-Review: ${STATE}}"
+              LINK=$(jqval '.review.html_url')
+              ;;
+            release)
+              TITLE=$(jqval '.release.name // .release.tag_name')
+              LINK=$(jqval '.release.html_url')
+              ;;
+            registry_package)
+              TITLE=$(jqval '.registry_package.name')
+              LINK=$(jqval '.registry_package.package_version.html_url // .registry_package.html_url')
+              ;;
+            discussion)
+              TITLE=$(jqval '.discussion.title')
+              LINK=$(jqval '.discussion.html_url')
+              ;;
+            gollum)
+              TITLE=$(jqval '.pages[0].title // .pages[0].page_name')
+              LINK=$(jqval '.pages[0].html_url')
+              ;;
+            member)
+              WHO=$(jqval '.member.login')
+              ACTION=$(jqval '.action')
+              TITLE="${WHO}: ${ACTION}"
+              LINK=$(jqval '.member.html_url')
+              ;;
+            deployment)
+              TITLE=$(jqval '.deployment.description // .deployment.environment')
+              ;;
+            deployment_status)
+              TITLE=$(jqval '.deployment_status.description // .deployment_status.state')
+              LINK=$(jqval '.deployment_status.target_url')
+              ;;
+            page_build)
+              TITLE=$(jqval '.build.error.message // "Сборка GitHub Pages завершена"')
+              ;;
+            status)
+              TITLE=$(jqval '.description // .state')
+              LINK=$(jqval '.target_url')
+              ;;
+            project)
+              TITLE=$(jqval '.project.name')
+              LINK=$(jqval '.project.html_url')
+              ;;
+            project_card)
+              TITLE=$(jqval '.project_card.note // "Карточка обновлена"')
+              ;;
+            project_column)
+              TITLE=$(jqval '.project_column.name')
+              ;;
+            schedule)
+              TITLE="Ежедневная проверка"
+              ;;
+            workflow_dispatch)
+              TITLE="Запущено вручную (${ACTOR})"
+              ;;
+          esac
+
+          [ -z "$TITLE" ] && TITLE="$EVENT_NAME"
+          [ -z "$LINK" ] && LINK="$REPO_URL"
+
+          DELIM="EOF_$(openssl rand -hex 8)"
+          {
+            echo "title<<$DELIM"
+            echo "$TITLE"
+            echo "$DELIM"
+            echo "link<<$DELIM"
+            echo "$LINK"
+            echo "$DELIM"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Get GitHub OIDC token
+        id: oidc
+        run: |
+          set -euo pipefail
+          OIDC_TOKEN=$(curl --fail-with-body --silent --show-error \
+            -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=https%3A%2F%2Fpdshknotif.duckdns.org" \
+            | jq -er '.value')
+          echo "::add-mask::${OIDC_TOKEN}"
+          echo "token=${OIDC_TOKEN}" >> "$GITHUB_OUTPUT"
+
+      - name: Send notification
+        env:
+          CHAT_ID: ${{ secrets.NOTIFY_CHAT_ID }}
+          THREAD_ID: ${{ secrets.NOTIFY_THREAD_ID }}
+          REPO: ${{ github.repository }}
+          EVENT_NAME: ${{ github.event_name }}
+          TITLE: ${{ steps.build.outputs.title }}
+          LINK: ${{ steps.build.outputs.link }}
+          OIDC_TOKEN: ${{ steps.oidc.outputs.token }}
+          DELIVERY_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          TEXT=$(jq -n \
+            --arg event "$EVENT_NAME" \
+            --arg repo "$REPO" \
+            --arg title "$TITLE" \
+            --arg link "$LINK" \
+            -r '"🚀 *" + $event + "* in `" + $repo + "`\n\n" + $title + "\n\n[View on GitHub](" + $link + ")"')
+
+          PAYLOAD=$(jq -n \
+            --arg chat_id "$CHAT_ID" \
+            --arg thread_id "${THREAD_ID:-0}" \
+            --arg repo "$REPO" \
+            --arg text "$TEXT" \
+            --arg delivery_id "$DELIVERY_ID" \
+            '{chat_id: $chat_id, thread_id: ($thread_id | tonumber), repo: $repo, text: $text, delivery_id: $delivery_id}')
+
+          curl --fail-with-body --silent --show-error -X POST https://pdshknotif.duckdns.org/webhook \
+            -H "Authorization: Bearer ${OIDC_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD"
