@@ -20,7 +20,7 @@ jobs:
         with:
           to: ${{ secrets.TELEGRAM_CHAT_ID }}
           token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          message_thread_id: 1
+          message_thread_id: ${{ secrets.CHAT_THREAD_ID }}
           format: markdown
           message: |
             ${{ github.event_name == 'push' && format('📝 Push in `{0}`
