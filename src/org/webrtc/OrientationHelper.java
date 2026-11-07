@@ -1,0 +1,68 @@
+package org.webrtc;
+
+import android.view.OrientationEventListener;
+import org.telegram.messenger.ApplicationLoader;
+
+/* JADX INFO: loaded from: classes6.dex */
+public class OrientationHelper {
+    private static final int ORIENTATION_HYSTERESIS = 5;
+    public static volatile int cameraOrientation;
+    public static volatile int cameraRotation;
+    public static volatile boolean cameraRotationDisabled;
+    private OrientationEventListener orientationEventListener = new OrientationEventListener(ApplicationLoader.applicationContext) { // from class: org.webrtc.OrientationHelper.1
+        @Override // android.view.OrientationEventListener
+        public void onOrientationChanged(int i) {
+            if (OrientationHelper.this.orientationEventListener == null || i == -1) {
+                return;
+            }
+            OrientationHelper orientationHelper = OrientationHelper.this;
+            int iRoundOrientation = orientationHelper.roundOrientation(i, orientationHelper.rotation);
+            if (iRoundOrientation != OrientationHelper.this.rotation) {
+                OrientationHelper orientationHelper2 = OrientationHelper.this;
+                orientationHelper2.rotation = iRoundOrientation;
+                orientationHelper2.onOrientationUpdate(iRoundOrientation);
+            }
+        }
+    };
+    private int rotation;
+
+    public void onOrientationUpdate(int i) {
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public int roundOrientation(int i, int i2) {
+        if (i2 != -1) {
+            int iAbs = Math.abs(i - i2);
+            if (Math.min(iAbs, 360 - iAbs) < 50) {
+                return i2;
+            }
+        }
+        return (((i + 45) / 90) * 90) % 360;
+    }
+
+    public void start() {
+        boolean zCanDetectOrientation = this.orientationEventListener.canDetectOrientation();
+        OrientationEventListener orientationEventListener = this.orientationEventListener;
+        if (zCanDetectOrientation) {
+            orientationEventListener.enable();
+        } else {
+            orientationEventListener.disable();
+            this.orientationEventListener = null;
+        }
+    }
+
+    public void stop() {
+        OrientationEventListener orientationEventListener = this.orientationEventListener;
+        if (orientationEventListener != null) {
+            orientationEventListener.disable();
+            this.orientationEventListener = null;
+        }
+    }
+
+    public int getOrientation() {
+        if (cameraRotationDisabled) {
+            return 0;
+        }
+        return this.rotation;
+    }
+}

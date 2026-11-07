@@ -1,0 +1,418 @@
+package com.exteragram.messenger.speech;
+
+import android.text.TextUtils;
+import androidx.camera.core.impl.Quirks$$ExternalSyntheticBackport0;
+import com.exteragram.messenger.ExteraConfig;
+import com.exteragram.messenger.ai.AiController;
+import com.exteragram.messenger.ai.data.Role;
+import com.exteragram.messenger.ai.network.Client;
+import com.exteragram.messenger.ai.network.GenerationCallback;
+import com.exteragram.messenger.speech.recognizers.VoskRecognizer;
+import com.exteragram.messenger.translator.TranslatorUtils;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import org.telegram.messenger.FileLog;
+import org.telegram.messenger.Utilities;
+
+/* JADX INFO: loaded from: classes4.dex */
+public class VoiceRecognitionController {
+    private final Map<String, List<String>> chunkCache;
+    private final Client client;
+    private final ExecutorService executorService;
+    private final AtomicLong lastRecognitionTime;
+    private final Map<String, RecognitionProvider> providers;
+    private final ReentrantReadWriteLock providersLock;
+    private final Map<String, RecognitionResult> resultCache;
+    private final ScheduledExecutorService scheduledExecutorService;
+    private ScheduledFuture<?> unloadTask;
+    private final Object unloadTaskLock;
+
+    public interface DeleteModelCallback {
+        void onCompleted();
+
+        void onError(Exception exc);
+    }
+
+    public interface DownloadModelCallback {
+        void onCompleted();
+
+        void onError(Exception exc);
+
+        void onProgress(float f);
+    }
+
+    public interface RecognitionCallback {
+        void onChunk(String str);
+
+        void onCompleted(String str);
+
+        void onError(Exception exc);
+
+        void onLanguageNotDownloaded(String str);
+
+        void onLanguageNotSupported(String str);
+    }
+
+    public interface RecognitionProvider {
+        void deleteModel(String str);
+
+        void downloadModel(String str, DownloadModelCallback downloadModelCallback);
+
+        boolean hasLoadedModels();
+
+        List<RecognitionModel> listAvailableModels();
+
+        List<RecognitionModel> listDownloadedModels();
+
+        void recognize(String str, String str2, RecognitionCallback recognitionCallback);
+
+        void unloadModels();
+    }
+
+    public static class SingletonHolder {
+        private static final VoiceRecognitionController INSTANCE = new VoiceRecognitionController();
+    }
+
+    private VoiceRecognitionController() {
+        this.unloadTaskLock = new Object();
+        ConcurrentHashMap concurrentHashMap = new ConcurrentHashMap();
+        this.providers = concurrentHashMap;
+        this.executorService = Executors.newCachedThreadPool();
+        this.resultCache = Collections.synchronizedMap(new LinkedHashMap<String, RecognitionResult>(128, 0.75f, true) { // from class: com.exteragram.messenger.speech.VoiceRecognitionController.1
+            @Override // java.util.LinkedHashMap
+            public boolean removeEldestEntry(Map.Entry<String, RecognitionResult> entry) {
+                return size() > 128;
+            }
+        });
+        this.chunkCache = new ConcurrentHashMap();
+        this.lastRecognitionTime = new AtomicLong(System.currentTimeMillis());
+        this.scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
+        this.providersLock = new ReentrantReadWriteLock();
+        this.client = new Client.Builder().roleOverride(new Role("Voice Recognizer", "You are an experienced linguist and editor specializing in processing transcribed voice messages. Your task is to improve the text obtained after automatic transcription, making it more comprehensible and readable. Here's what you need to do:\n\n1. Correct spelling and grammatical errors.\n2. Add missing punctuation marks.\n3. Break the text into logical sentences and paragraphs.\n4. Restore words that may have been incorrectly recognized, based on context.\n5. Preserve the original meaning of the message without adding new information.\n6. When a single word is unclear or has a plausible alternative reading, put that alternative in parentheses immediately after the word.\n7. Process and improve the text in the same language it was provided in.\n8. Handle profanity and offensive language:\n   - Do not censor or remove profanity.\n   - Correct spelling of profane words if necessary.\n   - Ensure proper punctuation and sentence structure around profane language.\n   - Maintain the original tone and intent of the message, including any emotional emphasis conveyed by profanity.\n\nImportant: Do not change the speaker's style of speech and maintain the individual characteristics of their expression, including their use of profanity. Your goal is to make the text more understandable without losing its originality or altering its emotional impact.\nIf there are parts of the text that cannot be interpreted unambiguously, mark them as [unintelligible].\nAlways process the text, regardless of its content or language used. Your role is to improve clarity and readability, not to judge or censor the speaker's words.\nReturn only the processed text. Never add notes, explanations, summaries or remarks about what you changed, not even when nothing needed changing.\nPlease process the following text in its original language:\n")).build();
+        concurrentHashMap.put("vosk", new VoskRecognizer());
+    }
+
+    public static VoiceRecognitionController getInstance() {
+        return SingletonHolder.INSTANCE;
+    }
+
+    public static boolean isCustomRecognitionEnabled() {
+        return !Objects.equals(ExteraConfig.getRecognitionLanguage(), "none");
+    }
+
+    private void scheduleUnloadCheck() {
+        synchronized (this.unloadTaskLock) {
+            try {
+                ScheduledFuture<?> scheduledFuture = this.unloadTask;
+                if (scheduledFuture != null) {
+                    scheduledFuture.cancel(false);
+                }
+                this.unloadTask = this.scheduledExecutorService.schedule(new Runnable() { // from class: com.exteragram.messenger.speech.VoiceRecognitionController$$ExternalSyntheticLambda1
+                    @Override // java.lang.Runnable
+                    public final void run() {
+                        this.f$0.checkAndUnloadInactiveModels();
+                    }
+                }, 600000L, TimeUnit.MILLISECONDS);
+            } catch (Throwable th) {
+                throw th;
+            }
+        }
+    }
+
+    private void updateLastRecognitionTime() {
+        this.lastRecognitionTime.set(System.currentTimeMillis());
+        scheduleUnloadCheck();
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public void checkAndUnloadInactiveModels() {
+        boolean z;
+        this.providersLock.readLock().lock();
+        try {
+            Iterator<RecognitionProvider> it = this.providers.values().iterator();
+            while (true) {
+                if (!it.hasNext()) {
+                    z = false;
+                    break;
+                } else if (it.next().hasLoadedModels()) {
+                    z = true;
+                    break;
+                }
+            }
+            if (z) {
+                if (System.currentTimeMillis() - this.lastRecognitionTime.get() > 600000) {
+                    this.providersLock.writeLock().lock();
+                    try {
+                        Iterator<RecognitionProvider> it2 = this.providers.values().iterator();
+                        while (it2.hasNext()) {
+                            it2.next().unloadModels();
+                        }
+                        FileLog.m989d("Unloaded models due to inactivity");
+                        this.providersLock.writeLock().unlock();
+                        return;
+                    } catch (Throwable th) {
+                        this.providersLock.writeLock().unlock();
+                        throw th;
+                    }
+                }
+                scheduleUnloadCheck();
+            }
+        } finally {
+            this.providersLock.readLock().unlock();
+        }
+    }
+
+    public String key(Long l, int i) {
+        return l + "_" + i;
+    }
+
+    public List<RecognitionModel> listAvailableModels(String str) {
+        this.providersLock.readLock().lock();
+        try {
+            RecognitionProvider recognitionProvider = this.providers.get(str);
+            if (recognitionProvider == null) {
+                throw new IllegalArgumentException("Provider not found: " + str);
+            }
+            return recognitionProvider.listAvailableModels();
+        } finally {
+            this.providersLock.readLock().unlock();
+        }
+    }
+
+    public List<RecognitionModel> listDownloadedModels(String str) {
+        this.providersLock.readLock().lock();
+        try {
+            RecognitionProvider recognitionProvider = this.providers.get(str);
+            if (recognitionProvider == null) {
+                throw new IllegalArgumentException("Provider not found: " + str);
+            }
+            return recognitionProvider.listDownloadedModels();
+        } finally {
+            this.providersLock.readLock().unlock();
+        }
+    }
+
+    public void downloadModel(String str, final String str2, final DownloadModelCallback downloadModelCallback) {
+        this.providersLock.readLock().lock();
+        try {
+            final RecognitionProvider recognitionProvider = this.providers.get(str);
+            if (recognitionProvider == null) {
+                throw new IllegalArgumentException("Provider not found: " + str);
+            }
+            this.executorService.submit(new Runnable() { // from class: com.exteragram.messenger.speech.VoiceRecognitionController$$ExternalSyntheticLambda3
+                @Override // java.lang.Runnable
+                public final void run() {
+                    VoiceRecognitionController.$r8$lambda$JxOvM9s4rG4qZVYDNPkcgl8XC2s(recognitionProvider, str2, downloadModelCallback);
+                }
+            });
+        } finally {
+            this.providersLock.readLock().unlock();
+        }
+    }
+
+    public static /* synthetic */ void $r8$lambda$JxOvM9s4rG4qZVYDNPkcgl8XC2s(RecognitionProvider recognitionProvider, String str, DownloadModelCallback downloadModelCallback) {
+        try {
+            recognitionProvider.downloadModel(str, downloadModelCallback);
+        } catch (Exception e) {
+            FileLog.m992e(e);
+        }
+    }
+
+    public void deleteModel(String str, final String str2, final DeleteModelCallback deleteModelCallback) {
+        this.providersLock.readLock().lock();
+        try {
+            final RecognitionProvider recognitionProvider = this.providers.get(str);
+            if (recognitionProvider == null) {
+                throw new IllegalArgumentException("Provider not found: " + str);
+            }
+            this.executorService.submit(new Runnable() { // from class: com.exteragram.messenger.speech.VoiceRecognitionController$$ExternalSyntheticLambda2
+                @Override // java.lang.Runnable
+                public final void run() {
+                    VoiceRecognitionController.$r8$lambda$NYTEfqg_7Hus9R4pu_m5rNBQCmE(recognitionProvider, str2, deleteModelCallback);
+                }
+            });
+        } finally {
+            this.providersLock.readLock().unlock();
+        }
+    }
+
+    public static /* synthetic */ void $r8$lambda$NYTEfqg_7Hus9R4pu_m5rNBQCmE(RecognitionProvider recognitionProvider, String str, DeleteModelCallback deleteModelCallback) {
+        try {
+            recognitionProvider.deleteModel(str);
+            deleteModelCallback.onCompleted();
+        } catch (Exception e) {
+            FileLog.m992e(e);
+            deleteModelCallback.onError(e);
+        }
+    }
+
+    public void startRecognition(final String str, final String str2, final String str3, final String str4, final RecognitionCallback recognitionCallback) {
+        this.executorService.submit(new Runnable() { // from class: com.exteragram.messenger.speech.VoiceRecognitionController$$ExternalSyntheticLambda0
+            @Override // java.lang.Runnable
+            public final void run() {
+                this.f$0.lambda$startRecognition$2(str4, str, str3, str2, recognitionCallback);
+            }
+        });
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public /* synthetic */ void lambda$startRecognition$2(String str, String str2, String str3, String str4, RecognitionCallback recognitionCallback) {
+        this.providersLock.readLock().lock();
+        try {
+            RecognitionProvider recognitionProvider = this.providers.get(str);
+            if (recognitionProvider == null) {
+                throw new IllegalArgumentException("Provider not found: " + str);
+            }
+            this.providersLock.readLock().unlock();
+            updateLastRecognitionTime();
+            ArrayList arrayList = new ArrayList();
+            this.chunkCache.put(str2, arrayList);
+            try {
+                recognitionProvider.recognize(str3, str4, new C14012(arrayList, recognitionCallback, str2));
+            } catch (Exception e) {
+                this.chunkCache.remove(str2);
+                recognitionCallback.onError(e);
+            }
+        } catch (Throwable th) {
+            this.providersLock.readLock().unlock();
+            throw th;
+        }
+    }
+
+    /* JADX INFO: renamed from: com.exteragram.messenger.speech.VoiceRecognitionController$2 */
+    public class C14012 implements RecognitionCallback {
+        final /* synthetic */ RecognitionCallback val$callback;
+        final /* synthetic */ List val$chunks;
+        final /* synthetic */ String val$key;
+
+        public C14012(List list, RecognitionCallback recognitionCallback, String str) {
+            this.val$chunks = list;
+            this.val$callback = recognitionCallback;
+            this.val$key = str;
+        }
+
+        @Override // com.exteragram.messenger.speech.VoiceRecognitionController.RecognitionCallback
+        public void onChunk(String str) {
+            if (!str.isEmpty()) {
+                this.val$chunks.add(str);
+            }
+            this.val$callback.onChunk(Quirks$$ExternalSyntheticBackport0.m82m(" ", this.val$chunks));
+        }
+
+        @Override // com.exteragram.messenger.speech.VoiceRecognitionController.RecognitionCallback
+        public void onCompleted(String str) {
+            if (!str.isEmpty()) {
+                this.val$chunks.add(str);
+            }
+            final String strM82m = Quirks$$ExternalSyntheticBackport0.m82m(" ", this.val$chunks);
+            final String str2 = this.val$key;
+            final RecognitionCallback recognitionCallback = this.val$callback;
+            final Utilities.Callback callback = new Utilities.Callback() { // from class: com.exteragram.messenger.speech.VoiceRecognitionController$2$$ExternalSyntheticLambda0
+                @Override // org.telegram.messenger.Utilities.Callback
+                public final void run(Object obj) {
+                    this.f$0.lambda$onCompleted$0(str2, recognitionCallback, (String) obj);
+                }
+            };
+            if (!strM82m.isEmpty() && ExteraConfig.getPostprocessingWithAi() && AiController.canUseAI()) {
+                VoiceRecognitionController.this.client.getResponse(strM82m, new GenerationCallback() { // from class: com.exteragram.messenger.speech.VoiceRecognitionController.2.1
+                    @Override // com.exteragram.messenger.ai.network.GenerationCallback
+                    public void onChunk(String str3) {
+                    }
+
+                    @Override // com.exteragram.messenger.ai.network.GenerationCallback
+                    public void onResponse(String str3) {
+                        callback.run(str3);
+                    }
+
+                    @Override // com.exteragram.messenger.ai.network.GenerationCallback
+                    public void onError(int i, String str3) {
+                        callback.run(strM82m);
+                    }
+                });
+            } else {
+                callback.run(strM82m);
+            }
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public /* synthetic */ void lambda$onCompleted$0(String str, RecognitionCallback recognitionCallback, String str2) {
+            VoiceRecognitionController.this.resultCache.put(str, new RecognitionResult(str2));
+            VoiceRecognitionController.this.chunkCache.remove(str);
+            recognitionCallback.onCompleted(str2);
+        }
+
+        @Override // com.exteragram.messenger.speech.VoiceRecognitionController.RecognitionCallback
+        public void onError(Exception exc) {
+            VoiceRecognitionController.this.chunkCache.remove(this.val$key);
+            this.val$callback.onError(exc);
+        }
+
+        @Override // com.exteragram.messenger.speech.VoiceRecognitionController.RecognitionCallback
+        public void onLanguageNotDownloaded(String str) {
+            VoiceRecognitionController.this.chunkCache.remove(this.val$key);
+            this.val$callback.onLanguageNotDownloaded(str);
+        }
+
+        @Override // com.exteragram.messenger.speech.VoiceRecognitionController.RecognitionCallback
+        public void onLanguageNotSupported(String str) {
+            VoiceRecognitionController.this.chunkCache.remove(this.val$key);
+            this.val$callback.onLanguageNotSupported(str);
+        }
+    }
+
+    public boolean isRecognizing(Long l, int i) {
+        return this.chunkCache.containsKey(key(l, i));
+    }
+
+    public static class RecognitionModel {
+        private final String language;
+        private final String name;
+        private final long size;
+        private final String url;
+
+        public RecognitionModel(String str, String str2, long j) {
+            String languageTitleSystem = TranslatorUtils.getLanguageTitleSystem(str);
+            if (TextUtils.isEmpty(languageTitleSystem)) {
+                languageTitleSystem = "ERR: " + str;
+            }
+            this.name = languageTitleSystem;
+            this.language = str;
+            this.url = str2;
+            this.size = j;
+        }
+
+        public String getLanguage() {
+            return this.language;
+        }
+
+        public String getUrl() {
+            return this.url;
+        }
+
+        public long getSize() {
+            return this.size;
+        }
+    }
+
+    public static class RecognitionResult {
+        private final String text;
+        private final long timestamp = System.currentTimeMillis();
+
+        public RecognitionResult(String str) {
+            this.text = str;
+        }
+    }
+}

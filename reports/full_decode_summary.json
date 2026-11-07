@@ -1,0 +1,23 @@
+{
+  "run_started_utc": "unix:1794081186",
+  "run_finished_utc": "unix:1794083554",
+  "version": "12.10.6",
+  "apk_path": "D:\\codes\\extera decompiled\\versions\\12.10.6\\exteraGram-full-universal-20261004.apk",
+  "output_dir": "D:\\codes\\extera decompiled\\versions\\12.10.6\\decoded",
+  "apk_size_bytes": 116847562,
+  "dex_files": 7,
+  "dex_size_bytes": 60972556,
+  "classes_total": 56934,
+  "jadx_classes": 19393,
+  "obfuscated_class_candidates": 81,
+  "decoded_strings_found": 8073,
+  "steps": [
+    {"name": "extract_apk", "ok": true, "details": "DEX-файлов: 7"},
+    {"name": "parse_dex", "ok": true, "details": "классов: 56934"},
+    {"name": "apktool", "ok": true, "details": "ok"},
+    {"name": "jadx", "ok": true, "details": "частичный успех; Java-файлов: 19393"},
+    {"name": "strings_report", "ok": true, "details": "декодировано: 8073"},
+    {"name": "obfuscation_report", "ok": true, "details": "кандидатов-классов: 81"},
+    {"name": "normalize_lf", "ok": true, "details": "изменено файлов: 81297; создан .gitattributes"}
+  ]
+}

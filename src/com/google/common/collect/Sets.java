@@ -1,0 +1,355 @@
+package com.google.common.collect;
+
+import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.Collections2;
+import java.util.AbstractSet;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
+import java.util.Iterator;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.concurrent.ConcurrentHashMap;
+
+/* JADX INFO: loaded from: classes5.dex */
+public abstract class Sets {
+
+    /* JADX INFO: renamed from: com.google.common.collect.Sets$1 */
+    abstract class AbstractC18431 extends SetView<Object> {
+    }
+
+    public static abstract class ImprovedAbstractSet<E> extends AbstractSet<E> {
+        @Override // java.util.AbstractSet, java.util.AbstractCollection, java.util.Collection, java.util.Set
+        public boolean removeAll(Collection<?> collection) {
+            return Sets.removeAllImpl(this, collection);
+        }
+
+        @Override // java.util.AbstractCollection, java.util.Collection, java.util.Set
+        public boolean retainAll(Collection<?> collection) {
+            return super.retainAll((Collection) Preconditions.checkNotNull(collection));
+        }
+    }
+
+    public static <E> HashSet<E> newHashSet() {
+        return new HashSet<>();
+    }
+
+    public static <E> HashSet<E> newHashSetWithExpectedSize(int i) {
+        return new HashSet<>(Maps.capacity(i));
+    }
+
+    public static <E> Set<E> newConcurrentHashSet() {
+        return Collections.newSetFromMap(new ConcurrentHashMap());
+    }
+
+    public static <E> Set<E> newIdentityHashSet() {
+        return Collections.newSetFromMap(new IdentityHashMap());
+    }
+
+    public static abstract class SetView<E> extends AbstractSet<E> {
+        @Override // java.util.AbstractCollection, java.util.Collection, java.lang.Iterable, java.util.Set
+        public abstract UnmodifiableIterator<E> iterator();
+
+        public abstract int maxSize();
+
+        public abstract int minSize();
+
+        public /* synthetic */ SetView(AbstractC18431 abstractC18431) {
+            this();
+        }
+
+        private SetView() {
+        }
+
+        @Override // java.util.AbstractCollection, java.util.Collection, java.util.Set
+        @Deprecated
+        public final boolean add(E e) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override // java.util.AbstractCollection, java.util.Collection, java.util.Set
+        @Deprecated
+        public final boolean remove(Object obj) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override // java.util.AbstractCollection, java.util.Collection, java.util.Set
+        @Deprecated
+        public final boolean addAll(Collection<? extends E> collection) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override // java.util.AbstractSet, java.util.AbstractCollection, java.util.Collection, java.util.Set
+        @Deprecated
+        public final boolean removeAll(Collection<?> collection) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override // java.util.AbstractCollection, java.util.Collection, java.util.Set
+        @Deprecated
+        public final boolean retainAll(Collection<?> collection) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override // java.util.AbstractCollection, java.util.Collection, java.util.Set
+        @Deprecated
+        public final void clear() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override // java.util.AbstractSet, java.util.Collection, java.util.Set
+        public boolean equals(Object obj) {
+            Set set;
+            int iMaxSize;
+            int iMinSize;
+            if (obj == this) {
+                return true;
+            }
+            if (!(obj instanceof Set) || minSize() > (iMaxSize = maxSize((set = (Set) obj))) || maxSize() < (iMinSize = minSize(set))) {
+                return false;
+            }
+            UnmodifiableIterator<E> it = iterator();
+            int i = 0;
+            while (it.hasNext()) {
+                try {
+                    if (!set.contains(it.next())) {
+                        return false;
+                    }
+                    i++;
+                } catch (ClassCastException | NullPointerException unused) {
+                    return false;
+                }
+            }
+            if (i == iMaxSize) {
+                return true;
+            }
+            if (i < iMinSize) {
+                return false;
+            }
+            Iterator<E> it2 = set.iterator();
+            int i2 = 0;
+            while (it2.hasNext()) {
+                it2.next();
+                i2++;
+                if (i2 > i) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        public static int minSize(Set<?> set) {
+            return set instanceof SetView ? ((SetView) set).minSize() : set.size();
+        }
+
+        public static int maxSize(Set<?> set) {
+            return set instanceof SetView ? ((SetView) set).maxSize() : set.size();
+        }
+    }
+
+    public static <E> SetView<E> intersection(final Set<E> set, final Set<?> set2) {
+        Preconditions.checkNotNull(set, "set1");
+        Preconditions.checkNotNull(set2, "set2");
+        return new SetView<E>() { // from class: com.google.common.collect.Sets.2
+            @Override // com.google.common.collect.Sets.SetView
+            public int minSize() {
+                return 0;
+            }
+
+            /* JADX WARN: 'super' call moved to the top of the method (can break code semantics) */
+            {
+                super(null);
+            }
+
+            @Override // java.util.AbstractCollection, java.util.Collection, java.lang.Iterable, java.util.Set
+            public UnmodifiableIterator<E> iterator() {
+                return new AbstractIterator<E>(this, set, set2) { // from class: com.google.common.collect.Sets.2.1
+                    final Iterator<E> itr;
+                    final /* synthetic */ C18442 this$0;
+                    final /* synthetic */ Set val$set1;
+                    final /* synthetic */ Set val$set2;
+
+                    {
+                        this.val$set1 = set;
+                        this.val$set2 = set;
+                        this.this$0 = this;
+                        this.itr = set.iterator();
+                    }
+
+                    @Override // com.google.common.collect.AbstractIterator
+                    public E computeNext() {
+                        while (this.itr.hasNext()) {
+                            E next = this.itr.next();
+                            if (this.val$set2.contains(next)) {
+                                return next;
+                            }
+                        }
+                        return endOfData();
+                    }
+                };
+            }
+
+            @Override // java.util.AbstractCollection, java.util.Collection, java.util.Set
+            public int size() {
+                Iterator<E> it = set.iterator();
+                int i = 0;
+                while (it.hasNext()) {
+                    if (set2.contains(it.next())) {
+                        i++;
+                    }
+                }
+                return i;
+            }
+
+            @Override // java.util.AbstractCollection, java.util.Collection, java.util.Set
+            public boolean isEmpty() {
+                return Collections.disjoint(set2, set);
+            }
+
+            @Override // java.util.AbstractCollection, java.util.Collection, java.util.Set
+            public boolean contains(Object obj) {
+                return set.contains(obj) && set2.contains(obj);
+            }
+
+            @Override // java.util.AbstractCollection, java.util.Collection, java.util.Set
+            public boolean containsAll(Collection<?> collection) {
+                return set.containsAll(collection) && set2.containsAll(collection);
+            }
+
+            @Override // com.google.common.collect.Sets.SetView
+            public int maxSize() {
+                return Math.min(SetView.maxSize(set), SetView.maxSize(set2));
+            }
+        };
+    }
+
+    public static <E> Set<E> filter(Set<E> set, Predicate<? super E> predicate) {
+        if (set instanceof SortedSet) {
+            return filter((SortedSet) set, (Predicate) predicate);
+        }
+        if (set instanceof FilteredSet) {
+            FilteredSet filteredSet = (FilteredSet) set;
+            return new FilteredSet((Set) filteredSet.unfiltered, Predicates.and(filteredSet.predicate, predicate));
+        }
+        return new FilteredSet((Set) Preconditions.checkNotNull(set), (Predicate) Preconditions.checkNotNull(predicate));
+    }
+
+    /* JADX WARN: Multi-variable type inference failed */
+    public static <E> SortedSet<E> filter(SortedSet<E> sortedSet, Predicate<? super E> predicate) {
+        if (sortedSet instanceof FilteredSet) {
+            FilteredSet filteredSet = (FilteredSet) sortedSet;
+            return new FilteredSortedSet((SortedSet) filteredSet.unfiltered, Predicates.and(filteredSet.predicate, predicate));
+        }
+        return new FilteredSortedSet((SortedSet) Preconditions.checkNotNull(sortedSet), (Predicate) Preconditions.checkNotNull(predicate));
+    }
+
+    public static class FilteredSet<E> extends Collections2.FilteredCollection<E> implements Set<E> {
+        public FilteredSet(Set<E> set, Predicate<? super E> predicate) {
+            super(set, predicate);
+        }
+
+        @Override // java.util.Collection, java.util.Set
+        public boolean equals(Object obj) {
+            return Sets.equalsImpl(this, obj);
+        }
+
+        @Override // java.util.Collection, java.util.Set
+        public int hashCode() {
+            return Sets.hashCodeImpl(this);
+        }
+    }
+
+    public static class FilteredSortedSet<E> extends FilteredSet<E> implements SortedSet<E> {
+        public FilteredSortedSet(SortedSet<E> sortedSet, Predicate<? super E> predicate) {
+            super(sortedSet, predicate);
+        }
+
+        @Override // java.util.SortedSet
+        public Comparator<? super E> comparator() {
+            return ((SortedSet) this.unfiltered).comparator();
+        }
+
+        @Override // java.util.SortedSet
+        public SortedSet<E> subSet(E e, E e2) {
+            return new FilteredSortedSet(((SortedSet) this.unfiltered).subSet(e, e2), this.predicate);
+        }
+
+        @Override // java.util.SortedSet
+        public SortedSet<E> headSet(E e) {
+            return new FilteredSortedSet(((SortedSet) this.unfiltered).headSet(e), this.predicate);
+        }
+
+        @Override // java.util.SortedSet
+        public SortedSet<E> tailSet(E e) {
+            return new FilteredSortedSet(((SortedSet) this.unfiltered).tailSet(e), this.predicate);
+        }
+
+        @Override // java.util.SortedSet
+        public E first() {
+            return (E) Iterators.find(this.unfiltered.iterator(), this.predicate);
+        }
+
+        @Override // java.util.SortedSet
+        public E last() {
+            SortedSet sortedSetHeadSet = (SortedSet) this.unfiltered;
+            while (true) {
+                E e = (Object) sortedSetHeadSet.last();
+                if (this.predicate.apply(e)) {
+                    return e;
+                }
+                sortedSetHeadSet = sortedSetHeadSet.headSet(e);
+            }
+        }
+    }
+
+    public static int hashCodeImpl(Set<?> set) {
+        Iterator<?> it = set.iterator();
+        int i = 0;
+        while (it.hasNext()) {
+            Object next = it.next();
+            i = ~(~(i + (next != null ? next.hashCode() : 0)));
+        }
+        return i;
+    }
+
+    public static boolean equalsImpl(Set<?> set, Object obj) {
+        if (set == obj) {
+            return true;
+        }
+        if (obj instanceof Set) {
+            Set set2 = (Set) obj;
+            try {
+                if (set.size() == set2.size()) {
+                    if (set.containsAll(set2)) {
+                        return true;
+                    }
+                }
+            } catch (ClassCastException | NullPointerException unused) {
+            }
+        }
+        return false;
+    }
+
+    public static boolean removeAllImpl(Set<?> set, Iterator<?> it) {
+        boolean zRemove = false;
+        while (it.hasNext()) {
+            zRemove |= set.remove(it.next());
+        }
+        return zRemove;
+    }
+
+    public static boolean removeAllImpl(Set<?> set, Collection<?> collection) {
+        Preconditions.checkNotNull(collection);
+        if (collection instanceof Multiset) {
+            collection = ((Multiset) collection).elementSet();
+        }
+        if ((collection instanceof Set) && collection.size() > set.size()) {
+            return Iterators.removeAll(set.iterator(), collection);
+        }
+        return removeAllImpl(set, collection.iterator());
+    }
+}

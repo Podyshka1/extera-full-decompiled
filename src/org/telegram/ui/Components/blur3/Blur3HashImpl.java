@@ -1,0 +1,36 @@
+package org.telegram.ui.Components.blur3;
+
+import org.telegram.messenger.MediaDataController;
+import org.telegram.ui.Components.blur3.capture.IBlur3Hash;
+
+/* JADX INFO: loaded from: classes3.dex */
+public class Blur3HashImpl implements IBlur3Hash {
+    private long hash;
+    private boolean unsupported;
+
+    public void start() {
+        this.hash = 0L;
+        this.unsupported = false;
+    }
+
+    public long get() {
+        if (this.unsupported) {
+            return -1L;
+        }
+        return this.hash;
+    }
+
+    public boolean isUnsupported() {
+        return this.unsupported;
+    }
+
+    @Override // org.telegram.ui.Components.blur3.capture.IBlur3Hash
+    public void add(long j) {
+        this.hash = MediaDataController.calcHash(this.hash, j);
+    }
+
+    @Override // org.telegram.ui.Components.blur3.capture.IBlur3Hash
+    public void unsupported() {
+        this.unsupported = true;
+    }
+}

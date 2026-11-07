@@ -1,0 +1,180 @@
+package androidx.core.app;
+
+import android.app.Person;
+import android.os.Bundle;
+import android.os.PersistableBundle;
+import androidx.core.graphics.drawable.IconCompat;
+import com.exteragram.messenger.plugins.PluginsConstants;
+import java.util.Objects;
+import okhttp3.internal.url._UrlKt;
+
+/* JADX INFO: loaded from: classes.dex */
+public class Person {
+    IconCompat mIcon;
+    boolean mIsBot;
+    boolean mIsImportant;
+    String mKey;
+    CharSequence mName;
+    String mUri;
+
+    public static Person fromBundle(Bundle bundle) {
+        Bundle bundle2 = bundle.getBundle("icon");
+        return new Builder().setName(bundle.getCharSequence("name")).setIcon(bundle2 != null ? IconCompat.createFromBundle(bundle2) : null).setUri(bundle.getString("uri")).setKey(bundle.getString(PluginsConstants.Settings.KEY)).setBot(bundle.getBoolean("isBot")).setImportant(bundle.getBoolean("isImportant")).build();
+    }
+
+    public static Person fromPersistableBundle(PersistableBundle persistableBundle) {
+        return Api22Impl.fromPersistableBundle(persistableBundle);
+    }
+
+    public Person(Builder builder) {
+        this.mName = builder.mName;
+        this.mIcon = builder.mIcon;
+        this.mUri = builder.mUri;
+        this.mKey = builder.mKey;
+        this.mIsBot = builder.mIsBot;
+        this.mIsImportant = builder.mIsImportant;
+    }
+
+    public Bundle toBundle() {
+        Bundle bundle = new Bundle();
+        bundle.putCharSequence("name", this.mName);
+        IconCompat iconCompat = this.mIcon;
+        bundle.putBundle("icon", iconCompat != null ? iconCompat.toBundle() : null);
+        bundle.putString("uri", this.mUri);
+        bundle.putString(PluginsConstants.Settings.KEY, this.mKey);
+        bundle.putBoolean("isBot", this.mIsBot);
+        bundle.putBoolean("isImportant", this.mIsImportant);
+        return bundle;
+    }
+
+    public PersistableBundle toPersistableBundle() {
+        return Api22Impl.toPersistableBundle(this);
+    }
+
+    public android.app.Person toAndroidPerson() {
+        return Api28Impl.toAndroidPerson(this);
+    }
+
+    public CharSequence getName() {
+        return this.mName;
+    }
+
+    public IconCompat getIcon() {
+        return this.mIcon;
+    }
+
+    public String getUri() {
+        return this.mUri;
+    }
+
+    public String getKey() {
+        return this.mKey;
+    }
+
+    public boolean isBot() {
+        return this.mIsBot;
+    }
+
+    public boolean isImportant() {
+        return this.mIsImportant;
+    }
+
+    public String resolveToLegacyUri() {
+        String str = this.mUri;
+        if (str != null) {
+            return str;
+        }
+        if (this.mName != null) {
+            return "name:" + ((Object) this.mName);
+        }
+        return _UrlKt.FRAGMENT_ENCODE_SET;
+    }
+
+    public boolean equals(Object obj) {
+        if (obj == null || !(obj instanceof Person)) {
+            return false;
+        }
+        Person person = (Person) obj;
+        String key = getKey();
+        String key2 = person.getKey();
+        if (key == null && key2 == null) {
+            return Objects.equals(Objects.toString(getName()), Objects.toString(person.getName())) && Objects.equals(getUri(), person.getUri()) && Boolean.valueOf(isBot()).equals(Boolean.valueOf(person.isBot())) && Boolean.valueOf(isImportant()).equals(Boolean.valueOf(person.isImportant()));
+        }
+        return Objects.equals(key, key2);
+    }
+
+    public int hashCode() {
+        String key = getKey();
+        if (key != null) {
+            return key.hashCode();
+        }
+        return Objects.hash(getName(), getUri(), Boolean.valueOf(isBot()), Boolean.valueOf(isImportant()));
+    }
+
+    public static class Builder {
+        IconCompat mIcon;
+        boolean mIsBot;
+        boolean mIsImportant;
+        String mKey;
+        CharSequence mName;
+        String mUri;
+
+        public Builder setName(CharSequence charSequence) {
+            this.mName = charSequence;
+            return this;
+        }
+
+        public Builder setIcon(IconCompat iconCompat) {
+            this.mIcon = iconCompat;
+            return this;
+        }
+
+        public Builder setUri(String str) {
+            this.mUri = str;
+            return this;
+        }
+
+        public Builder setKey(String str) {
+            this.mKey = str;
+            return this;
+        }
+
+        public Builder setBot(boolean z) {
+            this.mIsBot = z;
+            return this;
+        }
+
+        public Builder setImportant(boolean z) {
+            this.mIsImportant = z;
+            return this;
+        }
+
+        public Person build() {
+            return new Person(this);
+        }
+    }
+
+    /* JADX INFO: loaded from: classes3.dex */
+    public static class Api22Impl {
+        public static Person fromPersistableBundle(PersistableBundle persistableBundle) {
+            return new Builder().setName(persistableBundle.getString("name")).setUri(persistableBundle.getString("uri")).setKey(persistableBundle.getString(PluginsConstants.Settings.KEY)).setBot(persistableBundle.getBoolean("isBot")).setImportant(persistableBundle.getBoolean("isImportant")).build();
+        }
+
+        public static PersistableBundle toPersistableBundle(Person person) {
+            PersistableBundle persistableBundle = new PersistableBundle();
+            CharSequence charSequence = person.mName;
+            persistableBundle.putString("name", charSequence != null ? charSequence.toString() : null);
+            persistableBundle.putString("uri", person.mUri);
+            persistableBundle.putString(PluginsConstants.Settings.KEY, person.mKey);
+            persistableBundle.putBoolean("isBot", person.mIsBot);
+            persistableBundle.putBoolean("isImportant", person.mIsImportant);
+            return persistableBundle;
+        }
+    }
+
+    public static class Api28Impl {
+        public static android.app.Person toAndroidPerson(Person person) {
+            return new Person.Builder().setName(person.getName()).setIcon(person.getIcon() != null ? person.getIcon().toIcon() : null).setUri(person.getUri()).setKey(person.getKey()).setBot(person.isBot()).setImportant(person.isImportant()).build();
+        }
+    }
+}

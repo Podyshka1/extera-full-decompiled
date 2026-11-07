@@ -1,0 +1,36 @@
+package org.telegram.messenger;
+
+import kotlin.UByte$$ExternalSyntheticBackport2;
+import kotlin.UByte$$ExternalSyntheticBackport3;
+
+/* JADX INFO: loaded from: classes5.dex */
+public abstract /* synthetic */ class MessagesController$$ExternalSyntheticBackport5 {
+    /* JADX INFO: renamed from: m */
+    public static /* synthetic */ long m1004m(CharSequence charSequence, int i, int i2, int i3) {
+        int i4 = i2 - i;
+        if (i4 == 0) {
+            throw new NumberFormatException("empty string");
+        }
+        if (i3 < 2 || i3 > 36) {
+            throw new NumberFormatException("illegal radix: ".concat(String.valueOf(i3)));
+        }
+        long j = i3;
+        long jM866m = UByte$$ExternalSyntheticBackport3.m866m(-1L, j);
+        int i5 = (charSequence.charAt(i) != '+' || i4 <= 1) ? i : i + 1;
+        long j2 = 0;
+        long j3 = 0;
+        while (i5 < i2) {
+            int iDigit = Character.digit(charSequence.charAt(i5), i3);
+            if (iDigit == -1) {
+                throw new NumberFormatException(charSequence.toString());
+            }
+            if (j3 < j2 || j3 > jM866m || (j3 == jM866m && iDigit > ((int) UByte$$ExternalSyntheticBackport2.m865m(-1L, j)))) {
+                throw new NumberFormatException("Too large for unsigned long: ".concat(charSequence.toString()));
+            }
+            j3 = (j3 * j) + ((long) iDigit);
+            i5++;
+            j2 = 0;
+        }
+        return j3;
+    }
+}

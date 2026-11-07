@@ -1,0 +1,210 @@
+package com.google.common.util.concurrent;
+
+import com.google.common.base.Preconditions;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
+
+/* JADX INFO: loaded from: classes5.dex */
+final class SequentialExecutor implements Executor {
+    private static final LazyLogger log = new LazyLogger(SequentialExecutor.class);
+    private final Executor executor;
+    private final Deque<Runnable> queue = new ArrayDeque();
+    private WorkerRunningState workerRunningState = WorkerRunningState.IDLE;
+    private long workerRunCount = 0;
+    private final QueueWorker worker = new QueueWorker();
+
+    public enum WorkerRunningState {
+        IDLE,
+        QUEUING,
+        QUEUED,
+        RUNNING
+    }
+
+    public static /* synthetic */ long access$308(SequentialExecutor sequentialExecutor) {
+        long j = sequentialExecutor.workerRunCount;
+        sequentialExecutor.workerRunCount = 1 + j;
+        return j;
+    }
+
+    public SequentialExecutor(Executor executor) {
+        this.executor = (Executor) Preconditions.checkNotNull(executor);
+    }
+
+    /* JADX WARN: Removed duplicated region for block: B:41:0x005f  */
+    @Override // java.util.concurrent.Executor
+    /*
+        Code decompiled incorrectly, please refer to instructions dump.
+    */
+    public void execute(final Runnable runnable) {
+        WorkerRunningState workerRunningState;
+        boolean z;
+        Preconditions.checkNotNull(runnable);
+        synchronized (this.queue) {
+            WorkerRunningState workerRunningState2 = this.workerRunningState;
+            if (workerRunningState2 != WorkerRunningState.RUNNING && workerRunningState2 != (workerRunningState = WorkerRunningState.QUEUED)) {
+                long j = this.workerRunCount;
+                Runnable runnable2 = new Runnable(this) { // from class: com.google.common.util.concurrent.SequentialExecutor.1
+                    final /* synthetic */ SequentialExecutor this$0;
+
+                    {
+                        this.this$0 = this;
+                    }
+
+                    @Override // java.lang.Runnable
+                    public void run() {
+                        runnable.run();
+                    }
+
+                    public String toString() {
+                        return runnable.toString();
+                    }
+                };
+                this.queue.add(runnable2);
+                WorkerRunningState workerRunningState3 = WorkerRunningState.QUEUING;
+                this.workerRunningState = workerRunningState3;
+                try {
+                    this.executor.execute(this.worker);
+                    if (this.workerRunningState != workerRunningState3) {
+                        return;
+                    }
+                    synchronized (this.queue) {
+                        try {
+                            if (this.workerRunCount == j && this.workerRunningState == workerRunningState3) {
+                                this.workerRunningState = workerRunningState;
+                            }
+                        } finally {
+                        }
+                    }
+                    return;
+                } catch (Throwable th) {
+                    synchronized (this.queue) {
+                        try {
+                            WorkerRunningState workerRunningState4 = this.workerRunningState;
+                            if (workerRunningState4 == WorkerRunningState.IDLE || workerRunningState4 == WorkerRunningState.QUEUING) {
+                                z = this.queue.removeLastOccurrence(runnable2);
+                            }
+                            if (!(th instanceof RejectedExecutionException) || z) {
+                                throw th;
+                            }
+                            return;
+                        } finally {
+                        }
+                    }
+                }
+            }
+            this.queue.add(runnable);
+        }
+    }
+
+    public final class QueueWorker implements Runnable {
+        Runnable task;
+
+        private QueueWorker() {
+        }
+
+        @Override // java.lang.Runnable
+        public void run() {
+            try {
+                workOnQueue();
+            } catch (Error e) {
+                synchronized (SequentialExecutor.this.queue) {
+                    SequentialExecutor.this.workerRunningState = WorkerRunningState.IDLE;
+                    throw e;
+                }
+            }
+        }
+
+        /* JADX WARN: Code restructure failed: missing block: B:18:0x0045, code lost:
+        
+            if (r1 == false) goto L50;
+         */
+        /* JADX WARN: Code restructure failed: missing block: B:23:0x004e, code lost:
+        
+            r1 = r1 | java.lang.Thread.interrupted();
+            r2 = null;
+         */
+        /* JADX WARN: Code restructure failed: missing block: B:24:0x0050, code lost:
+        
+            r8.task.run();
+         */
+        /* JADX WARN: Code restructure failed: missing block: B:29:0x005a, code lost:
+        
+            r0 = move-exception;
+         */
+        /* JADX WARN: Code restructure failed: missing block: B:31:0x005c, code lost:
+        
+            r3 = move-exception;
+         */
+        /* JADX WARN: Code restructure failed: missing block: B:32:0x005d, code lost:
+        
+            com.google.common.util.concurrent.SequentialExecutor.log.get().log(java.util.logging.Level.SEVERE, "Exception while executing runnable " + r8.task, (java.lang.Throwable) r3);
+         */
+        /* JADX WARN: Code restructure failed: missing block: B:34:0x007e, code lost:
+        
+            r8.task = null;
+         */
+        /* JADX WARN: Code restructure failed: missing block: B:35:0x0080, code lost:
+        
+            throw r0;
+         */
+        /* JADX WARN: Code restructure failed: missing block: B:50:?, code lost:
+        
+            return;
+         */
+        /* JADX WARN: Removed duplicated region for block: B:46:0x003d A[SYNTHETIC] */
+        /*
+            Code decompiled incorrectly, please refer to instructions dump.
+        */
+        private void workOnQueue() {
+            Runnable runnable;
+            boolean z = false;
+            boolean zInterrupted = false;
+            while (true) {
+                try {
+                    synchronized (SequentialExecutor.this.queue) {
+                        if (!z) {
+                            WorkerRunningState workerRunningState = SequentialExecutor.this.workerRunningState;
+                            WorkerRunningState workerRunningState2 = WorkerRunningState.RUNNING;
+                            if (workerRunningState != workerRunningState2) {
+                                SequentialExecutor.access$308(SequentialExecutor.this);
+                                SequentialExecutor.this.workerRunningState = workerRunningState2;
+                                z = true;
+                                runnable = (Runnable) SequentialExecutor.this.queue.poll();
+                                this.task = runnable;
+                                if (runnable != null) {
+                                    SequentialExecutor.this.workerRunningState = WorkerRunningState.IDLE;
+                                }
+                            }
+                        } else {
+                            runnable = (Runnable) SequentialExecutor.this.queue.poll();
+                            this.task = runnable;
+                            if (runnable != null) {
+                            }
+                        }
+                    }
+                    if (!zInterrupted) {
+                        return;
+                    }
+                } finally {
+                    if (zInterrupted) {
+                        Thread.currentThread().interrupt();
+                    }
+                }
+            }
+        }
+
+        public String toString() {
+            Runnable runnable = this.task;
+            if (runnable != null) {
+                return "SequentialExecutorWorker{running=" + runnable + "}";
+            }
+            return "SequentialExecutorWorker{state=" + SequentialExecutor.this.workerRunningState + "}";
+        }
+    }
+
+    public String toString() {
+        return "SequentialExecutor@" + System.identityHashCode(this) + "{" + this.executor + "}";
+    }
+}

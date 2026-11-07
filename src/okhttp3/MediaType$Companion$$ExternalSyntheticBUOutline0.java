@@ -1,0 +1,10 @@
+package okhttp3;
+
+/* JADX INFO: loaded from: classes.dex */
+public final /* synthetic */ class MediaType$Companion$$ExternalSyntheticBUOutline0 {
+    /* JADX WARN: Multi-variable type inference failed */
+    /* JADX INFO: renamed from: m */
+    public static /* synthetic */ void m901m(String str, Object obj, int i) {
+        throw new IllegalArgumentException(str + obj + ((char) i));
+    }
+}

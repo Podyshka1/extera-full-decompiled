@@ -1,0 +1,51 @@
+package androidx.datastore.core;
+
+import kotlin.Metadata;
+import kotlin.ResultKt;
+import kotlin.Unit;
+import kotlin.coroutines.Continuation;
+import kotlin.coroutines.intrinsics.IntrinsicsKt;
+import kotlin.coroutines.jvm.internal.Boxing;
+import kotlin.coroutines.jvm.internal.DebugMetadata;
+import kotlin.coroutines.jvm.internal.SuspendLambda;
+import kotlin.jvm.functions.Function2;
+import kotlin.jvm.internal.SourceDebugExtension;
+import kotlinx.coroutines.CoroutineScope;
+import okio.Segment$$ExternalSyntheticBUOutline1;
+
+/* JADX INFO: renamed from: androidx.datastore.core.MultiProcessCoordinator$incrementAndGetVersion$$inlined$withLazyCounter$1 */
+/* JADX INFO: loaded from: classes3.dex */
+@Metadata(d1 = {"\u0000\b\n\u0000\n\u0002\u0018\u0002\n\u0000\u0010\u0002\u001a\u00028\u0000\"\u0004\b\u0000\u0010\u0000*\u00020\u0001H\u008a@"}, d2 = {"T", "Lkotlinx/coroutines/CoroutineScope;", "<anonymous>"}, m862k = 3, mv = {1, 8, 0})
+@DebugMetadata(m872c = "androidx.datastore.core.MultiProcessCoordinator$incrementAndGetVersion$$inlined$withLazyCounter$1", m873f = "MultiProcessCoordinator.android.kt", m874i = {}, m875l = {}, m876m = "invokeSuspend", m877n = {}, m878s = {})
+@SourceDebugExtension({"SMAP\nMultiProcessCoordinator.android.kt\nKotlin\n*S Kotlin\n*F\n+ 1 MultiProcessCoordinator.android.kt\nandroidx/datastore/core/MultiProcessCoordinator$withLazyCounter$2\n+ 2 MultiProcessCoordinator.android.kt\nandroidx/datastore/core/MultiProcessCoordinator\n*L\n1#1,205:1\n106#2:206\n*E\n"})
+public final class C0522xb55e9682 extends SuspendLambda implements Function2<CoroutineScope, Continuation<? super Integer>, Object> {
+    int label;
+    final /* synthetic */ MultiProcessCoordinator this$0;
+
+    /* JADX WARN: 'super' call moved to the top of the method (can break code semantics) */
+    public C0522xb55e9682(MultiProcessCoordinator multiProcessCoordinator, Continuation continuation) {
+        super(2, continuation);
+        this.this$0 = multiProcessCoordinator;
+    }
+
+    @Override // kotlin.coroutines.jvm.internal.BaseContinuationImpl
+    public final Continuation<Unit> create(Object obj, Continuation<?> continuation) {
+        return new C0522xb55e9682(this.this$0, continuation);
+    }
+
+    @Override // kotlin.jvm.functions.Function2
+    public final Object invoke(CoroutineScope coroutineScope, Continuation<? super Integer> continuation) {
+        return ((C0522xb55e9682) create(coroutineScope, continuation)).invokeSuspend(Unit.INSTANCE);
+    }
+
+    @Override // kotlin.coroutines.jvm.internal.BaseContinuationImpl
+    public final Object invokeSuspend(Object obj) {
+        IntrinsicsKt.getCOROUTINE_SUSPENDED();
+        if (this.label == 0) {
+            ResultKt.throwOnFailure(obj);
+            return Boxing.boxInt(this.this$0.getSharedCounter().incrementAndGetValue());
+        }
+        Segment$$ExternalSyntheticBUOutline1.m925m("call to 'resume' before 'invoke' with coroutine");
+        return null;
+    }
+}

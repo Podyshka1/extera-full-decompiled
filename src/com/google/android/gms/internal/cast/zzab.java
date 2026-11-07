@@ -1,0 +1,10 @@
+package com.google.android.gms.internal.cast;
+
+/* JADX INFO: loaded from: classes4.dex */
+public final class zzab {
+    final int zza;
+
+    public zzab(int i) {
+        this.zza = i;
+    }
+}

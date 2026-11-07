@@ -1,0 +1,144 @@
+package org.telegram.messenger;
+
+import java.util.ArrayList;
+
+/* JADX INFO: loaded from: classes.dex */
+public class FileLoaderPriorityQueue {
+    public static final int PRIORITY_VALUE_LOW = 0;
+    public static final int PRIORITY_VALUE_MAX = 1048576;
+    public static final int PRIORITY_VALUE_NORMAL = 65536;
+    public static final int TYPE_LARGE = 1;
+    public static final int TYPE_SMALL = 0;
+    int currentAccount;
+    String name;
+    int type;
+    final DispatchQueue workerQueue;
+    public ArrayList<FileLoadOperation> allOperations = new ArrayList<>();
+    public ArrayList<FileLoadOperation> tmpListOperations = new ArrayList<>();
+    boolean checkOperationsScheduled = false;
+    Runnable checkOperationsRunnable = new Runnable() { // from class: org.telegram.messenger.FileLoaderPriorityQueue$$ExternalSyntheticLambda0
+        @Override // java.lang.Runnable
+        public final void run() {
+            this.f$0.lambda$new$0();
+        }
+    };
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public /* synthetic */ void lambda$new$0() {
+        checkLoadingOperationInternal();
+        this.checkOperationsScheduled = false;
+    }
+
+    public FileLoaderPriorityQueue(int i, String str, int i2, DispatchQueue dispatchQueue) {
+        this.currentAccount = i;
+        this.name = str;
+        this.type = i2;
+        this.workerQueue = dispatchQueue;
+    }
+
+    public void add(FileLoadOperation fileLoadOperation) {
+        if (fileLoadOperation == null) {
+            return;
+        }
+        int i = 0;
+        int i2 = 0;
+        while (i2 < this.allOperations.size()) {
+            if (this.allOperations.get(i2) == fileLoadOperation) {
+                this.allOperations.remove(i2);
+                i2--;
+            }
+            i2++;
+        }
+        while (true) {
+            if (i >= this.allOperations.size()) {
+                i = -1;
+                break;
+            } else if (fileLoadOperation.getPriority() > this.allOperations.get(i).getPriority()) {
+                break;
+            } else {
+                i++;
+            }
+        }
+        ArrayList<FileLoadOperation> arrayList = this.allOperations;
+        if (i >= 0) {
+            arrayList.add(i, fileLoadOperation);
+        } else {
+            arrayList.add(fileLoadOperation);
+        }
+    }
+
+    public void cancel(FileLoadOperation fileLoadOperation) {
+        if (fileLoadOperation != null && this.allOperations.remove(fileLoadOperation)) {
+            fileLoadOperation.cancel();
+        }
+    }
+
+    public void checkLoadingOperations() {
+        checkLoadingOperations(false);
+    }
+
+    public void checkLoadingOperations(boolean z) {
+        if (z) {
+            this.workerQueue.cancelRunnable(this.checkOperationsRunnable);
+            this.checkOperationsRunnable.run();
+        } else {
+            if (this.checkOperationsScheduled) {
+                return;
+            }
+            this.checkOperationsScheduled = true;
+            this.workerQueue.cancelRunnable(this.checkOperationsRunnable);
+            this.workerQueue.postRunnable(this.checkOperationsRunnable, 20L);
+        }
+    }
+
+    private void checkLoadingOperationInternal() {
+        int i = this.type;
+        int i2 = this.currentAccount;
+        int i3 = i == 1 ? MessagesController.getInstance(i2).largeQueueMaxActiveOperations : MessagesController.getInstance(i2).smallQueueMaxActiveOperations;
+        this.tmpListOperations.clear();
+        int i4 = 0;
+        boolean z = false;
+        int priority = 0;
+        while (i4 < this.allOperations.size()) {
+            FileLoadOperation fileLoadOperation = i4 > 0 ? this.allOperations.get(i4 - 1) : null;
+            FileLoadOperation fileLoadOperation2 = this.allOperations.get(i4);
+            if (i4 > 0 && !z) {
+                if (this.type == 1 && fileLoadOperation != null && fileLoadOperation.isStory && fileLoadOperation.getPriority() >= 1048576 && fileLoadOperation2.getPriority() <= 0) {
+                    z = true;
+                }
+                if (priority > 0 && fileLoadOperation2.getPriority() == 0) {
+                    z = true;
+                }
+            }
+            if (fileLoadOperation2.preFinished) {
+                i3++;
+            } else {
+                if (!z && i4 < i3) {
+                    this.tmpListOperations.add(fileLoadOperation2);
+                } else if (fileLoadOperation2.wasStarted()) {
+                    fileLoadOperation2.pause();
+                }
+                priority = fileLoadOperation2.getPriority();
+            }
+            i4++;
+        }
+        for (int i5 = 0; i5 < this.tmpListOperations.size(); i5++) {
+            this.tmpListOperations.get(i5).start();
+        }
+    }
+
+    public boolean remove(FileLoadOperation fileLoadOperation) {
+        if (fileLoadOperation == null) {
+            return false;
+        }
+        return this.allOperations.remove(fileLoadOperation);
+    }
+
+    public int getCount() {
+        return this.allOperations.size();
+    }
+
+    public int getPosition(FileLoadOperation fileLoadOperation) {
+        return this.allOperations.indexOf(fileLoadOperation);
+    }
+}

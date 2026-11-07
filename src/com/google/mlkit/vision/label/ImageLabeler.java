@@ -1,0 +1,20 @@
+package com.google.mlkit.vision.label;
+
+import androidx.view.Lifecycle;
+import androidx.view.LifecycleObserver;
+import androidx.view.OnLifecycleEvent;
+import com.google.android.gms.common.api.OptionalModuleApi;
+import com.google.android.gms.tasks.Task;
+import com.google.mlkit.vision.common.InputImage;
+import com.google.mlkit.vision.common.internal.MultiFlavorDetectorCreator;
+import java.io.Closeable;
+import java.util.List;
+
+/* JADX INFO: loaded from: classes5.dex */
+public interface ImageLabeler extends Closeable, LifecycleObserver, MultiFlavorDetectorCreator.MultiFlavorDetector, OptionalModuleApi {
+    @Override // java.io.Closeable, java.lang.AutoCloseable
+    @OnLifecycleEvent(Lifecycle.Event.ON_DESTROY)
+    void close();
+
+    Task<List<ImageLabel>> process(InputImage inputImage);
+}
