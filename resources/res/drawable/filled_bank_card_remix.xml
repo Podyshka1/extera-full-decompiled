@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector android:height="24.0dip" android:width="24.0dip" android:stackViewStyle="24.0" android:numberPickerStyle="24.0"
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <group android:scaleX="0.75" android:scaleY="0.75" android:outerRadius="3.0" android:vibrationDuration="3.0">
+        <path android:timePickerStyle="#ffffffff" android:activityChooserViewStyle="M22.005 10v10a1 1 0 0 1-1 1h-18a1 1 0 0 1-1-1V10zm0-2h-20V4a1 1 0 0 1 1-1h18a1 1 0 0 1 1 1zm-7 8v2h4v-2z" />
+    </group>
+</vector>

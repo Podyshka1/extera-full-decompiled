@@ -1,0 +1,62 @@
+package org.scilab.forge.jlatexmath;
+
+import java.util.Map;
+
+/* JADX INFO: loaded from: classes5.dex */
+public class RotateAtom extends Atom {
+    private double angle;
+    private Atom base;
+    private int option;
+
+    /* JADX INFO: renamed from: x */
+    private float f957x;
+    private int xunit;
+
+    /* JADX INFO: renamed from: y */
+    private float f958y;
+    private int yunit;
+
+    public RotateAtom(Atom atom, String str, String str2) {
+        this.option = -1;
+        this.type = atom.type;
+        this.base = atom;
+        this.angle = Double.parseDouble(str);
+        this.option = RotateBox.getOrigin(str2);
+    }
+
+    public RotateAtom(Atom atom, double d, String str) {
+        this.option = -1;
+        this.type = atom.type;
+        this.base = atom;
+        this.angle = d;
+        Map<String, String> map = ParseOption.parseMap(str);
+        if (map.containsKey("origin")) {
+            this.option = RotateBox.getOrigin(map.get("origin"));
+            return;
+        }
+        if (map.containsKey("x")) {
+            float[] length = SpaceAtom.getLength(map.get("x"));
+            this.xunit = (int) length[0];
+            this.f957x = length[1];
+        } else {
+            this.xunit = 3;
+            this.f957x = 0.0f;
+        }
+        if (map.containsKey("y")) {
+            float[] length2 = SpaceAtom.getLength(map.get("y"));
+            this.yunit = (int) length2[0];
+            this.f958y = length2[1];
+        } else {
+            this.yunit = 3;
+            this.f958y = 0.0f;
+        }
+    }
+
+    @Override // org.scilab.forge.jlatexmath.Atom
+    public Box createBox(TeXEnvironment teXEnvironment) {
+        if (this.option != -1) {
+            return new RotateBox(this.base.createBox(teXEnvironment), this.angle, this.option);
+        }
+        return new RotateBox(this.base.createBox(teXEnvironment), this.angle, this.f957x * SpaceAtom.getFactor(this.xunit, teXEnvironment), this.f958y * SpaceAtom.getFactor(this.yunit, teXEnvironment));
+    }
+}

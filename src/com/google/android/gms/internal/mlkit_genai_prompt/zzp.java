@@ -1,0 +1,7 @@
+package com.google.android.gms.internal.mlkit_genai_prompt;
+
+import com.google.android.gms.common.internal.safeparcel.AbstractSafeParcelable;
+
+/* JADX INFO: loaded from: classes5.dex */
+public abstract class zzp extends AbstractSafeParcelable implements zzv {
+}

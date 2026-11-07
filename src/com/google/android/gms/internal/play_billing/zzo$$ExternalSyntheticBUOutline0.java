@@ -1,0 +1,15 @@
+package com.google.android.gms.internal.play_billing;
+
+import java.util.concurrent.TimeoutException;
+
+/* JADX INFO: loaded from: classes5.dex */
+public final /* synthetic */ class zzo$$ExternalSyntheticBUOutline0 {
+    /* JADX INFO: renamed from: m */
+    public static /* synthetic */ void m355m(Object obj, Object obj2) throws TimeoutException {
+        StringBuilder sb = new StringBuilder();
+        sb.append(obj);
+        sb.append((Object) " for ");
+        sb.append(obj2);
+        throw new TimeoutException(sb.toString());
+    }
+}

@@ -1,0 +1,565 @@
+package org.telegram.ui.Components;
+
+import android.content.Context;
+import android.graphics.Canvas;
+import android.graphics.ColorFilter;
+import android.graphics.Path;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
+import android.graphics.Rect;
+import android.graphics.Region;
+import android.os.Build;
+import android.os.Looper;
+import android.text.Editable;
+import android.text.Layout;
+import android.text.Spannable;
+import android.view.MotionEvent;
+import android.widget.TextView;
+import com.exteragram.messenger.components.ReceiveContentEditText;
+import com.google.android.gms.cast.framework.media.NotificationOptions;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Stack;
+import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.C2807R;
+import org.telegram.messenger.FileLog;
+import org.telegram.ui.Components.AnimatedEmojiSpan;
+import org.telegram.ui.Components.QuoteSpan;
+import org.telegram.ui.Components.spoilers.SpoilerEffect;
+import org.telegram.ui.Components.spoilers.SpoilersClickDetector;
+
+/* JADX INFO: loaded from: classes3.dex */
+public abstract class EditTextEffects extends ReceiveContentEditText {
+    private static final int SPOILER_TIMEOUT = 10000;
+    private static Boolean allowHackingTextCanvasCache;
+    private ColorFilter animatedEmojiColorFilter;
+    private AnimatedEmojiSpan.EmojiGroupedSpans animatedEmojiDrawables;
+    private SpoilersClickDetector clickDetector;
+    private boolean clipToPadding;
+    public boolean drawAnimatedEmojiDrawables;
+    private boolean editedWhileQuoteUpdating;
+    private Integer emojiColor;
+    private boolean isSpoilersRevealed;
+    private Layout lastLayout;
+    private float lastRippleX;
+    private float lastRippleY;
+    private int lastText2Length;
+    private int lastTextColor;
+    private int lastTextLength;
+    protected float offsetY;
+    private Path path;
+    private boolean postedSpoilerTimeout;
+    private ArrayList<QuoteSpan.Block> quoteBlocks;
+    private boolean quoteBlocksUpdating;
+    public int quoteColor;
+    private boolean[] quoteUpdateLayout;
+    private int quoteUpdatesTries;
+    private Rect rect;
+    private int selEnd;
+    private int selStart;
+    private boolean shouldRevealSpoilersByTouch;
+    private Runnable spoilerTimeout;
+    private List<SpoilerEffect> spoilers;
+    private Stack<SpoilerEffect> spoilersPool;
+    public boolean suppressOnTextChanged;
+    public boolean wrapCanvasToFixClipping;
+    private NoClipCanvas wrappedCanvas;
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public /* synthetic */ void lambda$new$2() {
+        this.postedSpoilerTimeout = false;
+        this.isSpoilersRevealed = false;
+        invalidateSpoilers();
+        if (this.spoilers.isEmpty()) {
+            return;
+        }
+        this.spoilers.get(0).setOnRippleEndCallback(new Runnable() { // from class: org.telegram.ui.Components.EditTextEffects$$ExternalSyntheticLambda5
+            @Override // java.lang.Runnable
+            public final void run() {
+                this.f$0.lambda$new$1();
+            }
+        });
+        float fSqrt = (float) Math.sqrt(Math.pow(getWidth(), 2.0d) + Math.pow(getHeight(), 2.0d));
+        Iterator<SpoilerEffect> it = this.spoilers.iterator();
+        while (it.hasNext()) {
+            it.next().startRipple(this.lastRippleX, this.lastRippleY, fSqrt, true);
+        }
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public /* synthetic */ void lambda$new$0() {
+        setSpoilersRevealed(false, true);
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public /* synthetic */ void lambda$new$1() {
+        post(new Runnable() { // from class: org.telegram.ui.Components.EditTextEffects$$ExternalSyntheticLambda6
+            @Override // java.lang.Runnable
+            public final void run() {
+                this.f$0.lambda$new$0();
+            }
+        });
+    }
+
+    public EditTextEffects(Context context) {
+        super(context, null, 0, C2807R.style.EditTextNoBackgroundStyle);
+        this.spoilers = new ArrayList();
+        this.spoilersPool = new Stack<>();
+        this.quoteBlocks = new ArrayList<>();
+        this.shouldRevealSpoilersByTouch = true;
+        this.path = new Path();
+        this.drawAnimatedEmojiDrawables = true;
+        this.lastLayout = null;
+        this.spoilerTimeout = new Runnable() { // from class: org.telegram.ui.Components.EditTextEffects$$ExternalSyntheticLambda3
+            @Override // java.lang.Runnable
+            public final void run() {
+                this.f$0.lambda$new$2();
+            }
+        };
+        this.rect = new Rect();
+        this.wrapCanvasToFixClipping = allowHackingTextCanvas();
+        if (Looper.getMainLooper().getThread() == Thread.currentThread()) {
+            this.clickDetector = new SpoilersClickDetector(this, this.spoilers, new SpoilersClickDetector.OnSpoilerClickedListener() { // from class: org.telegram.ui.Components.EditTextEffects$$ExternalSyntheticLambda4
+                @Override // org.telegram.ui.Components.spoilers.SpoilersClickDetector.OnSpoilerClickedListener
+                public final void onSpoilerClicked(SpoilerEffect spoilerEffect, float f, float f2) {
+                    this.f$0.onSpoilerClicked(spoilerEffect, f, f2);
+                }
+            });
+        }
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public void onSpoilerClicked(SpoilerEffect spoilerEffect, float f, float f2) {
+        if (this.isSpoilersRevealed) {
+            return;
+        }
+        this.lastRippleX = f;
+        this.lastRippleY = f2;
+        this.postedSpoilerTimeout = false;
+        removeCallbacks(this.spoilerTimeout);
+        setSpoilersRevealed(true, false);
+        spoilerEffect.setOnRippleEndCallback(new Runnable() { // from class: org.telegram.ui.Components.EditTextEffects$$ExternalSyntheticLambda1
+            @Override // java.lang.Runnable
+            public final void run() {
+                this.f$0.lambda$onSpoilerClicked$4();
+            }
+        });
+        float fSqrt = (float) Math.sqrt(Math.pow(getWidth(), 2.0d) + Math.pow(getHeight(), 2.0d));
+        Iterator<SpoilerEffect> it = this.spoilers.iterator();
+        while (it.hasNext()) {
+            it.next().startRipple(f, f2, fSqrt);
+        }
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public /* synthetic */ void lambda$onSpoilerClicked$4() {
+        post(new Runnable() { // from class: org.telegram.ui.Components.EditTextEffects$$ExternalSyntheticLambda2
+            @Override // java.lang.Runnable
+            public final void run() {
+                this.f$0.lambda$onSpoilerClicked$3();
+            }
+        });
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public /* synthetic */ void lambda$onSpoilerClicked$3() {
+        invalidateSpoilers();
+        checkSpoilerTimeout();
+    }
+
+    @Override // com.exteragram.messenger.components.ReceiveContentEditText, android.widget.TextView
+    public void onSelectionChanged(int i, int i2) {
+        super.onSelectionChanged(i, i2);
+        if (this.suppressOnTextChanged) {
+            return;
+        }
+        this.selStart = i;
+        this.selEnd = i2;
+        checkSpoilerTimeout();
+    }
+
+    private void checkSpoilerTimeout() {
+        int i;
+        int i2;
+        CharSequence text = getLayout() != null ? getLayout().getText() : null;
+        boolean z = false;
+        if (text instanceof Spannable) {
+            Spannable spannable = (Spannable) text;
+            for (TextStyleSpan textStyleSpan : (TextStyleSpan[]) spannable.getSpans(0, spannable.length(), TextStyleSpan.class)) {
+                int spanStart = spannable.getSpanStart(textStyleSpan);
+                int spanEnd = spannable.getSpanEnd(textStyleSpan);
+                if (textStyleSpan.isSpoiler() && ((spanStart > (i = this.selStart) && spanEnd < this.selEnd) || ((i > spanStart && i < spanEnd) || ((i2 = this.selEnd) > spanStart && i2 < spanEnd)))) {
+                    removeCallbacks(this.spoilerTimeout);
+                    this.postedSpoilerTimeout = false;
+                    z = true;
+                    break;
+                }
+            }
+        }
+        if (!this.isSpoilersRevealed || z || this.postedSpoilerTimeout) {
+            return;
+        }
+        this.postedSpoilerTimeout = true;
+        postDelayed(this.spoilerTimeout, NotificationOptions.SKIP_STEP_TEN_SECONDS_IN_MS);
+    }
+
+    @Override // com.exteragram.messenger.components.ReceiveContentEditText, android.view.View
+    public void onDetachedFromWindow() {
+        super.onDetachedFromWindow();
+        removeCallbacks(this.spoilerTimeout);
+        AnimatedEmojiSpan.release(this, this.animatedEmojiDrawables);
+    }
+
+    public void recycleEmojis() {
+        AnimatedEmojiSpan.release(this, this.animatedEmojiDrawables);
+    }
+
+    @Override // android.widget.TextView, android.view.View
+    public void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        updateAnimatedEmoji(true);
+        invalidateQuotes(false);
+    }
+
+    @Override // android.view.View
+    public void onSizeChanged(int i, int i2, int i3, int i4) {
+        super.onSizeChanged(i, i2, i3, i4);
+        invalidateEffects();
+    }
+
+    /* JADX WARN: Code restructure failed: missing block: B:13:0x0047, code lost:
+    
+        r7 = r7 - r6;
+        r3.selStart += r7;
+        r3.selEnd += r7;
+        onSpoilerClicked(r1, r5, r4);
+     */
+    @Override // com.exteragram.messenger.components.ReceiveContentEditText, android.widget.TextView
+    /*
+        Code decompiled incorrectly, please refer to instructions dump.
+    */
+    public void onTextChanged(CharSequence charSequence, int i, int i2, int i3) {
+        super.onTextChanged(charSequence, i, i2, i3);
+        if (!this.suppressOnTextChanged) {
+            invalidateEffects();
+            try {
+                Layout layout = getLayout();
+                if ((charSequence instanceof Spannable) && layout != null) {
+                    int lineForOffset = layout.getLineForOffset(i);
+                    int primaryHorizontal = (int) layout.getPrimaryHorizontal(i);
+                    int lineTop = (int) ((layout.getLineTop(lineForOffset) + layout.getLineBottom(lineForOffset)) / 2.0f);
+                    Iterator<SpoilerEffect> it = this.spoilers.iterator();
+                    while (true) {
+                        if (!it.hasNext()) {
+                            break;
+                        }
+                        SpoilerEffect next = it.next();
+                        if (next.getBounds().contains(primaryHorizontal, lineTop)) {
+                            break;
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                FileLog.m1040e(e);
+            }
+        }
+        updateAnimatedEmoji(true);
+        invalidateQuotes(true);
+        invalidate();
+    }
+
+    @Override // com.exteragram.messenger.components.ReceiveContentEditText, android.widget.EditText, android.widget.TextView
+    public void setText(CharSequence charSequence, TextView.BufferType bufferType) {
+        if (!this.suppressOnTextChanged) {
+            this.isSpoilersRevealed = false;
+            Stack<SpoilerEffect> stack = this.spoilersPool;
+            if (stack != null) {
+                stack.clear();
+            }
+        }
+        super.setText(charSequence, bufferType);
+    }
+
+    public void setEmojiColor(Integer num) {
+        this.emojiColor = num;
+        this.animatedEmojiColorFilter = new PorterDuffColorFilter(num == null ? this.lastTextColor : num.intValue(), PorterDuff.Mode.SRC_IN);
+        invalidate();
+    }
+
+    @Override // android.widget.TextView
+    public void setTextColor(int i) {
+        this.lastTextColor = i;
+        super.setTextColor(i);
+        Integer num = this.emojiColor;
+        if (num != null) {
+            i = num.intValue();
+        }
+        this.animatedEmojiColorFilter = new PorterDuffColorFilter(i, PorterDuff.Mode.SRC_IN);
+    }
+
+    @Override // android.widget.TextView, android.view.View
+    public void onLayout(boolean z, int i, int i2, int i3, int i4) {
+        super.onLayout(z, i, i2, i3, i4);
+        invalidateQuotes(false);
+    }
+
+    public void setShouldRevealSpoilersByTouch(boolean z) {
+        this.shouldRevealSpoilersByTouch = z;
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public /* synthetic */ void lambda$dispatchTouchEvent$5() {
+        invalidateQuotes(true);
+    }
+
+    @Override // android.view.View
+    public boolean dispatchTouchEvent(MotionEvent motionEvent) {
+        boolean z;
+        SpoilersClickDetector spoilersClickDetector;
+        if (QuoteSpan.onTouch(motionEvent, getPaddingTop() - getScrollY(), this.quoteBlocks, new Runnable() { // from class: org.telegram.ui.Components.EditTextEffects$$ExternalSyntheticLambda0
+            @Override // java.lang.Runnable
+            public final void run() {
+                this.f$0.lambda$dispatchTouchEvent$5();
+            }
+        })) {
+            return true;
+        }
+        if (this.shouldRevealSpoilersByTouch && (spoilersClickDetector = this.clickDetector) != null && spoilersClickDetector.onTouchEvent(motionEvent)) {
+            if (motionEvent.getActionMasked() == 1) {
+                MotionEvent motionEventObtain = MotionEvent.obtain(0L, 0L, 3, 0.0f, 0.0f, 0);
+                super.dispatchTouchEvent(motionEventObtain);
+                motionEventObtain.recycle();
+            }
+            z = true;
+        } else {
+            z = false;
+        }
+        return super.dispatchTouchEvent(motionEvent) || z;
+    }
+
+    public void setSpoilersRevealed(boolean z, boolean z2) {
+        this.isSpoilersRevealed = z;
+        Editable text = getText();
+        if (text != null) {
+            for (TextStyleSpan textStyleSpan : (TextStyleSpan[]) text.getSpans(0, text.length(), TextStyleSpan.class)) {
+                if (textStyleSpan.isSpoiler()) {
+                    textStyleSpan.setSpoilerRevealed(z);
+                }
+            }
+        }
+        this.suppressOnTextChanged = true;
+        setText(text, TextView.BufferType.EDITABLE);
+        setSelection(this.selStart, this.selEnd);
+        this.suppressOnTextChanged = false;
+        if (z2) {
+            invalidateSpoilers();
+        }
+    }
+
+    public void setOffsetY(float f) {
+        this.offsetY = f;
+        invalidate();
+    }
+
+    public float getOffsetY() {
+        return this.offsetY;
+    }
+
+    public static boolean allowHackingTextCanvas() {
+        String str;
+        if (allowHackingTextCanvasCache == null) {
+            String str2 = Build.MANUFACTURER;
+            allowHackingTextCanvasCache = Boolean.valueOf((str2 == null || !(str2.toLowerCase().contains("honor") || str2.toLowerCase().contains("huawei") || str2.toLowerCase().contains("alps"))) && ((str = Build.MODEL) == null || !str.toLowerCase().contains("mediapad")));
+        }
+        return allowHackingTextCanvasCache.booleanValue();
+    }
+
+    @Override // android.widget.TextView, android.view.View
+    public void onDraw(Canvas canvas) {
+        Canvas canvas2 = canvas;
+        canvas.save();
+        if (this.clipToPadding && getScrollY() != 0) {
+            canvas.clipRect(-AndroidUtilities.dp(3.0f), (getScrollY() - super.getExtendedPaddingTop()) - this.offsetY, getMeasuredWidth(), ((getMeasuredHeight() + getScrollY()) + super.getExtendedPaddingBottom()) - this.offsetY);
+        }
+        int paddingLeft = getPaddingLeft();
+        if (!this.spoilers.isEmpty()) {
+            this.path.rewind();
+            Iterator<SpoilerEffect> it = this.spoilers.iterator();
+            while (it.hasNext()) {
+                Rect bounds = it.next().getBounds();
+                this.path.addRect(bounds.left + paddingLeft, bounds.top, bounds.right + paddingLeft, bounds.bottom, Path.Direction.CW);
+            }
+            canvas.clipPath(this.path, Region.Op.DIFFERENCE);
+        }
+        invalidateQuotes(false);
+        for (int i = 0; i < this.quoteBlocks.size(); i++) {
+            Canvas canvas3 = canvas2;
+            this.quoteBlocks.get(i).draw(canvas3, 0.0f, getWidth(), this.quoteColor, 1.0f, getPaint());
+            canvas2 = canvas3;
+        }
+        updateAnimatedEmoji(false);
+        if (this.wrapCanvasToFixClipping) {
+            if (this.wrappedCanvas == null) {
+                this.wrappedCanvas = new NoClipCanvas();
+            }
+            NoClipCanvas noClipCanvas = this.wrappedCanvas;
+            noClipCanvas.canvas = canvas2;
+            super.onDraw(noClipCanvas);
+        } else {
+            super.onDraw(canvas);
+        }
+        if (this.drawAnimatedEmojiDrawables && this.animatedEmojiDrawables != null) {
+            canvas.save();
+            canvas.translate(getPaddingLeft(), 0.0f);
+            int drawScrollY = getDrawScrollY();
+            AnimatedEmojiSpan.drawAnimatedEmojis(canvas2, getLayout(), this.animatedEmojiDrawables, 0.0f, this.spoilers, drawScrollY - AndroidUtilities.dp(6.0f), drawScrollY + computeVerticalScrollExtent(), 0.0f, 1.0f, this.animatedEmojiColorFilter);
+            canvas.restore();
+        }
+        canvas.restore();
+        if (this.spoilers.isEmpty()) {
+            return;
+        }
+        if (this.spoilers.get(0).hasRipplePath()) {
+            canvas.save();
+            canvas.clipPath(this.path);
+            this.path.rewind();
+            this.spoilers.get(0).getRipplePath(this.path);
+            canvas.clipPath(this.path);
+            canvas.translate(0.0f, -getPaddingTop());
+            if (this.wrapCanvasToFixClipping) {
+                if (this.wrappedCanvas == null) {
+                    this.wrappedCanvas = new NoClipCanvas();
+                }
+                NoClipCanvas noClipCanvas2 = this.wrappedCanvas;
+                noClipCanvas2.canvas = canvas2;
+                super.onDraw(noClipCanvas2);
+            } else {
+                super.onDraw(canvas);
+            }
+            canvas.restore();
+        }
+        this.rect.set(0, (int) ((getDrawScrollY() - super.getExtendedPaddingTop()) - this.offsetY), getWidth(), (int) (((getMeasuredHeight() + getDrawScrollY()) + super.getExtendedPaddingBottom()) - this.offsetY));
+        canvas.save();
+        canvas.clipRect(this.rect);
+        canvas.translate(paddingLeft, 0.0f);
+        for (SpoilerEffect spoilerEffect : this.spoilers) {
+            Rect bounds2 = spoilerEffect.getBounds();
+            Rect rect = this.rect;
+            int i2 = rect.top;
+            int i3 = bounds2.bottom;
+            if ((i2 <= i3 && rect.bottom >= bounds2.top) || (bounds2.top <= rect.bottom && i3 >= i2)) {
+                spoilerEffect.setColor(spoilerEffect.insideQuote ? this.quoteColor : getPaint().getColor());
+                spoilerEffect.draw(canvas);
+            }
+        }
+        canvas.restore();
+    }
+
+    public void updateAnimatedEmoji(boolean z) {
+        if (this.drawAnimatedEmojiDrawables) {
+            int length = (getLayout() == null || getLayout().getText() == null) ? 0 : getLayout().getText().length();
+            if (!z && this.lastLayout == getLayout() && this.lastTextLength == length) {
+                return;
+            }
+            this.animatedEmojiDrawables = AnimatedEmojiSpan.update(emojiCacheType(), this, this.animatedEmojiDrawables, getLayout());
+            this.lastLayout = getLayout();
+            this.lastTextLength = length;
+        }
+    }
+
+    public int getDrawScrollY() {
+        return computeVerticalScrollOffset();
+    }
+
+    public int emojiCacheType() {
+        return AnimatedEmojiDrawable.getCacheTypeForEnterView();
+    }
+
+    public void invalidateQuotes(boolean z) {
+        if (this.quoteBlocksUpdating) {
+            this.editedWhileQuoteUpdating = true;
+            return;
+        }
+        int length = 0;
+        int length2 = (getLayout() == null || getLayout().getText() == null) ? 0 : getLayout().getText().length();
+        if (z || this.lastText2Length != length2) {
+            this.quoteUpdatesTries = 2;
+            this.lastText2Length = length2;
+        }
+        if (this.quoteUpdatesTries > 0) {
+            if (this.quoteUpdateLayout == null) {
+                this.quoteUpdateLayout = new boolean[1];
+            }
+            this.quoteUpdateLayout[0] = false;
+            this.editedWhileQuoteUpdating = false;
+            this.quoteBlocksUpdating = true;
+            this.quoteBlocks = QuoteSpan.updateQuoteBlocks(this, getLayout(), this.quoteBlocks, this.quoteUpdateLayout);
+            if (this.editedWhileQuoteUpdating) {
+                this.quoteBlocks = QuoteSpan.updateQuoteBlocks(this, getLayout(), this.quoteBlocks, this.quoteUpdateLayout);
+            }
+            this.quoteBlocksUpdating = false;
+            this.editedWhileQuoteUpdating = false;
+            if (this.quoteUpdateLayout[0]) {
+                resetFontMetricsCache();
+            }
+            this.quoteUpdatesTries--;
+            if (getLayout() != null && getLayout().getText() != null) {
+                length = getLayout().getText().length();
+            }
+            this.lastText2Length = length;
+        }
+    }
+
+    public void resetFontMetricsCache() {
+        float textSize = getTextSize();
+        setTextSize(0, 1.0f + textSize);
+        setTextSize(0, textSize);
+    }
+
+    public void invalidateEffects() {
+        Editable text = getText();
+        if (text != null) {
+            for (TextStyleSpan textStyleSpan : (TextStyleSpan[]) text.getSpans(0, text.length(), TextStyleSpan.class)) {
+                if (textStyleSpan.isSpoiler()) {
+                    textStyleSpan.setSpoilerRevealed(this.isSpoilersRevealed);
+                }
+            }
+        }
+        invalidateSpoilers();
+    }
+
+    public void invalidateSpoilers() {
+        AnimatedEmojiSpan.EmojiGroupedSpans emojiGroupedSpans;
+        AnimatedEmojiSpan.EmojiGroupedSpans emojiGroupedSpans2;
+        List<SpoilerEffect> list = this.spoilers;
+        if (list == null) {
+            return;
+        }
+        this.spoilersPool.addAll(list);
+        this.spoilers.clear();
+        if (this.isSpoilersRevealed) {
+            invalidate();
+            return;
+        }
+        Layout layout = getLayout();
+        if (layout != null && (layout.getText() instanceof Spannable)) {
+            if (this.drawAnimatedEmojiDrawables && (emojiGroupedSpans2 = this.animatedEmojiDrawables) != null) {
+                emojiGroupedSpans2.recordPositions(false);
+            }
+            SpoilerEffect.addSpoilers(this, this.spoilersPool, this.spoilers, this.quoteBlocks);
+            if (this.drawAnimatedEmojiDrawables && (emojiGroupedSpans = this.animatedEmojiDrawables) != null) {
+                emojiGroupedSpans.recordPositions(true);
+            }
+        }
+        invalidate();
+    }
+
+    public void setClipToPadding(boolean z) {
+        this.clipToPadding = z;
+    }
+
+    public CharSequence getTextToUse() {
+        return QuoteSpan.stripNewlineHacks(getText());
+    }
+}

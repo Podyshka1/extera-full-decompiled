@@ -1,0 +1,67 @@
+package kotlin.ranges;
+
+import kotlin.Metadata;
+import okhttp3.internal.url._UrlKt;
+
+/* JADX INFO: loaded from: classes5.dex */
+@Metadata(d1 = {"\u0000*\n\u0002\u0018\u0002\n\u0002\u0018\u0002\n\u0002\u0010\u0007\n\u0002\b\n\n\u0002\u0010\u000b\n\u0002\b\u0007\n\u0002\u0010\u0000\n\u0000\n\u0002\u0010\b\n\u0000\n\u0002\u0010\u000e\n\u0000\b\u0002\u0018\u00002\b\u0012\u0004\u0012\u00020\u00020\u0001B\u0019\bF\u0012\u0006\u0010\u0003\u001a\u00020\u0002\u0012\u0006\u0010\u0004\u001a\u00020\u0002¢\u0006\u0004\b\u0005\u0010\u0006J\u001a\u0010\f\u001a\u00020\r2\u0006\u0010\u000e\u001a\u00020\u00022\u0006\u0010\u000f\u001a\u00020\u0002H\u0082\u0080\u0004J\u0012\u0010\u0010\u001a\u00020\r2\u0006\u0010\u0011\u001a\u00020\u0002H\u0096\u0082\u0004J\n\u0010\u0012\u001a\u00020\rH\u0096\u0080\u0004J\u0014\u0010\u0013\u001a\u00020\r2\b\u0010\u0014\u001a\u0004\u0018\u00010\u0015H\u0096\u0082\u0004J\n\u0010\u0016\u001a\u00020\u0017H\u0096\u0080\u0004J\n\u0010\u0018\u001a\u00020\u0019H\u0096\u0080\u0004R\u000f\u0010\u0007\u001a\u00020\u0002X\u0082\u0084\b¢\u0006\u0002\n\u0000R\u000f\u0010\b\u001a\u00020\u0002X\u0082\u0084\b¢\u0006\u0002\n\u0000R\u0015\u0010\u0003\u001a\u00020\u00028VX\u0096\u0084\b¢\u0006\u0006\u001a\u0004\b\t\u0010\nR\u0015\u0010\u0004\u001a\u00020\u00028VX\u0096\u0084\b¢\u0006\u0006\u001a\u0004\b\u000b\u0010\n¨\u0006\u001a"}, d2 = {"Lkotlin/ranges/OpenEndFloatRange;", "Lkotlin/ranges/OpenEndRange;", _UrlKt.FRAGMENT_ENCODE_SET, "start", "endExclusive", "<init>", "(FF)V", "_start", "_endExclusive", "getStart", "()Ljava/lang/Float;", "getEndExclusive", "lessThanOrEquals", _UrlKt.FRAGMENT_ENCODE_SET, "a", "b", "contains", "value", "isEmpty", "equals", "other", _UrlKt.FRAGMENT_ENCODE_SET, "hashCode", _UrlKt.FRAGMENT_ENCODE_SET, "toString", _UrlKt.FRAGMENT_ENCODE_SET, "kotlin-stdlib"}, m910k = 1, mv = {2, 3, 0}, xi = 48)
+final class OpenEndFloatRange implements OpenEndRange<Float> {
+    private final float _endExclusive;
+    private final float _start;
+
+    private final boolean lessThanOrEquals(float a2, float b2) {
+        return a2 <= b2;
+    }
+
+    public OpenEndFloatRange(float f, float f2) {
+        this._start = f;
+        this._endExclusive = f2;
+    }
+
+    /* JADX WARN: Multi-variable type inference failed */
+    @Override // kotlin.ranges.OpenEndRange
+    public /* bridge */ /* synthetic */ boolean contains(Comparable comparable) {
+        return contains(((Number) comparable).floatValue());
+    }
+
+    @Override // kotlin.ranges.OpenEndRange
+    public Float getStart() {
+        return Float.valueOf(this._start);
+    }
+
+    @Override // kotlin.ranges.OpenEndRange
+    public Float getEndExclusive() {
+        return Float.valueOf(this._endExclusive);
+    }
+
+    public boolean contains(float value) {
+        return value >= this._start && value < this._endExclusive;
+    }
+
+    @Override // kotlin.ranges.OpenEndRange
+    public boolean isEmpty() {
+        return this._start >= this._endExclusive;
+    }
+
+    public boolean equals(Object other) {
+        if (!(other instanceof OpenEndFloatRange)) {
+            return false;
+        }
+        if (isEmpty() && ((OpenEndFloatRange) other).isEmpty()) {
+            return true;
+        }
+        OpenEndFloatRange openEndFloatRange = (OpenEndFloatRange) other;
+        return this._start == openEndFloatRange._start && this._endExclusive == openEndFloatRange._endExclusive;
+    }
+
+    public int hashCode() {
+        if (isEmpty()) {
+            return -1;
+        }
+        return (Float.hashCode(this._start) * 31) + Float.hashCode(this._endExclusive);
+    }
+
+    public String toString() {
+        return this._start + "..<" + this._endExclusive;
+    }
+}

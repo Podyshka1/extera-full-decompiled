@@ -1,0 +1,6 @@
+package androidx.car.app;
+
+/* JADX INFO: loaded from: classes3.dex */
+public interface OnScreenResultListener {
+    void onScreenResult(Object obj);
+}

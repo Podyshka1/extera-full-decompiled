@@ -1,0 +1,85 @@
+package com.google.android.gms.maps.model;
+
+import android.os.RemoteException;
+import com.google.android.gms.common.internal.Preconditions;
+import com.google.android.gms.maps.zzah$$ExternalSyntheticBUOutline0;
+
+/* JADX INFO: loaded from: classes5.dex */
+public final class Circle {
+    private final com.google.android.gms.internal.maps.zzn zza;
+
+    public Circle(com.google.android.gms.internal.maps.zzn zznVar) {
+        this.zza = (com.google.android.gms.internal.maps.zzn) Preconditions.checkNotNull(zznVar);
+    }
+
+    public final boolean equals(Object obj) {
+        if (!(obj instanceof Circle)) {
+            return false;
+        }
+        try {
+            return this.zza.zzy(((Circle) obj).zza);
+        } catch (RemoteException e) {
+            zzah$$ExternalSyntheticBUOutline0.m360m(e);
+            return false;
+        }
+    }
+
+    public double getRadius() {
+        try {
+            return this.zza.zzd();
+        } catch (RemoteException e) {
+            zzah$$ExternalSyntheticBUOutline0.m360m(e);
+            return 0.0d;
+        }
+    }
+
+    public final int hashCode() {
+        try {
+            return this.zza.zzi();
+        } catch (RemoteException e) {
+            zzah$$ExternalSyntheticBUOutline0.m360m(e);
+            return 0;
+        }
+    }
+
+    public void remove() {
+        try {
+            this.zza.zzn();
+        } catch (RemoteException e) {
+            zzah$$ExternalSyntheticBUOutline0.m360m(e);
+        }
+    }
+
+    public void setFillColor(int i) {
+        try {
+            this.zza.zzq(i);
+        } catch (RemoteException e) {
+            zzah$$ExternalSyntheticBUOutline0.m360m(e);
+        }
+    }
+
+    public void setRadius(double d) {
+        try {
+            this.zza.zzr(d);
+        } catch (RemoteException e) {
+            zzah$$ExternalSyntheticBUOutline0.m360m(e);
+        }
+    }
+
+    public void setStrokeColor(int i) {
+        try {
+            this.zza.zzs(i);
+        } catch (RemoteException e) {
+            zzah$$ExternalSyntheticBUOutline0.m360m(e);
+        }
+    }
+
+    public void setCenter(LatLng latLng) {
+        try {
+            Preconditions.checkNotNull(latLng, "center must not be null.");
+            this.zza.zzo(latLng);
+        } catch (RemoteException e) {
+            zzah$$ExternalSyntheticBUOutline0.m360m(e);
+        }
+    }
+}

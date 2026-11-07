@@ -1,0 +1,417 @@
+package org.telegram.ui.Stories.recorder;
+
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.ValueAnimator;
+import android.content.Context;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
+import android.graphics.RectF;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
+import android.text.Layout;
+import android.text.SpannableString;
+import android.text.SpannableStringBuilder;
+import android.text.StaticLayout;
+import android.text.TextPaint;
+import android.text.TextUtils;
+import android.text.style.ImageSpan;
+import android.view.View;
+import android.view.accessibility.AccessibilityNodeInfo;
+import android.view.animation.LinearInterpolator;
+import android.view.animation.OvershootInterpolator;
+import android.widget.FrameLayout;
+import android.widget.ImageView;
+import java.util.ArrayList;
+import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.C2807R;
+import org.telegram.messenger.LocaleController;
+import org.telegram.messenger.Utilities;
+import org.telegram.tgnet.TLObject;
+import org.telegram.ui.ActionBar.Theme;
+import org.telegram.ui.Components.AnimatedFloat;
+import org.telegram.ui.Components.CubicBezierInterpolator;
+import org.telegram.ui.Components.LayoutHelper;
+
+/* JADX INFO: loaded from: classes7.dex */
+public class PreviewButtons extends FrameLayout {
+    private ValueAnimator appearAnimator;
+    private float appearT;
+    private boolean appearing;
+    private ArrayList<ButtonView> buttons;
+    private boolean isShareEnabled;
+    private Utilities.Callback<Integer> onClickListener;
+    private View shadowView;
+    private boolean shareArrow;
+    public ShareButtonView shareButton;
+    private String shareText;
+
+    public PreviewButtons(Context context) {
+        super(context);
+        this.buttons = new ArrayList<>();
+        this.shareArrow = true;
+        this.isShareEnabled = true;
+        View view = new View(context);
+        this.shadowView = view;
+        view.setBackground(new GradientDrawable(GradientDrawable.Orientation.BOTTOM_TOP, new int[]{1711276032, 0}));
+        addView(this.shadowView, LayoutHelper.createFrame(-1, -1, 119));
+        addButton(0, C2807R.drawable.media_draw, LocaleController.getString(C2807R.string.AccDescrPaint));
+        addButton(2, C2807R.drawable.msg_photo_sticker, LocaleController.getString(C2807R.string.AccDescrStickers));
+        addButton(1, C2807R.drawable.msg_photo_text2, LocaleController.getString(C2807R.string.AccDescrPlaceText));
+        addButton(3, C2807R.drawable.media_crop, LocaleController.getString(C2807R.string.Crop));
+        addButton(4, C2807R.drawable.msg_photo_settings, LocaleController.getString(C2807R.string.AccDescrPhotoAdjust));
+        String string = LocaleController.getString(C2807R.string.Send);
+        this.shareText = string;
+        this.shareArrow = true;
+        ShareButtonView shareButtonView = new ShareButtonView(context, string, true);
+        this.shareButton = shareButtonView;
+        shareButtonView.setContentDescription(LocaleController.getString(C2807R.string.Send));
+        addView(this.shareButton, LayoutHelper.createFrame(-2, -2.0f));
+        updateAppearT();
+    }
+
+    public void setButtonVisible(int i, boolean z) {
+        for (int i2 = 0; i2 < this.buttons.size(); i2++) {
+            ButtonView buttonView = this.buttons.get(i2);
+            if (buttonView.id == i) {
+                buttonView.setVisibility(z ? 0 : 8);
+            }
+        }
+    }
+
+    private boolean isButtonVisible(int i) {
+        for (int i2 = 0; i2 < this.buttons.size(); i2++) {
+            ButtonView buttonView = this.buttons.get(i2);
+            if (buttonView.id == i) {
+                return buttonView.getVisibility() == 0;
+            }
+        }
+        return false;
+    }
+
+    public void setShareText(String str, boolean z) {
+        if (TextUtils.equals(str, this.shareText) && z == this.shareArrow) {
+            return;
+        }
+        removeView(this.shareButton);
+        Context context = getContext();
+        this.shareText = str;
+        this.shareArrow = z;
+        ShareButtonView shareButtonView = new ShareButtonView(context, str, z);
+        this.shareButton = shareButtonView;
+        shareButtonView.setContentDescription(str);
+        addView(this.shareButton, LayoutHelper.createFrame(-2, -2.0f));
+        updateAppearT();
+    }
+
+    private void addButton(int i, int i2, CharSequence charSequence) {
+        ButtonView buttonView = new ButtonView(getContext(), i, i2);
+        buttonView.setContentDescription(charSequence);
+        this.buttons.add(buttonView);
+        addView(buttonView);
+    }
+
+    @Override // android.widget.FrameLayout, android.view.ViewGroup, android.view.View
+    public void onLayout(boolean z, int i, int i2, int i3, int i4) {
+        int i5 = i3 - i;
+        int i6 = i4 - i2;
+        this.shadowView.layout(0, 0, i5, i6);
+        ShareButtonView shareButtonView = this.shareButton;
+        shareButtonView.layout(i5 - shareButtonView.getMeasuredWidth(), (i6 - this.shareButton.getMeasuredHeight()) / 2, i5, (this.shareButton.getMeasuredHeight() + i6) / 2);
+        int iDp = (i5 - AndroidUtilities.dp(32.33f)) - this.shareButton.getMeasuredWidth();
+        int i7 = 0;
+        for (int i8 = 0; i8 < this.buttons.size(); i8++) {
+            if (this.buttons.get(i8).getVisibility() == 0) {
+                i7++;
+            }
+        }
+        int iMin = Math.min(AndroidUtilities.dp(isButtonVisible(4) ? 20.0f : 30.0f), i7 < 2 ? 0 : (iDp - (AndroidUtilities.dp(40.0f) * i7)) / (i7 - 1));
+        int iDp2 = (i6 - AndroidUtilities.dp(40.0f)) / 2;
+        int iDp3 = (i6 + AndroidUtilities.dp(40.0f)) / 2;
+        int iDp4 = AndroidUtilities.dp(12.33f) + (!isButtonVisible(4) ? ((iDp - (AndroidUtilities.dp(40.0f) * i7)) - ((i7 - 1) * iMin)) / 2 : 0);
+        for (int i9 = 0; i9 < this.buttons.size(); i9++) {
+            if (this.buttons.get(i9).getVisibility() == 0) {
+                this.buttons.get(i9).layout(iDp4, iDp2, AndroidUtilities.dp(40.0f) + iDp4, iDp3);
+                iDp4 += AndroidUtilities.dp(40.0f) + iMin;
+            }
+        }
+    }
+
+    public void setOnClickListener(Utilities.Callback<Integer> callback) {
+        this.onClickListener = callback;
+    }
+
+    @Override // android.widget.FrameLayout, android.view.View
+    public void onMeasure(int i, int i2) {
+        super.onMeasure(View.MeasureSpec.makeMeasureSpec(View.MeasureSpec.getSize(i), TLObject.FLAG_30), View.MeasureSpec.makeMeasureSpec(AndroidUtilities.dp(52.0f), TLObject.FLAG_30));
+    }
+
+    public void setShareEnabled(boolean z) {
+        if (this.isShareEnabled != z) {
+            this.isShareEnabled = z;
+            ShareButtonView shareButtonView = this.shareButton;
+            shareButtonView.enabled = z;
+            shareButtonView.invalidate();
+        }
+    }
+
+    public boolean isShareEnabled() {
+        return this.isShareEnabled;
+    }
+
+    public void appear(boolean z, boolean z2) {
+        if (this.appearing == z) {
+            return;
+        }
+        ValueAnimator valueAnimator = this.appearAnimator;
+        if (valueAnimator != null) {
+            valueAnimator.cancel();
+        }
+        this.appearing = z;
+        if (z2) {
+            ValueAnimator valueAnimatorOfFloat = ValueAnimator.ofFloat(this.appearT, z ? 1.0f : 0.0f);
+            this.appearAnimator = valueAnimatorOfFloat;
+            valueAnimatorOfFloat.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() { // from class: org.telegram.ui.Stories.recorder.PreviewButtons$$ExternalSyntheticLambda0
+                @Override // android.animation.ValueAnimator.AnimatorUpdateListener
+                public final void onAnimationUpdate(ValueAnimator valueAnimator2) {
+                    this.f$0.lambda$appear$0(valueAnimator2);
+                }
+            });
+            boolean z3 = this.appearing;
+            ValueAnimator valueAnimator2 = this.appearAnimator;
+            if (z3) {
+                valueAnimator2.setDuration(450L);
+                this.appearAnimator.setInterpolator(new LinearInterpolator());
+            } else {
+                valueAnimator2.setDuration(350L);
+                this.appearAnimator.setInterpolator(CubicBezierInterpolator.EASE_OUT_QUINT);
+            }
+            this.appearAnimator.start();
+            return;
+        }
+        this.appearT = z ? 1.0f : 0.0f;
+        updateAppearT();
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public /* synthetic */ void lambda$appear$0(ValueAnimator valueAnimator) {
+        this.appearT = ((Float) valueAnimator.getAnimatedValue()).floatValue();
+        updateAppearT();
+    }
+
+    private void updateAppearT() {
+        this.shadowView.setAlpha(this.appearT);
+        this.shadowView.setTranslationY((1.0f - this.appearT) * AndroidUtilities.dp(16.0f));
+        for (int i = 1; i < getChildCount(); i++) {
+            View childAt = getChildAt(i);
+            float interpolation = this.appearT;
+            if (this.appearing) {
+                interpolation = CubicBezierInterpolator.EASE_OUT_QUINT.getInterpolation(AndroidUtilities.cascade(interpolation, i - 1, getChildCount() - 1, 3.0f));
+            }
+            childAt.setAlpha(interpolation);
+            childAt.setTranslationY((1.0f - interpolation) * AndroidUtilities.dp(24.0f));
+        }
+    }
+
+    public class ShareButtonView extends View {
+        private boolean arrow;
+        ValueAnimator backAnimator;
+        private final Paint buttonPaint;
+        private final Paint darkenPaint;
+        public boolean enabled;
+        private AnimatedFloat enabledT;
+
+        /* JADX INFO: renamed from: h */
+        private int f1245h;
+        private float left;
+        float pressedProgress;
+        private final StaticLayout staticLayout;
+        private final TextPaint textPaint;
+
+        /* JADX INFO: renamed from: w */
+        private int f1246w;
+        private float width;
+
+        public ShareButtonView(Context context, String str, boolean z) {
+            CharSequence upperCase;
+            super(context);
+            TextPaint textPaint = new TextPaint(1);
+            this.textPaint = textPaint;
+            Paint paint = new Paint(1);
+            this.buttonPaint = paint;
+            Paint paint2 = new Paint(1);
+            this.darkenPaint = paint2;
+            this.enabledT = new AnimatedFloat(this, 0L, 220L, CubicBezierInterpolator.EASE_OUT_QUINT);
+            this.enabled = true;
+            this.arrow = z;
+            paint.setColor(-15098625);
+            paint2.setColor(1610612736);
+            textPaint.setTextSize(AndroidUtilities.dp(13.0f));
+            textPaint.setColor(-1);
+            textPaint.setTypeface(AndroidUtilities.bold());
+            if (z) {
+                SpannableString spannableString = new SpannableString(">");
+                Drawable drawableMutate = getResources().getDrawable(C2807R.drawable.attach_arrow_right).mutate();
+                drawableMutate.setColorFilter(new PorterDuffColorFilter(-1, PorterDuff.Mode.SRC_IN));
+                drawableMutate.setBounds(0, 0, AndroidUtilities.dp(12.0f), AndroidUtilities.dp(12.0f));
+                spannableString.setSpan(new ImageSpan(drawableMutate, 2), 0, spannableString.length(), 33);
+                if (LocaleController.isRTL) {
+                    upperCase = new SpannableStringBuilder(spannableString).append((CharSequence) "\u2009").append((CharSequence) str.toUpperCase());
+                } else {
+                    upperCase = new SpannableStringBuilder(str.toUpperCase()).append((CharSequence) "\u2009").append((CharSequence) spannableString);
+                }
+            } else {
+                upperCase = str.toUpperCase();
+            }
+            StaticLayout staticLayout = new StaticLayout(upperCase, textPaint, AndroidUtilities.dp(180.0f), Layout.Alignment.ALIGN_NORMAL, 1.0f, 0.0f, false);
+            this.staticLayout = staticLayout;
+            this.left = staticLayout.getLineCount() > 0 ? staticLayout.getLineLeft(0) : 0.0f;
+            float lineWidth = staticLayout.getLineCount() > 0 ? staticLayout.getLineWidth(0) : 0.0f;
+            this.width = lineWidth;
+            this.f1246w = ((int) lineWidth) + AndroidUtilities.dp(48.0f);
+            if (!z) {
+                this.f1246w = Math.max(AndroidUtilities.dp(80.0f), this.f1246w);
+            }
+            this.f1245h = AndroidUtilities.dp(40.0f);
+            setOnClickListener(new View.OnClickListener() { // from class: org.telegram.ui.Stories.recorder.PreviewButtons$ShareButtonView$$ExternalSyntheticLambda0
+                @Override // android.view.View.OnClickListener
+                public final void onClick(View view) {
+                    this.f$0.lambda$new$0(view);
+                }
+            });
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public /* synthetic */ void lambda$new$0(View view) {
+            if (!PreviewButtons.this.appearing || PreviewButtons.this.onClickListener == null) {
+                return;
+            }
+            PreviewButtons.this.onClickListener.run(5);
+        }
+
+        @Override // android.view.View
+        public void onMeasure(int i, int i2) {
+            super.onMeasure(View.MeasureSpec.makeMeasureSpec(this.f1246w, TLObject.FLAG_30), View.MeasureSpec.makeMeasureSpec(this.f1245h, TLObject.FLAG_30));
+        }
+
+        @Override // android.view.View
+        public void onDraw(Canvas canvas) {
+            if (isPressed()) {
+                float f = this.pressedProgress;
+                if (f != 1.0f) {
+                    float fMin = f + (Math.min(40.0f, 1000.0f / AndroidUtilities.screenRefreshRate) / 80.0f);
+                    this.pressedProgress = fMin;
+                    this.pressedProgress = Utilities.clamp(fMin, 1.0f, 0.0f);
+                    invalidate();
+                }
+            }
+            float f2 = this.enabledT.set(this.enabled ? 1.0f : 0.5f);
+            int saveCount = canvas.getSaveCount();
+            if (f2 < 1.0f) {
+                canvas.saveLayerAlpha(0.0f, 0.0f, getWidth(), getHeight(), (int) (f2 * 255.0f), 31);
+            }
+            float f3 = ((1.0f - this.pressedProgress) * 0.1f) + 0.9f;
+            canvas.save();
+            canvas.scale(f3, f3, getWidth() / 2.0f, getHeight() / 2.0f);
+            canvas.drawRect(AndroidUtilities.dp(25.0f), AndroidUtilities.dp(4.0f), getWidth() - AndroidUtilities.dp(25.0f), getHeight() - AndroidUtilities.dp(4.0f), this.darkenPaint);
+            canvas.saveLayerAlpha(0.0f, 0.0f, getWidth(), getHeight(), 255, 31);
+            RectF rectF = AndroidUtilities.rectTmp;
+            rectF.set(AndroidUtilities.dp(10.0f), AndroidUtilities.dp(4.0f), getWidth() - AndroidUtilities.dp(10.0f), getHeight() - AndroidUtilities.dp(4.0f));
+            canvas.drawRoundRect(rectF, AndroidUtilities.dp(20.0f), AndroidUtilities.dp(20.0f), this.buttonPaint);
+            canvas.save();
+            canvas.translate((((this.f1246w - this.width) / 2.0f) + AndroidUtilities.dp(this.arrow ? 3.0f : 0.0f)) - this.left, (getHeight() - this.staticLayout.getHeight()) / 2.0f);
+            this.staticLayout.draw(canvas);
+            canvas.restore();
+            canvas.restoreToCount(saveCount);
+        }
+
+        @Override // android.view.View
+        public void setPressed(boolean z) {
+            ValueAnimator valueAnimator;
+            if (isPressed() != z) {
+                super.setPressed(z);
+                invalidate();
+                if (z && (valueAnimator = this.backAnimator) != null) {
+                    valueAnimator.removeAllListeners();
+                    this.backAnimator.cancel();
+                }
+                if (z) {
+                    return;
+                }
+                float f = this.pressedProgress;
+                if (f != 0.0f) {
+                    ValueAnimator valueAnimatorOfFloat = ValueAnimator.ofFloat(f, 0.0f);
+                    this.backAnimator = valueAnimatorOfFloat;
+                    valueAnimatorOfFloat.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() { // from class: org.telegram.ui.Stories.recorder.PreviewButtons$ShareButtonView$$ExternalSyntheticLambda1
+                        @Override // android.animation.ValueAnimator.AnimatorUpdateListener
+                        public final void onAnimationUpdate(ValueAnimator valueAnimator2) {
+                            this.f$0.lambda$setPressed$1(valueAnimator2);
+                        }
+                    });
+                    this.backAnimator.addListener(new AnimatorListenerAdapter() { // from class: org.telegram.ui.Stories.recorder.PreviewButtons.ShareButtonView.1
+                        @Override // android.animation.AnimatorListenerAdapter, android.animation.Animator.AnimatorListener
+                        public void onAnimationEnd(Animator animator) {
+                            super.onAnimationEnd(animator);
+                            ShareButtonView.this.backAnimator = null;
+                        }
+                    });
+                    this.backAnimator.setInterpolator(new OvershootInterpolator(1.5f));
+                    this.backAnimator.setDuration(350L);
+                    this.backAnimator.start();
+                }
+            }
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public /* synthetic */ void lambda$setPressed$1(ValueAnimator valueAnimator) {
+            this.pressedProgress = ((Float) valueAnimator.getAnimatedValue()).floatValue();
+            invalidate();
+        }
+
+        @Override // android.view.View
+        public void onInitializeAccessibilityNodeInfo(AccessibilityNodeInfo accessibilityNodeInfo) {
+            super.onInitializeAccessibilityNodeInfo(accessibilityNodeInfo);
+            accessibilityNodeInfo.setClassName("android.widget.Button");
+        }
+    }
+
+    public class ButtonView extends ImageView {
+        public final int id;
+
+        public ButtonView(Context context, final int i, int i2) {
+            super(context);
+            this.id = i;
+            setBackground(Theme.createSelectorDrawable(1090519039));
+            setScaleType(ImageView.ScaleType.CENTER);
+            setImageResource(i2);
+            setColorFilter(new PorterDuffColorFilter(-1, PorterDuff.Mode.MULTIPLY));
+            setOnClickListener(new View.OnClickListener() { // from class: org.telegram.ui.Stories.recorder.PreviewButtons$ButtonView$$ExternalSyntheticLambda0
+                @Override // android.view.View.OnClickListener
+                public final void onClick(View view) {
+                    this.f$0.lambda$new$0(i, view);
+                }
+            });
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public /* synthetic */ void lambda$new$0(int i, View view) {
+            if (!PreviewButtons.this.appearing || PreviewButtons.this.onClickListener == null) {
+                return;
+            }
+            PreviewButtons.this.onClickListener.run(Integer.valueOf(i));
+        }
+
+        @Override // android.widget.ImageView, android.view.View
+        public void onMeasure(int i, int i2) {
+            setMeasuredDimension(AndroidUtilities.dp(40.0f), AndroidUtilities.dp(40.0f));
+        }
+
+        @Override // android.view.View
+        public void onInitializeAccessibilityNodeInfo(AccessibilityNodeInfo accessibilityNodeInfo) {
+            super.onInitializeAccessibilityNodeInfo(accessibilityNodeInfo);
+            accessibilityNodeInfo.setClassName("android.widget.Button");
+        }
+    }
+}

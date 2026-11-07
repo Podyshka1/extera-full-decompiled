@@ -1,0 +1,10 @@
+Manifest summary
+================
+package: com.exteragram.messenger
+application: org.telegram.messenger.ApplicationLoader
+
+activities: 52
+services: 38
+receivers: 30
+providers: 8
+permissions: 77

@@ -1,0 +1,53 @@
+package com.google.android.gms.common.moduleinstall;
+
+import com.google.android.gms.common.api.OptionalModuleApi;
+import com.google.android.gms.common.internal.Preconditions;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Executor;
+
+/* JADX INFO: loaded from: classes4.dex */
+public final class ModuleInstallRequest {
+    private final List zaa;
+    private final Executor zac;
+
+    public static class Builder {
+        private final List zaa = new ArrayList();
+        private Executor zac;
+
+        public Builder addApi(OptionalModuleApi optionalModuleApi) {
+            this.zaa.add(optionalModuleApi);
+            return this;
+        }
+
+        public ModuleInstallRequest build() {
+            return new ModuleInstallRequest(this.zaa, null, this.zac, true, null);
+        }
+    }
+
+    public /* synthetic */ ModuleInstallRequest(List list, InstallStatusListener installStatusListener, Executor executor, boolean z, byte[] bArr) {
+        Preconditions.checkNotNull(list, "APIs must not be null.");
+        Preconditions.checkArgument(!list.isEmpty(), "APIs must not be empty.");
+        if (executor != null) {
+            Preconditions.checkNotNull(installStatusListener, "Listener must not be null when listener executor is set.");
+        }
+        this.zaa = list;
+        this.zac = executor;
+    }
+
+    public static Builder newBuilder() {
+        return new Builder();
+    }
+
+    public List<OptionalModuleApi> getApis() {
+        return this.zaa;
+    }
+
+    public InstallStatusListener getListener() {
+        return null;
+    }
+
+    public Executor getListenerExecutor() {
+        return this.zac;
+    }
+}

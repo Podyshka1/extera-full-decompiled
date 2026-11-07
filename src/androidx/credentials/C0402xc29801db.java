@@ -1,0 +1,12 @@
+package androidx.credentials;
+
+import android.credentials.GetCredentialException;
+
+/* JADX INFO: renamed from: androidx.credentials.CredentialProviderFrameworkImpl$onGetCredential$outcome$2$$ExternalSyntheticApiModelOutline0 */
+/* JADX INFO: loaded from: classes3.dex */
+public final /* synthetic */ class C0402xc29801db {
+    /* JADX INFO: renamed from: m */
+    public static /* bridge */ /* synthetic */ GetCredentialException m140m(Object obj) {
+        return (GetCredentialException) obj;
+    }
+}

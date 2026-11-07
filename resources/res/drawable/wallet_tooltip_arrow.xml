@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector android:height="9.0dip" android:width="18.0dip" android:stackViewStyle="18.0" android:numberPickerStyle="9.0"
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <group>
+        <path android:timePickerStyle="#ffffffff" android:activityChooserViewStyle="M6.87868 2.12132L0 9H18L11.1213 2.12132C9.94975 0.949748 8.05025 0.949745 6.87868 2.12132Z" />
+    </group>
+</vector>

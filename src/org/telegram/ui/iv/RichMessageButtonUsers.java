@@ -1,0 +1,215 @@
+package org.telegram.ui.iv;
+
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import org.telegram.messenger.MessagesController;
+import org.telegram.tgnet.TLRPC;
+import org.telegram.tgnet.tl.TL_iv;
+import org.telegram.tgnet.tl.TL_keyboard;
+
+/* JADX INFO: loaded from: classes8.dex */
+public abstract class RichMessageButtonUsers {
+    public static ArrayList<TLRPC.InputUser> collect(int i, ArrayList<TL_iv.PageBlock> arrayList) {
+        LinkedHashSet<Long> linkedHashSet = new LinkedHashSet();
+        if (arrayList != null) {
+            int size = arrayList.size();
+            int i2 = 0;
+            while (i2 < size) {
+                TL_iv.PageBlock pageBlock = arrayList.get(i2);
+                i2++;
+                collectBlock(pageBlock, linkedHashSet);
+            }
+        }
+        ArrayList<TLRPC.InputUser> arrayList2 = new ArrayList<>(linkedHashSet.size());
+        MessagesController messagesController = MessagesController.getInstance(i);
+        for (Long l : linkedHashSet) {
+            l.longValue();
+            TLRPC.User user = messagesController.getUser(l);
+            if (user != null) {
+                TLRPC.InputUser inputUser = messagesController.getInputUser(user);
+                if (!(inputUser instanceof TLRPC.TL_inputUserEmpty)) {
+                    arrayList2.add(inputUser);
+                }
+            }
+        }
+        return arrayList2;
+    }
+
+    private static void collectBlock(TL_iv.PageBlock pageBlock, LinkedHashSet<Long> linkedHashSet) {
+        ArrayList<TL_iv.pageTableCell> arrayList;
+        if (pageBlock == null) {
+            return;
+        }
+        collectText(pageBlock.text, linkedHashSet);
+        collectCaption(pageBlock.caption, linkedHashSet);
+        int i = 0;
+        if (pageBlock instanceof TL_iv.pageBlockButtonRow) {
+            ArrayList<TL_keyboard.PageButton> arrayList2 = ((TL_iv.pageBlockButtonRow) pageBlock).buttons;
+            if (arrayList2 != null) {
+                int size = arrayList2.size();
+                while (i < size) {
+                    TL_keyboard.PageButton pageButton = arrayList2.get(i);
+                    i++;
+                    TL_keyboard.PageButton pageButton2 = pageButton;
+                    if (pageButton2 != null) {
+                        collectType(pageButton2.type, linkedHashSet);
+                        collectText(pageButton2.text, linkedHashSet);
+                    }
+                }
+                return;
+            }
+            return;
+        }
+        if (pageBlock instanceof TL_iv.pageBlockBlockquote) {
+            collectText(((TL_iv.pageBlockBlockquote) pageBlock).caption, linkedHashSet);
+            return;
+        }
+        if (pageBlock instanceof TL_iv.pageBlockPullquote) {
+            collectText(((TL_iv.pageBlockPullquote) pageBlock).caption, linkedHashSet);
+            return;
+        }
+        if (pageBlock instanceof TL_iv.pageBlockBlockquoteBlocks) {
+            TL_iv.pageBlockBlockquoteBlocks pageblockblockquoteblocks = (TL_iv.pageBlockBlockquoteBlocks) pageBlock;
+            collectText(pageblockblockquoteblocks.caption, linkedHashSet);
+            collectBlocks(pageblockblockquoteblocks.blocks, linkedHashSet);
+            return;
+        }
+        if (pageBlock instanceof TL_iv.pageBlockDetails) {
+            TL_iv.pageBlockDetails pageblockdetails = (TL_iv.pageBlockDetails) pageBlock;
+            collectText(pageblockdetails.title, linkedHashSet);
+            collectBlocks(pageblockdetails.blocks, linkedHashSet);
+            return;
+        }
+        if (pageBlock instanceof TL_iv.pageBlockList) {
+            ArrayList<TL_iv.PageListItem> arrayList3 = ((TL_iv.pageBlockList) pageBlock).items;
+            if (arrayList3 != null) {
+                int size2 = arrayList3.size();
+                while (i < size2) {
+                    TL_iv.PageListItem pageListItem = arrayList3.get(i);
+                    i++;
+                    TL_iv.PageListItem pageListItem2 = pageListItem;
+                    if (pageListItem2 instanceof TL_iv.TL_pageListItemText) {
+                        collectText(((TL_iv.TL_pageListItemText) pageListItem2).text, linkedHashSet);
+                    } else if (pageListItem2 instanceof TL_iv.TL_pageListItemBlocks) {
+                        collectBlocks(((TL_iv.TL_pageListItemBlocks) pageListItem2).blocks, linkedHashSet);
+                    }
+                }
+                return;
+            }
+            return;
+        }
+        if (pageBlock instanceof TL_iv.pageBlockOrderedList) {
+            ArrayList<TL_iv.PageListOrderedItem> arrayList4 = ((TL_iv.pageBlockOrderedList) pageBlock).items;
+            if (arrayList4 != null) {
+                int size3 = arrayList4.size();
+                while (i < size3) {
+                    TL_iv.PageListOrderedItem pageListOrderedItem = arrayList4.get(i);
+                    i++;
+                    TL_iv.PageListOrderedItem pageListOrderedItem2 = pageListOrderedItem;
+                    if (pageListOrderedItem2 instanceof TL_iv.TL_pageListOrderedItemText) {
+                        collectText(((TL_iv.TL_pageListOrderedItemText) pageListOrderedItem2).text, linkedHashSet);
+                    } else if (pageListOrderedItem2 instanceof TL_iv.TL_pageListOrderedItemBlocks) {
+                        collectBlocks(((TL_iv.TL_pageListOrderedItemBlocks) pageListOrderedItem2).blocks, linkedHashSet);
+                    }
+                }
+                return;
+            }
+            return;
+        }
+        if (pageBlock instanceof TL_iv.pageBlockTable) {
+            TL_iv.pageBlockTable pageblocktable = (TL_iv.pageBlockTable) pageBlock;
+            collectText(pageblocktable.title, linkedHashSet);
+            ArrayList<TL_iv.pageTableRow> arrayList5 = pageblocktable.rows;
+            if (arrayList5 != null) {
+                int size4 = arrayList5.size();
+                int i2 = 0;
+                while (i2 < size4) {
+                    TL_iv.pageTableRow pagetablerow = arrayList5.get(i2);
+                    i2++;
+                    TL_iv.pageTableRow pagetablerow2 = pagetablerow;
+                    if (pagetablerow2 != null && (arrayList = pagetablerow2.cells) != null) {
+                        int size5 = arrayList.size();
+                        int i3 = 0;
+                        while (i3 < size5) {
+                            TL_iv.pageTableCell pagetablecell = arrayList.get(i3);
+                            i3++;
+                            TL_iv.pageTableCell pagetablecell2 = pagetablecell;
+                            if (pagetablecell2 != null) {
+                                collectText(pagetablecell2.text, linkedHashSet);
+                            }
+                        }
+                    }
+                }
+                return;
+            }
+            return;
+        }
+        if (pageBlock instanceof TL_iv.pageBlockCollage) {
+            collectBlocks(((TL_iv.pageBlockCollage) pageBlock).items, linkedHashSet);
+            return;
+        }
+        if (pageBlock instanceof TL_iv.pageBlockSlideshow) {
+            collectBlocks(((TL_iv.pageBlockSlideshow) pageBlock).items, linkedHashSet);
+            return;
+        }
+        if (pageBlock instanceof TL_iv.pageBlockEmbedPost) {
+            collectBlocks(((TL_iv.pageBlockEmbedPost) pageBlock).blocks, linkedHashSet);
+        } else if (pageBlock instanceof TL_iv.pageBlockCover) {
+            collectBlock(((TL_iv.pageBlockCover) pageBlock).cover, linkedHashSet);
+        } else if (pageBlock instanceof TL_iv.pageBlockRelatedArticles) {
+            collectText(((TL_iv.pageBlockRelatedArticles) pageBlock).title, linkedHashSet);
+        }
+    }
+
+    private static void collectBlocks(ArrayList<TL_iv.PageBlock> arrayList, LinkedHashSet<Long> linkedHashSet) {
+        if (arrayList == null) {
+            return;
+        }
+        int size = arrayList.size();
+        int i = 0;
+        while (i < size) {
+            TL_iv.PageBlock pageBlock = arrayList.get(i);
+            i++;
+            collectBlock(pageBlock, linkedHashSet);
+        }
+    }
+
+    private static void collectCaption(TL_iv.PageCaption pageCaption, LinkedHashSet<Long> linkedHashSet) {
+        if (pageCaption == null) {
+            return;
+        }
+        collectText(pageCaption.text, linkedHashSet);
+        collectText(pageCaption.credit, linkedHashSet);
+    }
+
+    private static void collectText(TL_iv.RichText richText, LinkedHashSet<Long> linkedHashSet) {
+        if (richText == null) {
+            return;
+        }
+        if (richText instanceof TL_iv.textButton) {
+            collectType(((TL_iv.textButton) richText).type, linkedHashSet);
+        } else if (richText instanceof TL_iv.textDiff) {
+            collectText(((TL_iv.textDiff) richText).old_text, linkedHashSet);
+        }
+        collectText(richText.text, linkedHashSet);
+        ArrayList<TL_iv.RichText> arrayList = richText.texts;
+        if (arrayList != null) {
+            int size = arrayList.size();
+            int i = 0;
+            while (i < size) {
+                TL_iv.RichText richText2 = arrayList.get(i);
+                i++;
+                collectText(richText2, linkedHashSet);
+            }
+        }
+    }
+
+    private static void collectType(TL_keyboard.InlineButtonType inlineButtonType, LinkedHashSet<Long> linkedHashSet) {
+        if (inlineButtonType instanceof TL_keyboard.TL_inlineButtonTypeUserProfile) {
+            long j = ((TL_keyboard.TL_inlineButtonTypeUserProfile) inlineButtonType).user_id;
+            if (j != 0) {
+                linkedHashSet.add(Long.valueOf(j));
+            }
+        }
+    }
+}

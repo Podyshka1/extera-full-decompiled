@@ -1,0 +1,5604 @@
+package org.telegram.ui.Stories.recorder;
+
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.AnimatorSet;
+import android.animation.ObjectAnimator;
+import android.animation.ValueAnimator;
+import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.LinearGradient;
+import android.graphics.Matrix;
+import android.graphics.Paint;
+import android.graphics.Path;
+import android.graphics.Point;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffXfermode;
+import android.graphics.Rect;
+import android.graphics.RectF;
+import android.graphics.Shader;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
+import android.os.Build;
+import android.text.Editable;
+import android.text.SpannableString;
+import android.text.SpannableStringBuilder;
+import android.text.TextUtils;
+import android.text.TextWatcher;
+import android.util.Property;
+import android.view.KeyEvent;
+import android.view.MotionEvent;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.accessibility.AccessibilityNodeInfo;
+import android.view.animation.LinearInterpolator;
+import android.widget.FrameLayout;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.ScrollView;
+import android.widget.TextView;
+import androidx.collection.LongSparseArray;
+import androidx.recyclerview.widget.DefaultItemAnimator;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import com.exteragram.messenger.ExteraConfig;
+import com.exteragram.messenger.utils.system.VibratorUtils;
+import com.google.android.gms.cast.MediaError;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import okhttp3.internal.url._UrlKt;
+import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.C2807R;
+import org.telegram.messenger.ChatObject;
+import org.telegram.messenger.ContactsController;
+import org.telegram.messenger.DialogObject;
+import org.telegram.messenger.Emoji;
+import org.telegram.messenger.LocaleController;
+import org.telegram.messenger.MessagesController;
+import org.telegram.messenger.MessagesStorage;
+import org.telegram.messenger.NotificationCenter;
+import org.telegram.messenger.UserConfig;
+import org.telegram.messenger.UserObject;
+import org.telegram.messenger.Utilities;
+import org.telegram.messenger.browser.Browser;
+import org.telegram.tgnet.ConnectionsManager;
+import org.telegram.tgnet.RequestDelegate;
+import org.telegram.tgnet.TLObject;
+import org.telegram.tgnet.TLRPC;
+import org.telegram.tgnet.tl.TL_phone;
+import org.telegram.ui.ActionBar.AdjustPanLayoutHelper;
+import org.telegram.ui.ActionBar.AlertDialog;
+import org.telegram.ui.ActionBar.BackDrawable;
+import org.telegram.ui.ActionBar.BottomSheet;
+import org.telegram.ui.ActionBar.SimpleTextView;
+import org.telegram.ui.ActionBar.Theme;
+import org.telegram.ui.Cells.GraySectionCell;
+import org.telegram.ui.Cells.SlideIntChooseView;
+import org.telegram.ui.Cells.TextCell;
+import org.telegram.ui.Cells.TextInfoPrivacyCell;
+import org.telegram.ui.Components.AlertsCreator;
+import org.telegram.ui.Components.AnimatedFloat;
+import org.telegram.ui.Components.AvatarDrawable;
+import org.telegram.ui.Components.BackupImageView;
+import org.telegram.ui.Components.Bulletin;
+import org.telegram.ui.Components.BulletinFactory;
+import org.telegram.ui.Components.CheckBox2;
+import org.telegram.ui.Components.ColoredImageSpan;
+import org.telegram.ui.Components.CreateRtmpStreamBottomSheet;
+import org.telegram.ui.Components.CubicBezierInterpolator;
+import org.telegram.ui.Components.EditTextBoldCursor;
+import org.telegram.ui.Components.GroupCreateSpan;
+import org.telegram.ui.Components.ItemOptions;
+import org.telegram.ui.Components.LayoutHelper;
+import org.telegram.ui.Components.ListView.AdapterWithDiffUtils;
+import org.telegram.ui.Components.RadioButton;
+import org.telegram.ui.Components.RecyclerListView;
+import org.telegram.ui.Components.StickerEmptyView;
+import org.telegram.ui.Components.TypefaceSpan;
+import org.telegram.ui.Components.ViewPagerFixed;
+import org.telegram.ui.Stories.DarkThemeResourceProvider;
+import org.telegram.ui.Stories.StoriesController;
+import org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet;
+import org.telegram.ui.recyclerview.LinearSmoothScrollerCustom;
+
+/* JADX INFO: loaded from: classes7.dex */
+public class StoryPrivacyBottomSheet extends BottomSheet implements NotificationCenter.NotificationCenterDelegate {
+    private int activePage;
+    private boolean allowComments;
+    private boolean allowCover;
+    private boolean allowScreenshots;
+    private boolean allowSmallChats;
+    private boolean applyWhenDismiss;
+    private final Paint backgroundPaint;
+    private boolean canChangePeer;
+    private int commentsPrice;
+    private Drawable coverDrawable;
+    private final ArrayList<Long> excludedContacts;
+    private final ArrayList<Long> excludedEveryone;
+    private final HashMap<Long, ArrayList<Long>> excludedEveryoneByGroup;
+    private int excludedEveryoneCount;
+    private boolean isEdit;
+    private boolean isLive;
+    private boolean isRtmpStream;
+    private boolean keepOnMyPage;
+    private boolean liveSettings;
+    private boolean loadedContacts;
+    private final ArrayList<Long> messageUsers;
+    private Utilities.Callback<StoryPrivacy> onDismiss;
+    private DoneCallback onDone;
+    private Utilities.Callback<ArrayList<Long>> onDone2;
+    private Utilities.Callback<HashSet<Integer>> onSelectedAlbums;
+    private Utilities.Callback<TLRPC.InputPeer> onSelectedPeer;
+    private final HashSet<Integer> selectedAlbums;
+    private final ArrayList<Long> selectedContacts;
+    private final HashMap<Long, ArrayList<Long>> selectedContactsByGroup;
+    private int selectedContactsCount;
+    public TLRPC.InputPeer selectedPeer;
+    private int selectedType;
+    private boolean sendAsMessageEnabled;
+    private int shiftDp;
+    private HashMap<Long, Integer> smallChatsParticipantsCount;
+    private boolean startedFromSendAsMessage;
+    private int storiesCount;
+    private int storyPeriod;
+    private ViewPagerFixed viewPager;
+    private ArrayList<String> warnUsers;
+    private Runnable whenCoverClicked;
+
+    public interface DoneCallback {
+        void done(StoryPrivacy storyPrivacy, boolean z, boolean z2, boolean z3, boolean z4, TLRPC.InputPeer inputPeer, int i, Runnable runnable, Runnable runnable2);
+    }
+
+    @Override // org.telegram.ui.ActionBar.BottomSheet
+    public boolean canSwipeToBack(MotionEvent motionEvent) {
+        return false;
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public HashSet<Long> mergeUsers(ArrayList<Long> arrayList, HashMap<Long, ArrayList<Long>> map) {
+        HashSet<Long> hashSet = new HashSet<>();
+        if (arrayList != null) {
+            hashSet.addAll(arrayList);
+        }
+        if (map != null) {
+            Iterator<ArrayList<Long>> it = map.values().iterator();
+            while (it.hasNext()) {
+                hashSet.addAll(it.next());
+            }
+        }
+        return hashSet;
+    }
+
+    public class Page extends FrameLayout implements View.OnClickListener, NotificationCenter.NotificationCenterDelegate {
+        private Adapter adapter;
+        private final ArrayList<TLObject> atTop;
+        private final ButtonWithCounterView button;
+        private final ButtonWithCounterView button2;
+        private final ButtonContainer buttonContainer;
+        private final LongSparseArray<Boolean> changelog;
+        private boolean containsHeader;
+        private final FrameLayout contentView;
+        private HeaderCell headerView;
+        private boolean isActionBar;
+        private final ArrayList<ItemInner> items;
+        private int keyboardHeight;
+        private boolean keyboardMoving;
+        private int lastSelectedType;
+        private LinearLayoutManager layoutManager;
+        private RecyclerListView listView;
+        private final ArrayList<ItemInner> oldItems;
+        public int pageType;
+        private AlertDialog progressDialog;
+        private String query;
+        private boolean scrolling;
+        private SearchUsersCell searchField;
+        private ValueAnimator searchFieldAnimator;
+        private int searchPosition;
+        private boolean searchTranslationAnimating;
+        private float searchTranslationAnimatingTo;
+        private GraySectionCell sectionCell;
+        private final ArrayList<Long> selectedUsers;
+        private final HashMap<Long, ArrayList<Long>> selectedUsersByGroup;
+        private final View underKeyboardView;
+        private long waitingForChatId;
+        public boolean wasAtBottom;
+        public boolean wasAtTop;
+        private boolean wasKeyboardVisible;
+
+        public Page(final Context context) {
+            super(context);
+            this.changelog = new LongSparseArray<>();
+            this.selectedUsers = new ArrayList<>();
+            this.selectedUsersByGroup = new HashMap<>();
+            this.searchPosition = -1;
+            this.atTop = new ArrayList<>();
+            this.oldItems = new ArrayList<>();
+            this.items = new ArrayList<>();
+            this.lastSelectedType = -1;
+            this.sectionCell = new GraySectionCell(context, ((BottomSheet) StoryPrivacyBottomSheet.this).resourcesProvider);
+            SearchUsersCell searchUsersCell = new SearchUsersCell(context, ((BottomSheet) StoryPrivacyBottomSheet.this).resourcesProvider, new Runnable() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet$Page$$ExternalSyntheticLambda3
+                @Override // java.lang.Runnable
+                public final void run() {
+                    this.f$0.lambda$new$0();
+                }
+            }) { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet.Page.1
+                @Override // org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet.SearchUsersCell
+                public void setContainerHeight(float f) {
+                    super.setContainerHeight(f);
+                    Page.this.sectionCell.setTranslationY(((getY() - (Page.this.contentView == null ? 0 : Page.this.contentView.getPaddingTop())) + Math.min(AndroidUtilities.dp(150.0f), this.containerHeight)) - 1.0f);
+                    if (Page.this.contentView != null) {
+                        Page.this.contentView.invalidate();
+                    }
+                }
+
+                @Override // android.view.View
+                public void setTranslationY(float f) {
+                    super.setTranslationY(f);
+                    Page.this.sectionCell.setTranslationY(((getY() - (Page.this.contentView == null ? 0 : Page.this.contentView.getPaddingTop())) + Math.min(AndroidUtilities.dp(150.0f), this.containerHeight)) - 1.0f);
+                    if (Page.this.contentView != null) {
+                        Page.this.contentView.invalidate();
+                    }
+                }
+            };
+            this.searchField = searchUsersCell;
+            int i = Theme.key_dialogBackground;
+            searchUsersCell.setBackgroundColor(StoryPrivacyBottomSheet.this.getThemedColor(i));
+            this.searchField.setOnSearchTextChange(new Utilities.Callback() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet$Page$$ExternalSyntheticLambda4
+                @Override // org.telegram.messenger.Utilities.Callback
+                public final void run(Object obj) {
+                    this.f$0.onSearch((String) obj);
+                }
+            });
+            HeaderCell headerCell = new HeaderCell(context, ((BottomSheet) StoryPrivacyBottomSheet.this).resourcesProvider);
+            this.headerView = headerCell;
+            headerCell.setOnCloseClickListener(new Runnable() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet$Page$$ExternalSyntheticLambda5
+                @Override // java.lang.Runnable
+                public final void run() {
+                    this.f$0.lambda$new$1();
+                }
+            });
+            FrameLayout frameLayout = new FrameLayout(context);
+            this.contentView = frameLayout;
+            frameLayout.setPadding(0, AndroidUtilities.statusBarHeight + AndroidUtilities.dp(56.0f), 0, 0);
+            frameLayout.setClipToPadding(true);
+            addView(frameLayout, LayoutHelper.createFrame(-1, -1, 119));
+            RecyclerListView recyclerListView = new RecyclerListView(context, ((BottomSheet) StoryPrivacyBottomSheet.this).resourcesProvider);
+            this.listView = recyclerListView;
+            recyclerListView.setClipToPadding(false);
+            this.listView.setTranslateSelector(true);
+            RecyclerListView recyclerListView2 = this.listView;
+            Adapter adapter = new Adapter(context, ((BottomSheet) StoryPrivacyBottomSheet.this).resourcesProvider, this.searchField, new Runnable() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet$Page$$ExternalSyntheticLambda6
+                @Override // java.lang.Runnable
+                public final void run() {
+                    storyPrivacyBottomSheet.lambda$openCrafting$9();
+                }
+            });
+            this.adapter = adapter;
+            recyclerListView2.setAdapter(adapter);
+            this.adapter.listView = this.listView;
+            RecyclerListView recyclerListView3 = this.listView;
+            LinearLayoutManager linearLayoutManager = new LinearLayoutManager(context);
+            this.layoutManager = linearLayoutManager;
+            recyclerListView3.setLayoutManager(linearLayoutManager);
+            this.listView.setOnScrollListener(new RecyclerView.OnScrollListener() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet.Page.2
+                private boolean canScrollDown;
+
+                @Override // androidx.recyclerview.widget.RecyclerView.OnScrollListener
+                public void onScrolled(RecyclerView recyclerView, int i2, int i3) {
+                    boolean zCanScrollVertically = Page.this.listView.canScrollVertically(1);
+                    if (zCanScrollVertically != this.canScrollDown) {
+                        Page.this.buttonContainer.invalidate();
+                        this.canScrollDown = zCanScrollVertically;
+                    }
+                    Page.this.contentView.invalidate();
+                    ((BottomSheet) StoryPrivacyBottomSheet.this).containerView.invalidate();
+                    Page page = Page.this;
+                    if (page.pageType != 6 || page.listView.getChildCount() <= 0 || Page.this.listView.getChildAdapterPosition(Page.this.listView.getChildAt(0)) < MessagesController.getInstance(((BottomSheet) StoryPrivacyBottomSheet.this).currentAccount).getStoriesController().blocklist.size()) {
+                        return;
+                    }
+                    MessagesController.getInstance(((BottomSheet) StoryPrivacyBottomSheet.this).currentAccount).getStoriesController().loadBlocklist(false);
+                }
+
+                @Override // androidx.recyclerview.widget.RecyclerView.OnScrollListener
+                public void onScrollStateChanged(RecyclerView recyclerView, int i2) {
+                    if (i2 == 1 && ((BottomSheet) StoryPrivacyBottomSheet.this).keyboardVisible && Page.this.searchField != null) {
+                        StoryPrivacyBottomSheet.this.closeKeyboard();
+                    }
+                    if (i2 == 0) {
+                        Page page = Page.this;
+                        page.wasAtTop = page.atTop();
+                        Page page2 = Page.this;
+                        page2.wasAtBottom = page2.atBottom();
+                    }
+                    Page.this.scrolling = i2 != 0;
+                }
+            });
+            this.listView.setOnItemClickListener(new RecyclerListView.OnItemClickListenerExtended() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet$Page$$ExternalSyntheticLambda7
+                @Override // org.telegram.ui.Components.RecyclerListView.OnItemClickListenerExtended
+                public final void onItemClick(View view, int i2, float f, float f2) {
+                    this.f$0.lambda$new$14(context, view, i2, f, f2);
+                }
+            });
+            frameLayout.addView(this.listView, LayoutHelper.createFrame(-1, -1.0f));
+            DefaultItemAnimator defaultItemAnimator = new DefaultItemAnimator() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet.Page.3
+                @Override // androidx.recyclerview.widget.SimpleItemAnimator, androidx.recyclerview.widget.RecyclerView.ItemAnimator
+                public boolean canReuseUpdatedViewHolder(RecyclerView.ViewHolder viewHolder) {
+                    return true;
+                }
+
+                @Override // androidx.recyclerview.widget.DefaultItemAnimator
+                public void onMoveAnimationUpdate(RecyclerView.ViewHolder viewHolder) {
+                    ((BottomSheet) StoryPrivacyBottomSheet.this).containerView.invalidate();
+                    Page.this.contentView.invalidate();
+                    Page.this.listView.invalidate();
+                }
+
+                @Override // androidx.recyclerview.widget.DefaultItemAnimator
+                public void onChangeAnimationUpdate(RecyclerView.ViewHolder viewHolder) {
+                    ((BottomSheet) StoryPrivacyBottomSheet.this).containerView.invalidate();
+                    Page.this.contentView.invalidate();
+                }
+
+                @Override // androidx.recyclerview.widget.DefaultItemAnimator
+                public void onAddAnimationUpdate(RecyclerView.ViewHolder viewHolder) {
+                    ((BottomSheet) StoryPrivacyBottomSheet.this).containerView.invalidate();
+                    Page.this.contentView.invalidate();
+                }
+
+                @Override // androidx.recyclerview.widget.DefaultItemAnimator
+                public void onRemoveAnimationUpdate(RecyclerView.ViewHolder viewHolder) {
+                    ((BottomSheet) StoryPrivacyBottomSheet.this).containerView.invalidate();
+                    Page.this.contentView.invalidate();
+                }
+            };
+            defaultItemAnimator.setDurations(350L);
+            defaultItemAnimator.setInterpolator(CubicBezierInterpolator.EASE_OUT_QUINT);
+            defaultItemAnimator.setDelayAnimations(false);
+            defaultItemAnimator.setSupportsChangeAnimations(false);
+            this.listView.setItemAnimator(defaultItemAnimator);
+            frameLayout.addView(this.searchField, LayoutHelper.createFrame(-1, -2, 55));
+            frameLayout.addView(this.sectionCell, LayoutHelper.createFrame(-1, 32, 55));
+            addView(this.headerView, LayoutHelper.createFrame(-1, -2, 55));
+            ButtonContainer buttonContainer = new ButtonContainer(context);
+            this.buttonContainer = buttonContainer;
+            buttonContainer.setClickable(true);
+            buttonContainer.setOrientation(1);
+            buttonContainer.setPadding(AndroidUtilities.dp(10.0f) + ((BottomSheet) StoryPrivacyBottomSheet.this).backgroundPaddingLeft, AndroidUtilities.dp(10.0f), AndroidUtilities.dp(10.0f) + ((BottomSheet) StoryPrivacyBottomSheet.this).backgroundPaddingLeft, AndroidUtilities.dp(10.0f));
+            buttonContainer.setBackgroundColor(Theme.getColor(i, ((BottomSheet) StoryPrivacyBottomSheet.this).resourcesProvider));
+            ButtonWithCounterView buttonWithCounterView = new ButtonWithCounterView(context, ((BottomSheet) StoryPrivacyBottomSheet.this).resourcesProvider);
+            this.button = buttonWithCounterView;
+            buttonWithCounterView.setOnClickListener(new View.OnClickListener() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet$Page$$ExternalSyntheticLambda8
+                @Override // android.view.View.OnClickListener
+                public final void onClick(View view) {
+                    this.f$0.onButton1Click(view);
+                }
+            });
+            buttonWithCounterView.setRound();
+            buttonContainer.addView(buttonWithCounterView, LayoutHelper.createLinear(-1, 48, 87));
+            ButtonWithCounterView buttonWithCounterView2 = new ButtonWithCounterView(context, false, ((BottomSheet) StoryPrivacyBottomSheet.this).resourcesProvider);
+            this.button2 = buttonWithCounterView2;
+            buttonWithCounterView2.setOnClickListener(new View.OnClickListener() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet$Page$$ExternalSyntheticLambda9
+                @Override // android.view.View.OnClickListener
+                public final void onClick(View view) {
+                    this.f$0.onButton2Click(view);
+                }
+            });
+            buttonWithCounterView2.setRound();
+            buttonContainer.addView(buttonWithCounterView2, LayoutHelper.createLinear(-1, 48, 87, 0, 8, 0, 0));
+            View view = new View(context);
+            this.underKeyboardView = view;
+            view.setBackgroundColor(Theme.getColor(i, ((BottomSheet) StoryPrivacyBottomSheet.this).resourcesProvider));
+            addView(view, LayoutHelper.createFrame(-1, 500.0f, 87, 0.0f, 0.0f, 0.0f, -500.0f));
+            addView(buttonContainer, LayoutHelper.createFrame(-1, -2, 87));
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public /* synthetic */ void lambda$new$0() {
+            this.adapter.notifyItemChanged(2);
+            this.listView.forceLayout();
+            updateTops();
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public /* synthetic */ void lambda$new$1() {
+            int i = this.pageType;
+            StoryPrivacyBottomSheet storyPrivacyBottomSheet = StoryPrivacyBottomSheet.this;
+            if (i == 0) {
+                storyPrivacyBottomSheet.lambda$new$0();
+            } else {
+                storyPrivacyBottomSheet.lambda$openCrafting$9();
+            }
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public /* synthetic */ void lambda$new$14(Context context, View view, int i, float f, float f2) {
+            TLRPC.ChatParticipants chatParticipants;
+            ArrayList<TLRPC.ChatParticipant> arrayList;
+            if (i < 0 || i >= this.items.size()) {
+                return;
+            }
+            ItemInner itemInner = this.items.get(i);
+            int i2 = itemInner.viewType;
+            if (i2 != 3) {
+                if (i2 == 7) {
+                    if (view instanceof TextCell) {
+                        TextCell textCell = (TextCell) view;
+                        textCell.setChecked(!textCell.isChecked());
+                        itemInner.checked = textCell.isChecked();
+                        int i3 = itemInner.resId;
+                        if (i3 == 0) {
+                            StoryPrivacyBottomSheet.this.allowScreenshots = textCell.isChecked();
+                            i = StoryPrivacyBottomSheet.this.selectedType == 4 ? 1 : 0;
+                            boolean z = StoryPrivacyBottomSheet.this.allowScreenshots;
+                            StoryPrivacyBottomSheet storyPrivacyBottomSheet = StoryPrivacyBottomSheet.this;
+                            if (z) {
+                                BulletinFactory.of(storyPrivacyBottomSheet.container, ((BottomSheet) storyPrivacyBottomSheet).resourcesProvider).createSimpleBulletin(C2807R.raw.ic_save_to_gallery, LocaleController.getString(i != 0 ? C2807R.string.StoryEnabledScreenshotsShare : C2807R.string.StoryEnabledScreenshots), 4).setDuration(5000).show(true);
+                                return;
+                            } else {
+                                BulletinFactory.of(storyPrivacyBottomSheet.container, ((BottomSheet) storyPrivacyBottomSheet).resourcesProvider).createSimpleBulletin(C2807R.raw.passcode_lock_close, LocaleController.getString(i != 0 ? C2807R.string.StoryDisabledScreenshotsShare : C2807R.string.StoryDisabledScreenshots), 4).setDuration(5000).show(true);
+                                return;
+                            }
+                        }
+                        if (i3 != 1) {
+                            if (i3 == 2) {
+                                StoryPrivacyBottomSheet.this.allowComments = textCell.isChecked();
+                                updateItems(true);
+                                return;
+                            }
+                            return;
+                        }
+                        StoryPrivacyBottomSheet.this.keepOnMyPage = textCell.isChecked();
+                        StoryPrivacyBottomSheet storyPrivacyBottomSheet2 = StoryPrivacyBottomSheet.this;
+                        boolean z2 = storyPrivacyBottomSheet2.selectedPeer instanceof TLRPC.TL_inputPeerChannel;
+                        boolean z3 = storyPrivacyBottomSheet2.keepOnMyPage;
+                        StoryPrivacyBottomSheet storyPrivacyBottomSheet3 = StoryPrivacyBottomSheet.this;
+                        if (z3) {
+                            BulletinFactory.of(storyPrivacyBottomSheet3.container, ((BottomSheet) storyPrivacyBottomSheet3).resourcesProvider).createSimpleBulletin(C2807R.raw.msg_story_keep, LocaleController.getString(z2 ? C2807R.string.StoryChannelEnableKeep : C2807R.string.StoryEnableKeep), 4).setDuration(5000).show(true);
+                        } else {
+                            BulletinFactory.of(storyPrivacyBottomSheet3.container, ((BottomSheet) storyPrivacyBottomSheet3).resourcesProvider).createSimpleBulletin(C2807R.raw.fire_on, LocaleController.getString(z2 ? C2807R.string.StoryChannelDisableKeep : C2807R.string.StoryDisableKeep), 4).setDuration(5000).show(true);
+                        }
+                        updateItems(true);
+                        return;
+                    }
+                    return;
+                }
+                if (i2 == 9) {
+                    int i4 = itemInner.id;
+                    if (i4 == 0) {
+                        if (StoryPrivacyBottomSheet.this.whenCoverClicked != null) {
+                            StoryPrivacyBottomSheet.this.whenCoverClicked.run();
+                            return;
+                        }
+                        return;
+                    }
+                    if (i4 == 1) {
+                        final long dialogId = getDialogId();
+                        final ItemOptions itemOptionsMakeOptions = ItemOptions.makeOptions(this, ((BottomSheet) StoryPrivacyBottomSheet.this).resourcesProvider, view);
+                        itemOptionsMakeOptions.add(C2807R.drawable.msg_addfolder, LocaleController.getString(C2807R.string.StoriesAlbumNewAlbum), new Runnable() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet$Page$$ExternalSyntheticLambda17
+                            @Override // java.lang.Runnable
+                            public final void run() {
+                                this.f$0.lambda$new$9(dialogId);
+                            }
+                        });
+                        itemOptionsMakeOptions.addGap();
+                        ItemOptions.addAlbumsItemOptions(itemOptionsMakeOptions, StoryPrivacyBottomSheet.this.getStoriesController().getStoryAlbumsList(dialogId), StoryPrivacyBottomSheet.this.selectedAlbums, false, null, new Utilities.Callback() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet$Page$$ExternalSyntheticLambda18
+                            @Override // org.telegram.messenger.Utilities.Callback
+                            public final void run(Object obj) {
+                                this.f$0.lambda$new$10(itemOptionsMakeOptions, (StoriesController.StoryAlbum) obj);
+                            }
+                        });
+                        itemOptionsMakeOptions.show();
+                        return;
+                    }
+                    if (i4 != 5) {
+                        if (i4 == 6) {
+                            StoryPrivacyBottomSheet.this.isRtmpStream = false;
+                            updateItems(true);
+                            return;
+                        }
+                        return;
+                    }
+                    final AlertDialog alertDialog = new AlertDialog(getContext(), 3, ((BottomSheet) StoryPrivacyBottomSheet.this).resourcesProvider);
+                    alertDialog.showDelayed(500L);
+                    final TL_phone.getGroupCallStreamRtmpUrl getgroupcallstreamrtmpurl = new TL_phone.getGroupCallStreamRtmpUrl();
+                    getgroupcallstreamrtmpurl.live_story = true;
+                    TLRPC.InputPeer tL_inputPeerSelf = StoryPrivacyBottomSheet.this.selectedPeer;
+                    if (tL_inputPeerSelf == null) {
+                        tL_inputPeerSelf = new TLRPC.TL_inputPeerSelf();
+                    }
+                    getgroupcallstreamrtmpurl.peer = tL_inputPeerSelf;
+                    ConnectionsManager.getInstance(((BottomSheet) StoryPrivacyBottomSheet.this).currentAccount).sendRequest(getgroupcallstreamrtmpurl, new RequestDelegate() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet$Page$$ExternalSyntheticLambda19
+                        @Override // org.telegram.tgnet.RequestDelegate
+                        public final void run(TLObject tLObject, TLRPC.TL_error tL_error) {
+                            this.f$0.lambda$new$13(alertDialog, getgroupcallstreamrtmpurl, tLObject, tL_error);
+                        }
+                    });
+                    return;
+                }
+                return;
+            }
+            if (itemInner.sendAs && StoryPrivacyBottomSheet.this.canChangePeer) {
+                new ChoosePeerSheet(context, ((BottomSheet) StoryPrivacyBottomSheet.this).currentAccount, StoryPrivacyBottomSheet.this.isLive, StoryPrivacyBottomSheet.this.selectedPeer, new Utilities.Callback() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet$Page$$ExternalSyntheticLambda15
+                    @Override // org.telegram.messenger.Utilities.Callback
+                    public final void run(Object obj) {
+                        this.f$0.lambda$new$2((TLRPC.InputPeer) obj);
+                    }
+                }, ((BottomSheet) StoryPrivacyBottomSheet.this).resourcesProvider).show();
+                return;
+            }
+            int i5 = itemInner.type;
+            if (i5 == 1) {
+                if (StoryPrivacyBottomSheet.this.selectedType == 1 || StoryPrivacyBottomSheet.this.getCloseFriends().isEmpty()) {
+                    StoryPrivacyBottomSheet.this.activePage = 1;
+                    StoryPrivacyBottomSheet.this.viewPager.scrollToPosition(1);
+                }
+                StoryPrivacyBottomSheet.this.selectedType = 1;
+                updateCheckboxes(true);
+                return;
+            }
+            if (i5 == 3) {
+                if (StoryPrivacyBottomSheet.this.selectedType == 3 || (StoryPrivacyBottomSheet.this.selectedContacts.isEmpty() && StoryPrivacyBottomSheet.this.selectedContactsByGroup.isEmpty())) {
+                    StoryPrivacyBottomSheet.this.activePage = 3;
+                    StoryPrivacyBottomSheet.this.viewPager.scrollToPosition(1);
+                }
+                StoryPrivacyBottomSheet.this.selectedType = 3;
+                updateCheckboxes(true);
+                return;
+            }
+            if (i5 == 2) {
+                if (StoryPrivacyBottomSheet.this.selectedType == 2) {
+                    StoryPrivacyBottomSheet.this.activePage = 2;
+                    StoryPrivacyBottomSheet.this.viewPager.scrollToPosition(1);
+                }
+                StoryPrivacyBottomSheet.this.selectedType = 2;
+                updateCheckboxes(true);
+                return;
+            }
+            if (i5 == 4) {
+                if (StoryPrivacyBottomSheet.this.selectedType == 4) {
+                    StoryPrivacyBottomSheet.this.activePage = 4;
+                    StoryPrivacyBottomSheet.this.viewPager.scrollToPosition(1);
+                }
+                StoryPrivacyBottomSheet.this.selectedType = 4;
+                updateCheckboxes(true);
+                return;
+            }
+            if (i5 > 0) {
+                this.selectedUsers.clear();
+                this.selectedUsersByGroup.clear();
+                StoryPrivacyBottomSheet.this.selectedType = itemInner.type;
+                this.searchField.spansContainer.removeAllSpans(true);
+            } else {
+                TLRPC.Chat chat = itemInner.chat;
+                if (chat != null) {
+                    final long j = chat.id;
+                    if (StoryPrivacyBottomSheet.this.getParticipantsCount(chat) > 200) {
+                        try {
+                            performHapticFeedback(VibratorUtils.getType(3), 1);
+                        } catch (Throwable unused) {
+                        }
+                        new AlertDialog.Builder(getContext(), ((BottomSheet) StoryPrivacyBottomSheet.this).resourcesProvider).setTitle(LocaleController.getString(C2807R.string.GroupTooLarge)).setMessage(LocaleController.getString(C2807R.string.GroupTooLargeMessage)).setPositiveButton(LocaleController.getString(C2807R.string.OK), null).show();
+                    } else if (!this.selectedUsersByGroup.containsKey(Long.valueOf(j))) {
+                        final TLRPC.Chat chat2 = MessagesController.getInstance(((BottomSheet) StoryPrivacyBottomSheet.this).currentAccount).getChat(Long.valueOf(j));
+                        TLRPC.ChatFull chatFull = MessagesController.getInstance(((BottomSheet) StoryPrivacyBottomSheet.this).currentAccount).getChatFull(j);
+                        if (chatFull != null && (chatParticipants = chatFull.participants) != null && (arrayList = chatParticipants.participants) != null && !arrayList.isEmpty() && chatFull.participants.participants.size() >= chatFull.participants_count - 1) {
+                            selectChat(j, chatFull.participants);
+                        } else {
+                            AlertDialog alertDialog2 = this.progressDialog;
+                            if (alertDialog2 != null) {
+                                alertDialog2.dismiss();
+                                this.progressDialog = null;
+                            }
+                            this.waitingForChatId = j;
+                            AlertDialog alertDialog3 = new AlertDialog(getContext(), 3, ((BottomSheet) StoryPrivacyBottomSheet.this).resourcesProvider);
+                            this.progressDialog = alertDialog3;
+                            alertDialog3.showDelayed(50L);
+                            final MessagesStorage messagesStorage = MessagesStorage.getInstance(((BottomSheet) StoryPrivacyBottomSheet.this).currentAccount);
+                            messagesStorage.getStorageQueue().postRunnable(new Runnable() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet$Page$$ExternalSyntheticLambda16
+                                @Override // java.lang.Runnable
+                                public final void run() {
+                                    this.f$0.lambda$new$6(chat2, messagesStorage, j);
+                                }
+                            });
+                        }
+                        if (!TextUtils.isEmpty(this.query)) {
+                            this.searchField.setText(_UrlKt.FRAGMENT_ENCODE_SET);
+                            this.query = null;
+                            updateItems(false);
+                        }
+                    } else {
+                        ArrayList<Long> arrayList2 = this.selectedUsersByGroup.get(Long.valueOf(j));
+                        if (arrayList2 != null) {
+                            int size = arrayList2.size();
+                            while (i < size) {
+                                Long l = arrayList2.get(i);
+                                i++;
+                                this.changelog.put(l.longValue(), Boolean.FALSE);
+                            }
+                        }
+                        this.selectedUsersByGroup.remove(Long.valueOf(j));
+                        updateSpans(true);
+                    }
+                } else if (itemInner.user != null) {
+                    if (this.pageType == 0) {
+                        StoryPrivacyBottomSheet.this.selectedType = 0;
+                    }
+                    long j2 = itemInner.user.id;
+                    HashSet hashSet = new HashSet(this.selectedUsers);
+                    boolean zContains = this.selectedUsers.contains(Long.valueOf(j2));
+                    HashMap<Long, ArrayList<Long>> map = this.selectedUsersByGroup;
+                    if (zContains) {
+                        Iterator<Map.Entry<Long, ArrayList<Long>>> it = map.entrySet().iterator();
+                        while (it.hasNext()) {
+                            Map.Entry<Long, ArrayList<Long>> next = it.next();
+                            if (next.getValue().contains(Long.valueOf(j2))) {
+                                it.remove();
+                                hashSet.addAll(next.getValue());
+                            }
+                        }
+                        hashSet.remove(Long.valueOf(j2));
+                        this.changelog.put(j2, Boolean.FALSE);
+                    } else {
+                        Iterator<Map.Entry<Long, ArrayList<Long>>> it2 = map.entrySet().iterator();
+                        while (it2.hasNext()) {
+                            Map.Entry<Long, ArrayList<Long>> next2 = it2.next();
+                            if (next2.getValue().contains(Long.valueOf(j2))) {
+                                it2.remove();
+                                hashSet.addAll(next2.getValue());
+                            }
+                        }
+                        hashSet.add(Long.valueOf(j2));
+                        if (!TextUtils.isEmpty(this.query)) {
+                            this.searchField.setText(_UrlKt.FRAGMENT_ENCODE_SET);
+                            this.query = null;
+                            updateItems(false);
+                        }
+                        this.changelog.put(j2, Boolean.TRUE);
+                    }
+                    this.selectedUsers.clear();
+                    this.selectedUsers.addAll(hashSet);
+                    updateSpans(true);
+                }
+            }
+            updateCheckboxes(true);
+            updateButton(true);
+            this.searchField.scrollToBottom();
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public /* synthetic */ void lambda$new$2(TLRPC.InputPeer inputPeer) {
+            StoryPrivacyBottomSheet storyPrivacyBottomSheet = StoryPrivacyBottomSheet.this;
+            storyPrivacyBottomSheet.selectedPeer = inputPeer;
+            storyPrivacyBottomSheet.selectedAlbums.clear();
+            if (StoryPrivacyBottomSheet.this.isLive && StoryPrivacyBottomSheet.this.isRtmpStream) {
+                StoryPrivacyBottomSheet.this.isRtmpStream = false;
+            }
+            if (StoryPrivacyBottomSheet.this.onSelectedPeer != null) {
+                StoryPrivacyBottomSheet.this.onSelectedPeer.run(StoryPrivacyBottomSheet.this.selectedPeer);
+            }
+            if (StoryPrivacyBottomSheet.this.onSelectedAlbums != null) {
+                StoryPrivacyBottomSheet.this.onSelectedAlbums.run(new HashSet(StoryPrivacyBottomSheet.this.selectedAlbums));
+            }
+            updateItems(true);
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public /* synthetic */ void lambda$new$6(TLRPC.Chat chat, MessagesStorage messagesStorage, final long j) {
+            TLRPC.ChatParticipants chatParticipants;
+            ArrayList<TLRPC.ChatParticipant> arrayList;
+            final boolean zIsChannel = ChatObject.isChannel(chat);
+            final TLRPC.ChatFull chatFullLoadChatInfoInQueue = messagesStorage.loadChatInfoInQueue(j, zIsChannel, true, true, 0);
+            if (chatFullLoadChatInfoInQueue == null || (chatParticipants = chatFullLoadChatInfoInQueue.participants) == null || ((arrayList = chatParticipants.participants) != null && arrayList.size() < chatFullLoadChatInfoInQueue.participants_count - 1)) {
+                AndroidUtilities.runOnUIThread(new Runnable() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet$Page$$ExternalSyntheticLambda22
+                    @Override // java.lang.Runnable
+                    public final void run() {
+                        this.f$0.lambda$new$4(zIsChannel, j);
+                    }
+                });
+            } else {
+                AndroidUtilities.runOnUIThread(new Runnable() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet$Page$$ExternalSyntheticLambda23
+                    @Override // java.lang.Runnable
+                    public final void run() {
+                        this.f$0.lambda$new$5(j, chatFullLoadChatInfoInQueue);
+                    }
+                });
+            }
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public /* synthetic */ void lambda$new$3(long j, TLRPC.TL_channels_channelParticipants tL_channels_channelParticipants) {
+            long peerDialogId;
+            AlertDialog alertDialog = this.progressDialog;
+            if (alertDialog != null) {
+                alertDialog.dismissUnless(350L);
+                this.progressDialog = null;
+            }
+            if (tL_channels_channelParticipants == null || tL_channels_channelParticipants.participants.isEmpty()) {
+                return;
+            }
+            TLRPC.TL_chatParticipants tL_chatParticipants = new TLRPC.TL_chatParticipants();
+            for (int i = 0; i < tL_channels_channelParticipants.participants.size(); i++) {
+                TLRPC.ChannelParticipant channelParticipant = tL_channels_channelParticipants.participants.get(i);
+                TLRPC.TL_chatParticipant tL_chatParticipant = new TLRPC.TL_chatParticipant();
+                TLRPC.Peer peer = channelParticipant.peer;
+                if (peer != null) {
+                    peerDialogId = DialogObject.getPeerDialogId(peer);
+                    if (peerDialogId < 0) {
+                    }
+                } else {
+                    peerDialogId = channelParticipant.user_id;
+                }
+                tL_chatParticipant.user_id = peerDialogId;
+                tL_chatParticipants.participants.add(tL_chatParticipant);
+            }
+            selectChat(j, tL_chatParticipants);
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public /* synthetic */ void lambda$new$4(boolean z, final long j) {
+            StoryPrivacyBottomSheet storyPrivacyBottomSheet = StoryPrivacyBottomSheet.this;
+            if (z) {
+                MessagesController.getInstance(((BottomSheet) storyPrivacyBottomSheet).currentAccount).loadChannelParticipants(Long.valueOf(j), new Utilities.Callback() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet$Page$$ExternalSyntheticLambda28
+                    @Override // org.telegram.messenger.Utilities.Callback
+                    public final void run(Object obj) {
+                        this.f$0.lambda$new$3(j, (TLRPC.TL_channels_channelParticipants) obj);
+                    }
+                }, 200);
+            } else {
+                MessagesController.getInstance(((BottomSheet) storyPrivacyBottomSheet).currentAccount).loadFullChat(j, 0, true);
+            }
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public /* synthetic */ void lambda$new$5(long j, TLRPC.ChatFull chatFull) {
+            selectChat(j, chatFull.participants);
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public /* synthetic */ void lambda$new$9(final long j) {
+            Context context = getContext();
+            StoryPrivacyBottomSheet storyPrivacyBottomSheet = StoryPrivacyBottomSheet.this;
+            AlertsCreator.createStoriesAlbumEnterNameForCreate(context, storyPrivacyBottomSheet.attachedFragment, ((BottomSheet) storyPrivacyBottomSheet).resourcesProvider, new MessagesStorage.StringCallback() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet$Page$$ExternalSyntheticLambda25
+                @Override // org.telegram.messenger.MessagesStorage.StringCallback
+                public final void run(String str) {
+                    this.f$0.lambda$new$8(j, str);
+                }
+            });
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public /* synthetic */ void lambda$new$8(long j, String str) {
+            StoryPrivacyBottomSheet.this.getStoriesController().createAlbum(j, str, new Utilities.Callback() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet$Page$$ExternalSyntheticLambda27
+                @Override // org.telegram.messenger.Utilities.Callback
+                public final void run(Object obj) {
+                    this.f$0.lambda$new$7((StoriesController.StoryAlbum) obj);
+                }
+            });
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public /* synthetic */ void lambda$new$7(StoriesController.StoryAlbum storyAlbum) {
+            StoryPrivacyBottomSheet.this.selectedAlbums.add(Integer.valueOf(storyAlbum.album_id));
+            updateItems(true);
+            if (StoryPrivacyBottomSheet.this.onSelectedAlbums != null) {
+                StoryPrivacyBottomSheet.this.onSelectedAlbums.run(new HashSet(StoryPrivacyBottomSheet.this.selectedAlbums));
+            }
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public /* synthetic */ void lambda$new$10(ItemOptions itemOptions, StoriesController.StoryAlbum storyAlbum) {
+            itemOptions.dismiss();
+            updateItems(true);
+            if (StoryPrivacyBottomSheet.this.onSelectedAlbums != null) {
+                StoryPrivacyBottomSheet.this.onSelectedAlbums.run(new HashSet(StoryPrivacyBottomSheet.this.selectedAlbums));
+            }
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public /* synthetic */ void lambda$new$13(final AlertDialog alertDialog, final TL_phone.getGroupCallStreamRtmpUrl getgroupcallstreamrtmpurl, final TLObject tLObject, final TLRPC.TL_error tL_error) {
+            AndroidUtilities.runOnUIThread(new Runnable() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet$Page$$ExternalSyntheticLambda24
+                @Override // java.lang.Runnable
+                public final void run() {
+                    this.f$0.lambda$new$12(alertDialog, tLObject, getgroupcallstreamrtmpurl, tL_error);
+                }
+            });
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public /* synthetic */ void lambda$new$12(AlertDialog alertDialog, TLObject tLObject, TL_phone.getGroupCallStreamRtmpUrl getgroupcallstreamrtmpurl, TLRPC.TL_error tL_error) {
+            alertDialog.dismiss();
+            if (tLObject instanceof TL_phone.groupCallStreamRtmpUrl) {
+                final CreateRtmpStreamBottomSheet[] createRtmpStreamBottomSheetArr = new CreateRtmpStreamBottomSheet[1];
+                CreateRtmpStreamBottomSheet createRtmpStreamBottomSheet = new CreateRtmpStreamBottomSheet(getContext(), ((BottomSheet) StoryPrivacyBottomSheet.this).currentAccount, getgroupcallstreamrtmpurl, (TL_phone.groupCallStreamRtmpUrl) tLObject, StoryPrivacyBottomSheet.this.liveSettings ? null : new Utilities.Callback() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet$Page$$ExternalSyntheticLambda29
+                    @Override // org.telegram.messenger.Utilities.Callback
+                    public final void run(Object obj) {
+                        this.f$0.lambda$new$11(createRtmpStreamBottomSheetArr, (Browser.Progress) obj);
+                    }
+                }, new DarkThemeResourceProvider());
+                createRtmpStreamBottomSheetArr[0] = createRtmpStreamBottomSheet;
+                createRtmpStreamBottomSheet.show();
+                return;
+            }
+            if (tL_error != null) {
+                StoryPrivacyBottomSheet storyPrivacyBottomSheet = StoryPrivacyBottomSheet.this;
+                BulletinFactory.of(storyPrivacyBottomSheet.container, ((BottomSheet) storyPrivacyBottomSheet).resourcesProvider).showForError(tL_error, true);
+            }
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public /* synthetic */ void lambda$new$11(CreateRtmpStreamBottomSheet[] createRtmpStreamBottomSheetArr, Browser.Progress progress) {
+            StoryPrivacyBottomSheet.this.isRtmpStream = true;
+            createRtmpStreamBottomSheetArr[0].lambda$new$0();
+            updateItems(true);
+        }
+
+        public class ButtonContainer extends LinearLayout {
+            final AnimatedFloat alpha;
+            private ValueAnimator animator;
+            final Paint dividerPaint;
+            private ValueAnimator hideAnimator;
+            private float translationY;
+            private float translationY2;
+
+            public ButtonContainer(Context context) {
+                super(context);
+                this.dividerPaint = new Paint(1);
+                this.alpha = new AnimatedFloat(this);
+            }
+
+            public void hide(final boolean z, boolean z2) {
+                ValueAnimator valueAnimator = this.hideAnimator;
+                if (valueAnimator != null) {
+                    valueAnimator.cancel();
+                }
+                if (z2) {
+                    setVisibility(0);
+                    ValueAnimator valueAnimatorOfFloat = ValueAnimator.ofFloat(this.translationY2, z ? getMeasuredHeight() : 0.0f);
+                    this.hideAnimator = valueAnimatorOfFloat;
+                    valueAnimatorOfFloat.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet$Page$ButtonContainer$$ExternalSyntheticLambda0
+                        @Override // android.animation.ValueAnimator.AnimatorUpdateListener
+                        public final void onAnimationUpdate(ValueAnimator valueAnimator2) {
+                            this.f$0.lambda$hide$0(valueAnimator2);
+                        }
+                    });
+                    this.hideAnimator.addListener(new AnimatorListenerAdapter() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet.Page.ButtonContainer.1
+                        @Override // android.animation.AnimatorListenerAdapter, android.animation.Animator.AnimatorListener
+                        public void onAnimationEnd(Animator animator) {
+                            if (z) {
+                                ButtonContainer.this.setVisibility(8);
+                            }
+                            ButtonContainer.this.hideAnimator = null;
+                        }
+                    });
+                    this.hideAnimator.setDuration(320L);
+                    this.hideAnimator.setInterpolator(CubicBezierInterpolator.EASE_OUT_QUINT);
+                    this.hideAnimator.start();
+                    return;
+                }
+                setVisibility(z ? 8 : 0);
+                float measuredHeight = z ? getMeasuredHeight() : 0.0f;
+                this.translationY2 = measuredHeight;
+                super.setTranslationY(measuredHeight + this.translationY);
+            }
+
+            /* JADX INFO: Access modifiers changed from: private */
+            public /* synthetic */ void lambda$hide$0(ValueAnimator valueAnimator) {
+                float fFloatValue = ((Float) valueAnimator.getAnimatedValue()).floatValue();
+                this.translationY2 = fFloatValue;
+                super.setTranslationY(fFloatValue + this.translationY);
+            }
+
+            public void translateY(float f, final float f2) {
+                ValueAnimator valueAnimator = this.animator;
+                if (valueAnimator != null) {
+                    valueAnimator.cancel();
+                    this.animator = null;
+                }
+                ValueAnimator valueAnimatorOfFloat = ValueAnimator.ofFloat(f, f2);
+                this.animator = valueAnimatorOfFloat;
+                valueAnimatorOfFloat.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet$Page$ButtonContainer$$ExternalSyntheticLambda1
+                    @Override // android.animation.ValueAnimator.AnimatorUpdateListener
+                    public final void onAnimationUpdate(ValueAnimator valueAnimator2) {
+                        this.f$0.lambda$translateY$1(valueAnimator2);
+                    }
+                });
+                this.animator.addListener(new AnimatorListenerAdapter() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet.Page.ButtonContainer.2
+                    @Override // android.animation.AnimatorListenerAdapter, android.animation.Animator.AnimatorListener
+                    public void onAnimationEnd(Animator animator) {
+                        ButtonContainer.this.setTranslationY(f2);
+                        ButtonContainer.this.animator = null;
+                    }
+                });
+                this.animator.setDuration(250L);
+                this.animator.setInterpolator(AdjustPanLayoutHelper.keyboardInterpolator);
+                this.animator.start();
+            }
+
+            /* JADX INFO: Access modifiers changed from: private */
+            public /* synthetic */ void lambda$translateY$1(ValueAnimator valueAnimator) {
+                setTranslationY(((Float) valueAnimator.getAnimatedValue()).floatValue());
+            }
+
+            @Override // android.view.View
+            public void setTranslationY(float f) {
+                float f2 = this.translationY2;
+                this.translationY = f;
+                super.setTranslationY(f2 + f);
+            }
+
+            @Override // android.view.ViewGroup, android.view.View
+            public void dispatchDraw(Canvas canvas) {
+                super.dispatchDraw(canvas);
+                this.dividerPaint.setColor(Theme.getColor(Theme.key_windowBackgroundGray, ((BottomSheet) StoryPrivacyBottomSheet.this).resourcesProvider));
+                this.dividerPaint.setAlpha((int) (this.alpha.set(Page.this.listView.canScrollVertically(1) ? 1.0f : 0.0f) * 255.0f));
+                canvas.drawRect(0.0f, 0.0f, getWidth(), 1.0f, this.dividerPaint);
+            }
+        }
+
+        @Override // org.telegram.messenger.NotificationCenter.NotificationCenterDelegate
+        public void didReceivedNotification(int i, int i2, Object... objArr) {
+            TLRPC.ChatFull chatFull;
+            AlertDialog alertDialog;
+            if (i != NotificationCenter.chatInfoDidLoad || (chatFull = (TLRPC.ChatFull) objArr[0]) == null || (alertDialog = this.progressDialog) == null || this.waitingForChatId != chatFull.id) {
+                return;
+            }
+            alertDialog.dismissUnless(350L);
+            this.progressDialog = null;
+            this.waitingForChatId = -1L;
+            selectChat(chatFull.id, chatFull.participants);
+        }
+
+        private void selectChat(final long j, TLRPC.ChatParticipants chatParticipants) {
+            final ArrayList<Long> arrayList = new ArrayList<>();
+            ArrayList arrayList2 = new ArrayList();
+            int i = this.pageType;
+            int i2 = 0;
+            boolean z = i == 1 || i == 2;
+            if (chatParticipants != null && chatParticipants.participants != null) {
+                for (int i3 = 0; i3 < chatParticipants.participants.size(); i3++) {
+                    long j2 = chatParticipants.participants.get(i3).user_id;
+                    TLRPC.User user = MessagesController.getInstance(((BottomSheet) StoryPrivacyBottomSheet.this).currentAccount).getUser(Long.valueOf(j2));
+                    if (user != null && !UserObject.isUserSelf(user) && !user.bot && user.id != 777000 && j2 != 0) {
+                        if (z && !user.contact) {
+                            arrayList2.add(Long.valueOf(j2));
+                        } else {
+                            arrayList.add(Long.valueOf(j2));
+                        }
+                        this.selectedUsers.remove(Long.valueOf(j2));
+                    }
+                }
+            }
+            if (!arrayList2.isEmpty()) {
+                if (arrayList.isEmpty()) {
+                    new AlertDialog.Builder(getContext(), ((BottomSheet) StoryPrivacyBottomSheet.this).resourcesProvider).setMessage("All group members are not in your contact list.").setNegativeButton("Cancel", null).show();
+                    return;
+                }
+                new AlertDialog.Builder(getContext(), ((BottomSheet) StoryPrivacyBottomSheet.this).resourcesProvider).setMessage(arrayList2.size() + " members are not in your contact list").setPositiveButton("Add " + arrayList.size() + " contacts", new AlertDialog.OnButtonClickListener() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet$Page$$ExternalSyntheticLambda2
+                    @Override // org.telegram.ui.ActionBar.AlertDialog.OnButtonClickListener
+                    public final void onClick(AlertDialog alertDialog, int i4) {
+                        this.f$0.lambda$selectChat$15(j, arrayList, alertDialog, i4);
+                    }
+                }).setNegativeButton("Cancel", null).show();
+                return;
+            }
+            this.selectedUsersByGroup.put(Long.valueOf(j), arrayList);
+            int size = arrayList.size();
+            while (i2 < size) {
+                Long l = arrayList.get(i2);
+                i2++;
+                this.changelog.put(l.longValue(), Boolean.TRUE);
+            }
+            updateSpans(true);
+            updateButton(true);
+            updateCheckboxes(true);
+            this.searchField.scrollToBottom();
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public /* synthetic */ void lambda$selectChat$15(long j, ArrayList arrayList, AlertDialog alertDialog, int i) {
+            this.selectedUsersByGroup.put(Long.valueOf(j), arrayList);
+            int size = arrayList.size();
+            int i2 = 0;
+            while (i2 < size) {
+                Object obj = arrayList.get(i2);
+                i2++;
+                this.changelog.put(((Long) obj).longValue(), Boolean.TRUE);
+            }
+            updateSpans(true);
+            updateButton(true);
+            updateCheckboxes(true);
+            alertDialog.dismiss();
+            this.searchField.scrollToBottom();
+        }
+
+        private void updateSpans(boolean z) {
+            Object chat;
+            HashSet<Long> hashSetMergeUsers = StoryPrivacyBottomSheet.this.mergeUsers(this.selectedUsers, this.selectedUsersByGroup);
+            int i = this.pageType;
+            if (i == 3) {
+                StoryPrivacyBottomSheet.this.selectedContactsCount = hashSetMergeUsers.size();
+            } else if (i == 4) {
+                StoryPrivacyBottomSheet.this.excludedEveryoneCount = hashSetMergeUsers.size();
+            }
+            MessagesController messagesController = MessagesController.getInstance(((BottomSheet) StoryPrivacyBottomSheet.this).currentAccount);
+            ArrayList<GroupCreateSpan> arrayList = new ArrayList<>();
+            ArrayList<GroupCreateSpan> arrayList2 = new ArrayList<>();
+            for (int i2 = 0; i2 < this.searchField.allSpans.size(); i2++) {
+                GroupCreateSpan groupCreateSpan = this.searchField.allSpans.get(i2);
+                if (!hashSetMergeUsers.contains(Long.valueOf(groupCreateSpan.getUid()))) {
+                    arrayList.add(groupCreateSpan);
+                }
+            }
+            for (Long l : hashSetMergeUsers) {
+                long jLongValue = l.longValue();
+                int i3 = 0;
+                while (true) {
+                    if (i3 >= this.searchField.allSpans.size()) {
+                        if (jLongValue >= 0) {
+                            chat = messagesController.getUser(l);
+                        } else {
+                            chat = messagesController.getChat(l);
+                        }
+                        Object obj = chat;
+                        if (obj != null) {
+                            GroupCreateSpan groupCreateSpan2 = new GroupCreateSpan(getContext(), obj, null, true, ((BottomSheet) StoryPrivacyBottomSheet.this).resourcesProvider);
+                            groupCreateSpan2.setOnClickListener(this);
+                            arrayList2.add(groupCreateSpan2);
+                        }
+                    } else if (this.searchField.allSpans.get(i3).getUid() == jLongValue) {
+                        break;
+                    } else {
+                        i3++;
+                    }
+                }
+            }
+            if (arrayList.isEmpty() && arrayList2.isEmpty()) {
+                return;
+            }
+            this.searchField.spansContainer.updateSpans(arrayList, arrayList2, z);
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public void onButton1Click(View view) {
+            StoryPrivacy storyPrivacy;
+            if (this.button.isLoading()) {
+                return;
+            }
+            final MessagesController messagesController = MessagesController.getInstance(((BottomSheet) StoryPrivacyBottomSheet.this).currentAccount);
+            int i = this.pageType;
+            if (i == 5) {
+                if (StoryPrivacyBottomSheet.this.onDone2 != null) {
+                    StoryPrivacyBottomSheet.this.onDone2.run(this.selectedUsers);
+                }
+                StoryPrivacyBottomSheet.this.lambda$new$0();
+                return;
+            }
+            if (i == 1) {
+                TLRPC.TL_editCloseFriends tL_editCloseFriends = new TLRPC.TL_editCloseFriends();
+                tL_editCloseFriends.id.addAll(this.selectedUsers);
+                this.button.setLoading(true);
+                ConnectionsManager.getInstance(((BottomSheet) StoryPrivacyBottomSheet.this).currentAccount).sendRequest(tL_editCloseFriends, new RequestDelegate() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet$Page$$ExternalSyntheticLambda10
+                    @Override // org.telegram.tgnet.RequestDelegate
+                    public final void run(TLObject tLObject, TLRPC.TL_error tL_error) {
+                        this.f$0.lambda$onButton1Click$17(messagesController, tLObject, tL_error);
+                    }
+                });
+                return;
+            }
+            if (i == 0) {
+                boolean z = StoryPrivacyBottomSheet.this.applyWhenDismiss;
+                StoryPrivacyBottomSheet storyPrivacyBottomSheet = StoryPrivacyBottomSheet.this;
+                if (!z) {
+                    int i2 = storyPrivacyBottomSheet.selectedType;
+                    StoryPrivacyBottomSheet storyPrivacyBottomSheet2 = StoryPrivacyBottomSheet.this;
+                    if (i2 == 3) {
+                        storyPrivacy = new StoryPrivacy(StoryPrivacyBottomSheet.this.selectedType, ((BottomSheet) StoryPrivacyBottomSheet.this).currentAccount, (ArrayList<Long>) new ArrayList(storyPrivacyBottomSheet2.mergeUsers(storyPrivacyBottomSheet2.selectedContacts, StoryPrivacyBottomSheet.this.selectedContactsByGroup)));
+                        storyPrivacy.selectedUserIds.clear();
+                        storyPrivacy.selectedUserIds.addAll(StoryPrivacyBottomSheet.this.selectedContacts);
+                        storyPrivacy.selectedUserIdsByGroup.clear();
+                        storyPrivacy.selectedUserIdsByGroup.putAll(StoryPrivacyBottomSheet.this.selectedContactsByGroup);
+                    } else {
+                        int i3 = storyPrivacyBottomSheet2.selectedType;
+                        StoryPrivacyBottomSheet storyPrivacyBottomSheet3 = StoryPrivacyBottomSheet.this;
+                        if (i3 == 2) {
+                            storyPrivacy = new StoryPrivacy(storyPrivacyBottomSheet3.selectedType, ((BottomSheet) StoryPrivacyBottomSheet.this).currentAccount, (ArrayList<Long>) StoryPrivacyBottomSheet.this.excludedContacts);
+                        } else {
+                            int i4 = storyPrivacyBottomSheet3.selectedType;
+                            StoryPrivacyBottomSheet storyPrivacyBottomSheet4 = StoryPrivacyBottomSheet.this;
+                            if (i4 == 4) {
+                                storyPrivacy = new StoryPrivacy(StoryPrivacyBottomSheet.this.selectedType, ((BottomSheet) StoryPrivacyBottomSheet.this).currentAccount, (ArrayList<Long>) new ArrayList(storyPrivacyBottomSheet4.mergeUsers(storyPrivacyBottomSheet4.excludedEveryone, StoryPrivacyBottomSheet.this.excludedEveryoneByGroup)));
+                                storyPrivacy.selectedUserIds.clear();
+                                storyPrivacy.selectedUserIds.addAll(StoryPrivacyBottomSheet.this.excludedEveryone);
+                                storyPrivacy.selectedUserIdsByGroup.clear();
+                                storyPrivacy.selectedUserIdsByGroup.putAll(StoryPrivacyBottomSheet.this.excludedEveryoneByGroup);
+                            } else {
+                                storyPrivacy = new StoryPrivacy(storyPrivacyBottomSheet4.selectedType, ((BottomSheet) StoryPrivacyBottomSheet.this).currentAccount, (ArrayList<Long>) null);
+                            }
+                        }
+                    }
+                    StoryPrivacyBottomSheet storyPrivacyBottomSheet5 = StoryPrivacyBottomSheet.this;
+                    storyPrivacyBottomSheet5.done(storyPrivacy, new StoryPrivacyBottomSheet$Page$$ExternalSyntheticLambda11(storyPrivacyBottomSheet5));
+                    return;
+                }
+                storyPrivacyBottomSheet.lambda$new$0();
+                return;
+            }
+            if (i == 2) {
+                boolean z2 = StoryPrivacyBottomSheet.this.isEdit;
+                StoryPrivacyBottomSheet storyPrivacyBottomSheet6 = StoryPrivacyBottomSheet.this;
+                if (z2) {
+                    storyPrivacyBottomSheet6.closeKeyboard();
+                    StoryPrivacyBottomSheet storyPrivacyBottomSheet7 = StoryPrivacyBottomSheet.this;
+                    storyPrivacyBottomSheet7.done(new StoryPrivacy(2, ((BottomSheet) storyPrivacyBottomSheet7).currentAccount, this.selectedUsers), new StoryPrivacyBottomSheet$Page$$ExternalSyntheticLambda11(StoryPrivacyBottomSheet.this));
+                    return;
+                } else {
+                    storyPrivacyBottomSheet6.closeKeyboard();
+                    StoryPrivacyBottomSheet.this.viewPager.scrollToPosition(0);
+                    return;
+                }
+            }
+            if (i == 3) {
+                boolean z3 = StoryPrivacyBottomSheet.this.isEdit;
+                StoryPrivacyBottomSheet storyPrivacyBottomSheet8 = StoryPrivacyBottomSheet.this;
+                if (z3) {
+                    HashSet hashSetMergeUsers = storyPrivacyBottomSheet8.mergeUsers(this.selectedUsers, this.selectedUsersByGroup);
+                    if (hashSetMergeUsers.isEmpty()) {
+                        return;
+                    }
+                    StoryPrivacyBottomSheet.this.closeKeyboard();
+                    StoryPrivacy storyPrivacy2 = new StoryPrivacy(3, ((BottomSheet) StoryPrivacyBottomSheet.this).currentAccount, (ArrayList<Long>) new ArrayList(hashSetMergeUsers));
+                    storyPrivacy2.selectedUserIds.clear();
+                    storyPrivacy2.selectedUserIds.addAll(this.selectedUsers);
+                    storyPrivacy2.selectedUserIdsByGroup.clear();
+                    storyPrivacy2.selectedUserIdsByGroup.putAll(this.selectedUsersByGroup);
+                    StoryPrivacyBottomSheet.this.done(storyPrivacy2, new Runnable() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet$Page$$ExternalSyntheticLambda12
+                        @Override // java.lang.Runnable
+                        public final void run() {
+                            this.f$0.lambda$onButton1Click$18();
+                        }
+                    });
+                    return;
+                }
+                if (storyPrivacyBottomSheet8.mergeUsers(this.selectedUsers, this.selectedUsersByGroup).isEmpty()) {
+                    return;
+                }
+                StoryPrivacyBottomSheet.this.selectedType = 3;
+                StoryPrivacyBottomSheet.this.closeKeyboard();
+                StoryPrivacyBottomSheet.this.viewPager.scrollToPosition(0);
+                return;
+            }
+            StoryPrivacyBottomSheet storyPrivacyBottomSheet9 = StoryPrivacyBottomSheet.this;
+            if (i == 6) {
+                HashSet<Long> hashSetMergeUsers2 = storyPrivacyBottomSheet9.mergeUsers(this.selectedUsers, this.selectedUsersByGroup);
+                this.button.setLoading(true);
+                MessagesController.getInstance(((BottomSheet) StoryPrivacyBottomSheet.this).currentAccount).getStoriesController().updateBlockedUsers(hashSetMergeUsers2, new Runnable() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet$Page$$ExternalSyntheticLambda13
+                    @Override // java.lang.Runnable
+                    public final void run() {
+                        this.f$0.lambda$onButton1Click$19();
+                    }
+                });
+            } else {
+                storyPrivacyBottomSheet9.selectedType = i;
+                StoryPrivacyBottomSheet.this.closeKeyboard();
+                StoryPrivacyBottomSheet.this.viewPager.scrollToPosition(0);
+            }
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public /* synthetic */ void lambda$onButton1Click$17(final MessagesController messagesController, final TLObject tLObject, TLRPC.TL_error tL_error) {
+            AndroidUtilities.runOnUIThread(new Runnable() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet$Page$$ExternalSyntheticLambda26
+                @Override // java.lang.Runnable
+                public final void run() {
+                    this.f$0.lambda$onButton1Click$16(tLObject, messagesController);
+                }
+            });
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public /* synthetic */ void lambda$onButton1Click$16(TLObject tLObject, MessagesController messagesController) {
+            boolean zContains;
+            this.button.setLoading(false);
+            if (tLObject != null) {
+                ArrayList contacts = StoryPrivacyBottomSheet.this.getContacts();
+                for (int i = 0; i < contacts.size(); i++) {
+                    TLRPC.User user = (TLRPC.User) contacts.get(i);
+                    if (user != null && (zContains = this.selectedUsers.contains(Long.valueOf(user.id))) != user.close_friend) {
+                        user.close_friend = zContains;
+                        int i2 = user.flags2;
+                        user.flags2 = zContains ? i2 | 4 : i2 & (-5);
+                        messagesController.putUser(user, false);
+                    }
+                }
+            }
+            StoryPrivacyBottomSheet.this.closeKeyboard();
+            boolean z = StoryPrivacyBottomSheet.this.isEdit;
+            StoryPrivacyBottomSheet storyPrivacyBottomSheet = StoryPrivacyBottomSheet.this;
+            if (z) {
+                storyPrivacyBottomSheet.done(new StoryPrivacy(1, ((BottomSheet) storyPrivacyBottomSheet).currentAccount, (ArrayList<Long>) null), new StoryPrivacyBottomSheet$Page$$ExternalSyntheticLambda11(StoryPrivacyBottomSheet.this));
+            } else {
+                storyPrivacyBottomSheet.closeKeyboard();
+                StoryPrivacyBottomSheet.this.viewPager.scrollToPosition(0);
+            }
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public /* synthetic */ void lambda$onButton1Click$18() {
+            Bulletin.removeDelegate(StoryPrivacyBottomSheet.this.container);
+            StoryPrivacyBottomSheet.super.lambda$new$0();
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public /* synthetic */ void lambda$onButton1Click$19() {
+            this.button.setLoading(false);
+            StoryPrivacyBottomSheet.this.closeKeyboard();
+            StoryPrivacyBottomSheet.this.viewPager.scrollToPosition(0);
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public void onButton2Click(View view) {
+            int i = 5;
+            if (StoryPrivacyBottomSheet.this.startedFromSendAsMessage) {
+                StoryPrivacyBottomSheet.this.activePage = 5;
+                StoryPrivacyBottomSheet.this.viewPager.scrollToPosition(1);
+            } else {
+                StoryPrivacyBottomSheet storyPrivacyBottomSheetWhenSelectedShare = new StoryPrivacyBottomSheet(i, getContext(), ((BottomSheet) StoryPrivacyBottomSheet.this).resourcesProvider).whenSelectedShare(new Utilities.Callback() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet$Page$$ExternalSyntheticLambda21
+                    @Override // org.telegram.messenger.Utilities.Callback
+                    public final void run(Object obj) {
+                        this.f$0.lambda$onButton2Click$20((ArrayList) obj);
+                    }
+                });
+                storyPrivacyBottomSheetWhenSelectedShare.storyPeriod = StoryPrivacyBottomSheet.this.storyPeriod;
+                storyPrivacyBottomSheetWhenSelectedShare.show();
+            }
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public /* synthetic */ void lambda$onButton2Click$20(ArrayList arrayList) {
+            StoryPrivacyBottomSheet storyPrivacyBottomSheet = StoryPrivacyBottomSheet.this;
+            storyPrivacyBottomSheet.done(new StoryPrivacy(5, ((BottomSheet) storyPrivacyBottomSheet).currentAccount, (ArrayList<Long>) arrayList), new StoryPrivacyBottomSheet$Page$$ExternalSyntheticLambda11(StoryPrivacyBottomSheet.this));
+        }
+
+        public float top() {
+            float paddingTop;
+            float y;
+            float fMin = (this.layoutManager.getReverseLayout() || this.pageType == 0) ? AndroidUtilities.displaySize.y : 0.0f;
+            for (int i = 0; i < this.listView.getChildCount(); i++) {
+                View childAt = this.listView.getChildAt(i);
+                if (this.layoutManager.getReverseLayout()) {
+                    float paddingTop2 = this.contentView.getPaddingTop() + childAt.getY();
+                    float alpha = childAt.getAlpha();
+                    if (paddingTop2 < fMin) {
+                        fMin = AndroidUtilities.lerp(fMin, paddingTop2, alpha);
+                    }
+                } else if (this.pageType == 0) {
+                    if (!(childAt instanceof PadView)) {
+                        fMin = Math.min(this.contentView.getPaddingTop() + childAt.getY(), fMin);
+                    }
+                } else {
+                    if ((childAt.getTag() instanceof Integer) && ((Integer) childAt.getTag()).intValue() == 33) {
+                        paddingTop = this.contentView.getPaddingTop() + childAt.getBottom();
+                        y = childAt.getTranslationY();
+                    } else if ((childAt.getTag() instanceof Integer) && ((Integer) childAt.getTag()).intValue() == 35) {
+                        paddingTop = this.contentView.getPaddingTop();
+                        y = childAt.getY();
+                    }
+                    return paddingTop + y;
+                }
+            }
+            return fMin;
+        }
+
+        public void bind(int i) {
+            this.pageType = i;
+            this.changelog.clear();
+            this.selectedUsers.clear();
+            this.selectedUsersByGroup.clear();
+            if (i == 4) {
+                this.selectedUsers.addAll(StoryPrivacyBottomSheet.this.excludedEveryone);
+                this.selectedUsersByGroup.putAll(StoryPrivacyBottomSheet.this.excludedEveryoneByGroup);
+            } else if (i == 5) {
+                this.selectedUsers.addAll(StoryPrivacyBottomSheet.this.messageUsers);
+            } else if (i == 1) {
+                ArrayList closeFriends = StoryPrivacyBottomSheet.this.getCloseFriends();
+                for (int i2 = 0; i2 < closeFriends.size(); i2++) {
+                    this.selectedUsers.add(Long.valueOf(((TLRPC.User) closeFriends.get(i2)).id));
+                }
+            } else if (i == 2) {
+                this.selectedUsers.addAll(StoryPrivacyBottomSheet.this.excludedContacts);
+            } else if (i == 3) {
+                this.selectedUsers.addAll(StoryPrivacyBottomSheet.this.selectedContacts);
+                this.selectedUsersByGroup.putAll(StoryPrivacyBottomSheet.this.selectedContactsByGroup);
+            } else if (i == 6) {
+                applyBlocklist(false);
+            }
+            LinearLayoutManager linearLayoutManager = this.layoutManager;
+            this.adapter.reversedLayout = false;
+            linearLayoutManager.setReverseLayout(false);
+            updateSpans(false);
+            this.searchField.setText(_UrlKt.FRAGMENT_ENCODE_SET);
+            this.searchField.setVisibility(i == 0 ? 8 : 0);
+            this.searchField.scrollToBottom();
+            this.query = null;
+            updateItems(false);
+            updateButton(false);
+            updateCheckboxes(false);
+            scrollToTop();
+            this.listView.requestLayout();
+            this.lastSelectedType = -1;
+        }
+
+        public void applyBlocklist(boolean z) {
+            if (this.pageType != 6) {
+                return;
+            }
+            this.selectedUsers.clear();
+            this.selectedUsers.addAll(MessagesController.getInstance(((BottomSheet) StoryPrivacyBottomSheet.this).currentAccount).getStoriesController().blocklist);
+            for (int i = 0; i < this.changelog.size(); i++) {
+                long jKeyAt = this.changelog.keyAt(i);
+                boolean zBooleanValue = this.changelog.valueAt(i).booleanValue();
+                ArrayList<Long> arrayList = this.selectedUsers;
+                if (zBooleanValue) {
+                    if (!arrayList.contains(Long.valueOf(jKeyAt))) {
+                        this.selectedUsers.add(Long.valueOf(jKeyAt));
+                    }
+                } else {
+                    arrayList.remove(Long.valueOf(jKeyAt));
+                }
+            }
+            if (z) {
+                updateItems(true);
+                updateButton(true);
+                updateCheckboxes(true);
+            }
+        }
+
+        public void updateItems(boolean z) {
+            updateItems(z, true);
+        }
+
+        /* JADX WARN: Removed duplicated region for block: B:129:0x0444  */
+        /* JADX WARN: Removed duplicated region for block: B:132:0x0450  */
+        /* JADX WARN: Removed duplicated region for block: B:186:0x05dd  */
+        /* JADX WARN: Removed duplicated region for block: B:210:0x06a5  */
+        /* JADX WARN: Removed duplicated region for block: B:223:0x06d6  */
+        /* JADX WARN: Removed duplicated region for block: B:229:0x06e7  */
+        /* JADX WARN: Removed duplicated region for block: B:248:0x0771  */
+        /* JADX WARN: Removed duplicated region for block: B:275:0x0a8a  */
+        /* JADX WARN: Removed duplicated region for block: B:394:0x0c9c  */
+        /* JADX WARN: Removed duplicated region for block: B:396:0x0ca3  */
+        /* JADX WARN: Removed duplicated region for block: B:402:0x0cbb  */
+        /* JADX WARN: Removed duplicated region for block: B:56:0x0205  */
+        /* JADX WARN: Removed duplicated region for block: B:57:0x0207  */
+        /* JADX WARN: Removed duplicated region for block: B:60:0x021a  */
+        /* JADX WARN: Removed duplicated region for block: B:66:0x023f  */
+        /*
+            Code decompiled incorrectly, please refer to instructions dump.
+        */
+        public void updateItems(boolean z, boolean z2) {
+            float f;
+            float f2;
+            float fDp;
+            ArrayList users;
+            int i;
+            int i2;
+            int iDp;
+            int iDp2;
+            boolean zContainsKey;
+            int i3;
+            float f3;
+            boolean z3;
+            boolean zIsChannelAndNotMegaGroup;
+            String string;
+            String string2;
+            float f4;
+            boolean z4;
+            String pluralString;
+            int i4;
+            String pluralString2;
+            int i5;
+            String pluralString3;
+            this.oldItems.clear();
+            this.oldItems.addAll(this.items);
+            this.items.clear();
+            int i6 = this.pageType;
+            if (i6 == 0) {
+                this.containsHeader = false;
+                this.sectionCell.setVisibility(8);
+                ArrayList<TLRPC.InputPeer> arrayList = MessagesController.getInstance(((BottomSheet) StoryPrivacyBottomSheet.this).currentAccount).getStoriesController().sendAs;
+                ItemInner itemInnerAsPad = ItemInner.asPad(24);
+                this.items.add(itemInnerAsPad);
+                f = 150.0f;
+                if (StoryPrivacyBottomSheet.this.liveSettings) {
+                    this.items.add(ItemInner.asHeader3(LocaleController.getString(C2807R.string.LiveStorySettingsHeader)));
+                    itemInnerAsPad.subtractHeight += AndroidUtilities.dp(72.0f);
+                    i3 = 8;
+                    f2 = 56.0f;
+                    f3 = 40.0f;
+                } else if (StoryPrivacyBottomSheet.this.canChangePeer && (StoryPrivacyBottomSheet.this.isEdit || arrayList == null || arrayList.size() <= 1)) {
+                    ArrayList<ItemInner> arrayList2 = this.items;
+                    if (StoryPrivacyBottomSheet.this.isEdit) {
+                        string = LocaleController.getString(C2807R.string.StoryPrivacyAlertEditTitle);
+                    } else {
+                        string = LocaleController.getString(StoryPrivacyBottomSheet.this.isLive ? C2807R.string.StoryLivePrivacyAlertTitle : C2807R.string.StoryPrivacyAlertTitle);
+                    }
+                    f2 = 56.0f;
+                    if (StoryPrivacyBottomSheet.this.isLive) {
+                        string2 = LocaleController.getString(C2807R.string.StoryLivePrivacyAlertSubtitleProfile);
+                        i3 = 8;
+                        f3 = 40.0f;
+                    } else if (StoryPrivacyBottomSheet.this.storyPeriod != Integer.MAX_VALUE) {
+                        i3 = 8;
+                        f3 = 40.0f;
+                        string2 = LocaleController.formatPluralString("StoryPrivacyAlertSubtitle", StoryPrivacyBottomSheet.this.storyPeriod / 3600, new Object[0]);
+                    } else {
+                        i3 = 8;
+                        f3 = 40.0f;
+                        string2 = LocaleController.getString(C2807R.string.StoryPrivacyAlertSubtitleProfile);
+                    }
+                    arrayList2.add(ItemInner.asHeader2(string, string2));
+                    itemInnerAsPad.subtractHeight += AndroidUtilities.dp(72.0f);
+                } else {
+                    i3 = 8;
+                    f2 = 56.0f;
+                    f3 = 40.0f;
+                    this.items.add(ItemInner.asHeaderCell(LocaleController.getString(StoryPrivacyBottomSheet.this.isLive ? C2807R.string.StoryLivePrivacyPublishAs : C2807R.string.StoryPrivacyPublishAs)));
+                    itemInnerAsPad.subtractHeight += AndroidUtilities.dp(50.0f);
+                    StoryPrivacyBottomSheet storyPrivacyBottomSheet = StoryPrivacyBottomSheet.this;
+                    TLRPC.InputPeer inputPeer = storyPrivacyBottomSheet.selectedPeer;
+                    if (inputPeer == null || (inputPeer instanceof TLRPC.TL_inputPeerSelf)) {
+                        this.items.add(ItemInner.asUser(UserConfig.getInstance(((BottomSheet) storyPrivacyBottomSheet).currentAccount).getCurrentUser(), false, false).asSendAs());
+                        itemInnerAsPad.subtractHeight += AndroidUtilities.dp(62.0f);
+                    } else if (inputPeer instanceof TLRPC.TL_inputPeerUser) {
+                        this.items.add(ItemInner.asUser(MessagesController.getInstance(((BottomSheet) storyPrivacyBottomSheet).currentAccount).getUser(Long.valueOf(StoryPrivacyBottomSheet.this.selectedPeer.user_id)), false, false).asSendAs());
+                        itemInnerAsPad.subtractHeight += AndroidUtilities.dp(62.0f);
+                    } else {
+                        if (inputPeer instanceof TLRPC.TL_inputPeerChannel) {
+                            TLRPC.Chat chat = MessagesController.getInstance(((BottomSheet) storyPrivacyBottomSheet).currentAccount).getChat(Long.valueOf(StoryPrivacyBottomSheet.this.selectedPeer.channel_id));
+                            this.items.add(ItemInner.asChat(chat, false).asSendAs());
+                            zIsChannelAndNotMegaGroup = ChatObject.isChannelAndNotMegaGroup(chat);
+                            itemInnerAsPad.subtractHeight += AndroidUtilities.dp(104.0f);
+                            z3 = false;
+                        } else if (inputPeer instanceof TLRPC.TL_inputPeerChat) {
+                            this.items.add(ItemInner.asChat(MessagesController.getInstance(((BottomSheet) storyPrivacyBottomSheet).currentAccount).getChat(Long.valueOf(StoryPrivacyBottomSheet.this.selectedPeer.chat_id)), false).asSendAs());
+                            itemInnerAsPad.subtractHeight += AndroidUtilities.dp(104.0f);
+                            zIsChannelAndNotMegaGroup = false;
+                            z3 = false;
+                        }
+                        ItemInner itemInnerAsShadow = ItemInner.asShadow(null);
+                        itemInnerAsShadow.resId = !z3 ? 1 : 2;
+                        this.items.add(itemInnerAsShadow);
+                        itemInnerAsPad.subtractHeight += AndroidUtilities.dp(12.0f);
+                        if (z3) {
+                            this.items.add(ItemInner.asHeaderCell(LocaleController.getString(StoryPrivacyBottomSheet.this.isLive ? C2807R.string.StoryLivePrivacyWhoCanView : C2807R.string.StoryPrivacyWhoCanView)));
+                            itemInnerAsPad.subtractHeight += AndroidUtilities.dp(40.0f);
+                        }
+                        if (!z3 || StoryPrivacyBottomSheet.this.liveSettings) {
+                            f4 = 80.0f;
+                        } else {
+                            ArrayList<ItemInner> arrayList3 = this.items;
+                            f4 = 80.0f;
+                            ItemInner itemInnerAsType = ItemInner.asType(4, StoryPrivacyBottomSheet.this.selectedType == 4, StoryPrivacyBottomSheet.this.excludedEveryoneCount);
+                            arrayList3.add(itemInnerAsType);
+                            itemInnerAsPad.subtractHeight += AndroidUtilities.dp(f2);
+                            if (StoryPrivacyBottomSheet.this.excludedEveryoneCount == 1) {
+                                int size = StoryPrivacyBottomSheet.this.excludedEveryone.size();
+                                StoryPrivacyBottomSheet storyPrivacyBottomSheet2 = StoryPrivacyBottomSheet.this;
+                                if (size == 1) {
+                                    itemInnerAsType.user = MessagesController.getInstance(((BottomSheet) storyPrivacyBottomSheet2).currentAccount).getUser((Long) StoryPrivacyBottomSheet.this.excludedEveryone.get(0));
+                                } else {
+                                    Iterator it = storyPrivacyBottomSheet2.excludedEveryoneByGroup.values().iterator();
+                                    while (true) {
+                                        if (!it.hasNext()) {
+                                            break;
+                                        }
+                                        ArrayList arrayList4 = (ArrayList) it.next();
+                                        if (arrayList4.size() >= 1) {
+                                            itemInnerAsType.user = MessagesController.getInstance(((BottomSheet) StoryPrivacyBottomSheet.this).currentAccount).getUser((Long) arrayList4.get(0));
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                            ArrayList<ItemInner> arrayList5 = this.items;
+                            ItemInner itemInnerAsType2 = ItemInner.asType(2, StoryPrivacyBottomSheet.this.selectedType == 2, StoryPrivacyBottomSheet.this.excludedContacts.size());
+                            arrayList5.add(itemInnerAsType2);
+                            itemInnerAsPad.subtractHeight += AndroidUtilities.dp(f2);
+                            if (StoryPrivacyBottomSheet.this.excludedContacts.size() == 1) {
+                                itemInnerAsType2.user = MessagesController.getInstance(((BottomSheet) StoryPrivacyBottomSheet.this).currentAccount).getUser((Long) StoryPrivacyBottomSheet.this.excludedContacts.get(0));
+                            }
+                            ArrayList closeFriends = StoryPrivacyBottomSheet.this.getCloseFriends();
+                            ArrayList<ItemInner> arrayList6 = this.items;
+                            ItemInner itemInnerAsType3 = ItemInner.asType(1, StoryPrivacyBottomSheet.this.selectedType == 1, closeFriends.size());
+                            arrayList6.add(itemInnerAsType3);
+                            itemInnerAsPad.subtractHeight += AndroidUtilities.dp(f2);
+                            if (closeFriends.size() == 1 && (closeFriends.get(0) instanceof TLRPC.User)) {
+                                itemInnerAsType3.user = (TLRPC.User) closeFriends.get(0);
+                            }
+                            ArrayList<ItemInner> arrayList7 = this.items;
+                            ItemInner itemInnerAsType4 = ItemInner.asType(3, StoryPrivacyBottomSheet.this.selectedType == 3, StoryPrivacyBottomSheet.this.selectedContactsCount);
+                            arrayList7.add(itemInnerAsType4);
+                            itemInnerAsPad.subtractHeight += AndroidUtilities.dp(f2);
+                            if (StoryPrivacyBottomSheet.this.selectedContactsCount == 1) {
+                                int size2 = StoryPrivacyBottomSheet.this.selectedContacts.size();
+                                StoryPrivacyBottomSheet storyPrivacyBottomSheet3 = StoryPrivacyBottomSheet.this;
+                                if (size2 == 1) {
+                                    itemInnerAsType4.user = MessagesController.getInstance(((BottomSheet) storyPrivacyBottomSheet3).currentAccount).getUser((Long) StoryPrivacyBottomSheet.this.selectedContacts.get(0));
+                                } else {
+                                    Iterator it2 = storyPrivacyBottomSheet3.selectedContactsByGroup.values().iterator();
+                                    while (true) {
+                                        if (!it2.hasNext()) {
+                                            break;
+                                        }
+                                        ArrayList arrayList8 = (ArrayList) it2.next();
+                                        if (arrayList8.size() >= 1) {
+                                            itemInnerAsType4.user = MessagesController.getInstance(((BottomSheet) StoryPrivacyBottomSheet.this).currentAccount).getUser((Long) arrayList8.get(0));
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                            int blocklistCount = MessagesController.getInstance(((BottomSheet) StoryPrivacyBottomSheet.this).currentAccount).getStoriesController().getBlocklistCount();
+                            ArrayList<ItemInner> arrayList9 = this.items;
+                            StoryPrivacyBottomSheet storyPrivacyBottomSheet4 = StoryPrivacyBottomSheet.this;
+                            if (blocklistCount <= 0) {
+                                pluralString3 = LocaleController.getString(storyPrivacyBottomSheet4.isLive ? C2807R.string.StoryLiveBlockListEmpty : C2807R.string.StoryBlockListEmpty);
+                            } else {
+                                pluralString3 = LocaleController.formatPluralString(storyPrivacyBottomSheet4.isLive ? "StoryLiveBlockList" : "StoryBlockList", blocklistCount, new Object[0]);
+                            }
+                            arrayList9.add(ItemInner.asShadow(AndroidUtilities.replaceSingleTag(pluralString3, Theme.key_chat_messageLinkIn, 0, new Runnable() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet$Page$$ExternalSyntheticLambda1
+                                @Override // java.lang.Runnable
+                                public final void run() {
+                                    this.f$0.lambda$updateItems$21();
+                                }
+                            }, ((BottomSheet) StoryPrivacyBottomSheet.this).resourcesProvider)));
+                            itemInnerAsPad.subtractHeight += AndroidUtilities.dp(80.0f);
+                        }
+                        if (!StoryPrivacyBottomSheet.this.isEdit) {
+                            if (StoryPrivacyBottomSheet.this.isLive && !StoryPrivacyBottomSheet.this.liveSettings) {
+                                boolean z5 = StoryPrivacyBottomSheet.this.isRtmpStream;
+                                ArrayList<ItemInner> arrayList10 = this.items;
+                                if (z5) {
+                                    arrayList10.add(ItemInner.asButton(5, LocaleController.getString(C2807R.string.LiveStoryRTMPSettings), _UrlKt.FRAGMENT_ENCODE_SET));
+                                    itemInnerAsPad.subtractHeight += AndroidUtilities.dp(50.0f);
+                                    this.items.add(ItemInner.asButton(6, LocaleController.getString(C2807R.string.LiveStoryRTMPDisable), _UrlKt.FRAGMENT_ENCODE_SET));
+                                    itemInnerAsPad.subtractHeight += AndroidUtilities.dp(50.0f);
+                                    this.items.add(ItemInner.asShadow(null));
+                                    itemInnerAsPad.subtractHeight += AndroidUtilities.dp(12.0f);
+                                } else {
+                                    arrayList10.add(ItemInner.asButton(5, LocaleController.getString(C2807R.string.LiveStoryRTMPEnable), _UrlKt.FRAGMENT_ENCODE_SET));
+                                    itemInnerAsPad.subtractHeight += AndroidUtilities.dp(50.0f);
+                                    this.items.add(ItemInner.asShadow(LocaleController.getString(C2807R.string.LiveStoryRTMPEnableInfo)));
+                                    itemInnerAsPad.subtractHeight += AndroidUtilities.dp(30.0f);
+                                }
+                            }
+                            if (StoryPrivacyBottomSheet.this.isLive) {
+                                this.items.add(ItemInner.asCheck(LocaleController.getString(C2807R.string.StoryLiveAllowComments), 2, StoryPrivacyBottomSheet.this.allowComments));
+                                itemInnerAsPad.subtractHeight += AndroidUtilities.dp(50.0f);
+                            }
+                            if (!StoryPrivacyBottomSheet.this.liveSettings) {
+                                this.items.add(ItemInner.asCheck(LocaleController.getString(C2807R.string.StoryAllowScreenshots), 0, StoryPrivacyBottomSheet.this.allowScreenshots));
+                                itemInnerAsPad.subtractHeight += AndroidUtilities.dp(50.0f);
+                            }
+                            if (!StoryPrivacyBottomSheet.this.isLive && !StoryPrivacyBottomSheet.this.liveSettings) {
+                                this.items.add(ItemInner.asCheck(LocaleController.getString(z3 ? C2807R.string.StoryKeep : zIsChannelAndNotMegaGroup ? C2807R.string.StoryKeepChannel : C2807R.string.StoryKeepGroup), 1, StoryPrivacyBottomSheet.this.keepOnMyPage));
+                                itemInnerAsPad.subtractHeight += AndroidUtilities.dp(50.0f);
+                            }
+                        }
+                        String str = "StoryKeepGroupInfo";
+                        if (StoryPrivacyBottomSheet.this.isLive && !StoryPrivacyBottomSheet.this.liveSettings) {
+                            if (!StoryPrivacyBottomSheet.this.isEdit && StoryPrivacyBottomSheet.this.allowCover && StoryPrivacyBottomSheet.this.whenCoverClicked != null) {
+                                if (StoryPrivacyBottomSheet.this.isLive) {
+                                    if (z3) {
+                                        i5 = C2807R.string.StoryLiveKeepInfo;
+                                    } else {
+                                        i5 = zIsChannelAndNotMegaGroup ? C2807R.string.StoryLiveKeepChannelInfo : C2807R.string.StoryLiveKeepGroupInfo;
+                                    }
+                                    pluralString2 = LocaleController.getString(i5);
+                                } else {
+                                    pluralString2 = LocaleController.formatPluralString(z3 ? "StoryKeepInfo" : zIsChannelAndNotMegaGroup ? "StoryKeepChannelInfo" : "StoryKeepGroupInfo", (StoryPrivacyBottomSheet.this.storyPeriod == Integer.MAX_VALUE ? 86400 : StoryPrivacyBottomSheet.this.storyPeriod) / 3600, new Object[0]);
+                                }
+                                this.items.add(ItemInner.asShadow(pluralString2));
+                                itemInnerAsPad.subtractHeight += AndroidUtilities.dp(f4);
+                            }
+                        } else {
+                            this.items.add(ItemInner.asShadow(null));
+                            itemInnerAsPad.subtractHeight += AndroidUtilities.dp(12.0f);
+                        }
+                        if (StoryPrivacyBottomSheet.this.keepOnMyPage || StoryPrivacyBottomSheet.this.isLive || StoryPrivacyBottomSheet.this.liveSettings) {
+                            z4 = z3;
+                        } else {
+                            z4 = z3;
+                            long dialogId = getDialogId();
+                            StoryPrivacyBottomSheet.this.getStoriesController().getStoryAlbumsList(dialogId);
+                            StringBuilder sb = new StringBuilder();
+                            if (StoryPrivacyBottomSheet.this.selectedAlbums.isEmpty()) {
+                                sb.append(LocaleController.getString(C2807R.string.StoriesAlbumNameAllStories));
+                            } else {
+                                int size3 = StoryPrivacyBottomSheet.this.selectedAlbums.size();
+                                StoryPrivacyBottomSheet storyPrivacyBottomSheet5 = StoryPrivacyBottomSheet.this;
+                                if (size3 < 3) {
+                                    Iterator it3 = storyPrivacyBottomSheet5.selectedAlbums.iterator();
+                                    while (it3.hasNext()) {
+                                        StoriesController.StoryAlbum storyAlbumFindById = StoryPrivacyBottomSheet.this.getStoriesController().getStoryAlbumsList(dialogId).findById(((Integer) it3.next()).intValue());
+                                        if (storyAlbumFindById != null) {
+                                            if (sb.length() != 0) {
+                                                sb.append(", ");
+                                            }
+                                            sb.append(storyAlbumFindById.title);
+                                        }
+                                    }
+                                } else {
+                                    sb.append(LocaleController.formatPluralString("StoriesAlbumCount", storyPrivacyBottomSheet5.selectedAlbums.size(), new Object[0]));
+                                }
+                            }
+                            this.items.add(ItemInner.asButton(1, LocaleController.getString(C2807R.string.StoriesAlbum), sb));
+                            itemInnerAsPad.subtractHeight += AndroidUtilities.dp(50.0f);
+                        }
+                        if (!StoryPrivacyBottomSheet.this.isEdit && ((!StoryPrivacyBottomSheet.this.allowCover || StoryPrivacyBottomSheet.this.whenCoverClicked == null) && !StoryPrivacyBottomSheet.this.isLive && !StoryPrivacyBottomSheet.this.liveSettings)) {
+                            if (StoryPrivacyBottomSheet.this.isLive) {
+                                if (z4) {
+                                    str = "StoryKeepInfo";
+                                } else if (zIsChannelAndNotMegaGroup) {
+                                    str = "StoryKeepChannelInfo";
+                                }
+                                pluralString = LocaleController.formatPluralString(str, (StoryPrivacyBottomSheet.this.storyPeriod == Integer.MAX_VALUE ? 86400 : StoryPrivacyBottomSheet.this.storyPeriod) / 3600, new Object[0]);
+                            } else {
+                                if (z4) {
+                                    i4 = C2807R.string.StoryLiveKeepInfo;
+                                } else {
+                                    i4 = zIsChannelAndNotMegaGroup ? C2807R.string.StoryLiveKeepChannelInfo : C2807R.string.StoryLiveKeepGroupInfo;
+                                }
+                                pluralString = LocaleController.getString(i4);
+                            }
+                            this.items.add(ItemInner.asShadow(pluralString));
+                            itemInnerAsPad.subtractHeight += AndroidUtilities.dp(f4);
+                        }
+                        if (StoryPrivacyBottomSheet.this.keepOnMyPage && StoryPrivacyBottomSheet.this.allowCover && StoryPrivacyBottomSheet.this.whenCoverClicked != null) {
+                            this.items.add(ItemInner.asButton(0, LocaleController.getString(C2807R.string.StoryEditCover), StoryPrivacyBottomSheet.this.coverDrawable));
+                            itemInnerAsPad.subtractHeight += AndroidUtilities.dp(50.0f);
+                            this.items.add(ItemInner.asShadow(LocaleController.getString(C2807R.string.StoryEditCoverInfo)));
+                            itemInnerAsPad.subtractHeight += AndroidUtilities.dp(72.0f);
+                        }
+                        if (StoryPrivacyBottomSheet.this.liveSettings) {
+                            this.items.add(ItemInner.asButton(5, LocaleController.getString(C2807R.string.LiveStoryRTMPSettings), _UrlKt.FRAGMENT_ENCODE_SET));
+                            itemInnerAsPad.subtractHeight += AndroidUtilities.dp(50.0f);
+                            this.items.add(ItemInner.asShadow(null));
+                            itemInnerAsPad.subtractHeight += AndroidUtilities.dp(52.0f);
+                        }
+                        if (StoryPrivacyBottomSheet.this.isLive && StoryPrivacyBottomSheet.this.allowComments) {
+                            this.items.add(ItemInner.asHeaderCell(LocaleController.getString(C2807R.string.LiveStoryPricePerComment)));
+                            itemInnerAsPad.subtractHeight += AndroidUtilities.dp(f3);
+                            this.items.add(ItemInner.asSlider(i3));
+                            itemInnerAsPad.subtractHeight += AndroidUtilities.dp(75.0f);
+                            this.items.add(ItemInner.asShadow(LocaleController.getString(C2807R.string.LiveStoryPricePerCommentInfo)));
+                            itemInnerAsPad.subtractHeight += AndroidUtilities.dp(50.0f);
+                        }
+                    }
+                    z3 = true;
+                    zIsChannelAndNotMegaGroup = false;
+                    ItemInner itemInnerAsShadow2 = ItemInner.asShadow(null);
+                    itemInnerAsShadow2.resId = !z3 ? 1 : 2;
+                    this.items.add(itemInnerAsShadow2);
+                    itemInnerAsPad.subtractHeight += AndroidUtilities.dp(12.0f);
+                    if (z3) {
+                    }
+                    if (z3) {
+                        f4 = 80.0f;
+                        if (!StoryPrivacyBottomSheet.this.isEdit) {
+                        }
+                        String str2 = "StoryKeepGroupInfo";
+                        if (StoryPrivacyBottomSheet.this.isLive) {
+                            this.items.add(ItemInner.asShadow(null));
+                            itemInnerAsPad.subtractHeight += AndroidUtilities.dp(12.0f);
+                            if (StoryPrivacyBottomSheet.this.keepOnMyPage) {
+                                z4 = z3;
+                                if (!StoryPrivacyBottomSheet.this.isEdit) {
+                                    if (StoryPrivacyBottomSheet.this.isLive) {
+                                    }
+                                    this.items.add(ItemInner.asShadow(pluralString));
+                                    itemInnerAsPad.subtractHeight += AndroidUtilities.dp(f4);
+                                }
+                                if (StoryPrivacyBottomSheet.this.keepOnMyPage) {
+                                    this.items.add(ItemInner.asButton(0, LocaleController.getString(C2807R.string.StoryEditCover), StoryPrivacyBottomSheet.this.coverDrawable));
+                                    itemInnerAsPad.subtractHeight += AndroidUtilities.dp(50.0f);
+                                    this.items.add(ItemInner.asShadow(LocaleController.getString(C2807R.string.StoryEditCoverInfo)));
+                                    itemInnerAsPad.subtractHeight += AndroidUtilities.dp(72.0f);
+                                }
+                                if (StoryPrivacyBottomSheet.this.liveSettings) {
+                                }
+                                if (StoryPrivacyBottomSheet.this.isLive) {
+                                    this.items.add(ItemInner.asHeaderCell(LocaleController.getString(C2807R.string.LiveStoryPricePerComment)));
+                                    itemInnerAsPad.subtractHeight += AndroidUtilities.dp(f3);
+                                    this.items.add(ItemInner.asSlider(i3));
+                                    itemInnerAsPad.subtractHeight += AndroidUtilities.dp(75.0f);
+                                    this.items.add(ItemInner.asShadow(LocaleController.getString(C2807R.string.LiveStoryPricePerCommentInfo)));
+                                    itemInnerAsPad.subtractHeight += AndroidUtilities.dp(50.0f);
+                                }
+                            }
+                        }
+                    }
+                    boolean zIsEmpty = TextUtils.isEmpty(this.query);
+                    if (this.pageType != 0) {
+                        String lowerCase = AndroidUtilities.translitSafe(this.query).toLowerCase();
+                        int i7 = this.pageType;
+                        StoryPrivacyBottomSheet storyPrivacyBottomSheet6 = StoryPrivacyBottomSheet.this;
+                        if (i7 == 5) {
+                            users = storyPrivacyBottomSheet6.getChats();
+                        } else {
+                            users = storyPrivacyBottomSheet6.getUsers(i7 == 1 || i7 == 2, storyPrivacyBottomSheet6.allowSmallChats && ((i = this.pageType) == 3 || i == 6));
+                        }
+                        HashSet hashSetMergeUsers = StoryPrivacyBottomSheet.this.mergeUsers(this.selectedUsers, this.selectedUsersByGroup);
+                        if (zIsEmpty) {
+                            if (!z) {
+                                this.atTop.clear();
+                                for (int i8 = 0; i8 < users.size(); i8++) {
+                                    TLObject tLObject = (TLObject) users.get(i8);
+                                    if (tLObject instanceof TLRPC.User) {
+                                        zContainsKey = this.selectedUsers.contains(Long.valueOf(((TLRPC.User) tLObject).id));
+                                    } else {
+                                        zContainsKey = tLObject instanceof TLRPC.Chat ? this.selectedUsersByGroup.containsKey(Long.valueOf(((TLRPC.Chat) tLObject).id)) : false;
+                                    }
+                                    if (zContainsKey) {
+                                        this.atTop.add(tLObject);
+                                    }
+                                }
+                            }
+                            i2 = 0;
+                            for (int i9 = 0; i9 < this.atTop.size(); i9++) {
+                                TLObject tLObject2 = this.atTop.get(i9);
+                                if (tLObject2 instanceof TLRPC.User) {
+                                    TLRPC.User user = (TLRPC.User) tLObject2;
+                                    boolean zContains = this.selectedUsers.contains(Long.valueOf(user.id));
+                                    boolean z6 = !zContains && hashSetMergeUsers.contains(Long.valueOf(user.id));
+                                    ArrayList<ItemInner> arrayList11 = this.items;
+                                    ItemInner itemInnerAsUser = ItemInner.asUser(user, zContains, z6);
+                                    int i10 = this.pageType;
+                                    arrayList11.add(itemInnerAsUser.red(i10 == 2 || i10 == 4));
+                                    iDp2 = AndroidUtilities.dp(f2);
+                                } else if (tLObject2 instanceof TLRPC.Chat) {
+                                    TLRPC.Chat chat2 = (TLRPC.Chat) tLObject2;
+                                    ArrayList<ItemInner> arrayList12 = this.items;
+                                    ItemInner itemInnerAsChat = ItemInner.asChat(chat2, this.selectedUsersByGroup.containsKey(Long.valueOf(chat2.id)));
+                                    int i11 = this.pageType;
+                                    arrayList12.add(itemInnerAsChat.red(i11 == 2 || i11 == 4));
+                                    iDp2 = AndroidUtilities.dp(f2);
+                                }
+                                fDp += iDp2;
+                                i2++;
+                            }
+                        } else {
+                            i2 = 0;
+                        }
+                        for (int i12 = 0; i12 < users.size(); i12++) {
+                            TLObject tLObject3 = (TLObject) users.get(i12);
+                            if ((!zIsEmpty || !this.atTop.contains(tLObject3)) && match(tLObject3, lowerCase)) {
+                                if (tLObject3 instanceof TLRPC.User) {
+                                    TLRPC.User user2 = (TLRPC.User) tLObject3;
+                                    boolean zContains2 = this.selectedUsers.contains(Long.valueOf(user2.id));
+                                    boolean z7 = !zContains2 && hashSetMergeUsers.contains(Long.valueOf(user2.id));
+                                    ArrayList<ItemInner> arrayList13 = this.items;
+                                    ItemInner itemInnerAsUser2 = ItemInner.asUser(user2, zContains2, z7);
+                                    int i13 = this.pageType;
+                                    arrayList13.add(itemInnerAsUser2.red(i13 == 2 || i13 == 4));
+                                    fDp += AndroidUtilities.dp(f2);
+                                    i2++;
+                                } else if (tLObject3 instanceof TLRPC.Chat) {
+                                    TLRPC.Chat chat3 = (TLRPC.Chat) tLObject3;
+                                    ArrayList<ItemInner> arrayList14 = this.items;
+                                    ItemInner itemInnerAsChat2 = ItemInner.asChat(chat3, this.selectedUsersByGroup.containsKey(Long.valueOf(chat3.id)));
+                                    int i14 = this.pageType;
+                                    arrayList14.add(itemInnerAsChat2.red(i14 == 2 || i14 == 4));
+                                    fDp += AndroidUtilities.dp(f2);
+                                    i2++;
+                                }
+                            }
+                        }
+                        if (!zIsEmpty) {
+                            if (i2 == 0) {
+                                this.items.add(ItemInner.asNoUsers());
+                                fDp += AndroidUtilities.dp(f);
+                            }
+                            RecyclerListView recyclerListView = this.listView;
+                            if (recyclerListView != null) {
+                                iDp = ((recyclerListView.getMeasuredHeight() - this.listView.getPaddingTop()) - this.listView.getPaddingBottom()) + (((BottomSheet) StoryPrivacyBottomSheet.this).keyboardVisible ? this.keyboardHeight : 0);
+                            } else {
+                                iDp = ((AndroidUtilities.displaySize.y - AndroidUtilities.dp(f2)) - AndroidUtilities.navigationBarHeight) - AndroidUtilities.dp(42.0f);
+                            }
+                            float f5 = iDp - fDp;
+                            if (f5 > 0.0f) {
+                                this.items.add(ItemInner.asPadding((int) f5));
+                            }
+                        }
+                    }
+                    if (this.layoutManager.getReverseLayout()) {
+                        Collections.reverse(this.items);
+                    }
+                    if (z2 && this.adapter != null) {
+                        if (!z && StoryPrivacyBottomSheet.this.selectedType != 0) {
+                            this.adapter.setItems(this.oldItems, this.items);
+                        } else {
+                            this.adapter.notifyDataSetChanged();
+                        }
+                    }
+                    this.contentView.invalidate();
+                }
+                z3 = true;
+                zIsChannelAndNotMegaGroup = false;
+                if (z3) {
+                }
+                boolean zIsEmpty2 = TextUtils.isEmpty(this.query);
+                if (this.pageType != 0) {
+                }
+                if (this.layoutManager.getReverseLayout()) {
+                }
+                if (z2) {
+                    if (!z) {
+                        this.adapter.notifyDataSetChanged();
+                    }
+                }
+                this.contentView.invalidate();
+            }
+            f = 150.0f;
+            f2 = 56.0f;
+            if (i6 == 1) {
+                this.headerView.setText(LocaleController.getString(C2807R.string.StoryPrivacyAlertCloseFriendsTitle));
+                this.headerView.setCloseImageVisible(true);
+                this.headerView.backDrawable.setRotation(0.0f, false);
+                this.items.add(ItemInner.asPad());
+                this.items.add(ItemInner.asHeader());
+                this.searchPosition = this.items.size();
+                this.items.add(ItemInner.asSearchField());
+                this.items.add(ItemInner.asSection());
+                fDp = AndroidUtilities.dp(56.0f) + 0.0f + AndroidUtilities.dp(150.0f) + AndroidUtilities.dp(32.0f);
+                this.sectionCell.setText(LocaleController.getString(C2807R.string.StoryPrivacyAlertCloseFriendsSubtitle));
+                updateSectionCell(z);
+                this.containsHeader = true;
+            } else if (i6 == 2) {
+                this.headerView.setText(LocaleController.getString(C2807R.string.StoryPrivacyAlertExcludedContactsTitle));
+                this.headerView.setCloseImageVisible(true);
+                this.headerView.backDrawable.setRotation(0.0f, false);
+                this.items.add(ItemInner.asPad());
+                this.items.add(ItemInner.asHeader());
+                this.searchPosition = this.items.size();
+                this.items.add(ItemInner.asSearchField());
+                this.items.add(ItemInner.asSection());
+                fDp = AndroidUtilities.dp(56.0f) + 0.0f + AndroidUtilities.dp(150.0f) + AndroidUtilities.dp(32.0f);
+                this.sectionCell.setText(LocaleController.getString(C2807R.string.StoryPrivacyAlertExcludedContactsSubtitle));
+                updateSectionCell(z);
+                this.containsHeader = true;
+            } else if (i6 == 3) {
+                this.headerView.setText(LocaleController.getString(C2807R.string.StoryPrivacyAlertSelectContactsTitle));
+                this.headerView.setCloseImageVisible(true);
+                this.headerView.backDrawable.setRotation(0.0f, false);
+                this.items.add(ItemInner.asPad());
+                this.items.add(ItemInner.asHeader());
+                this.searchPosition = this.items.size();
+                this.items.add(ItemInner.asSearchField());
+                this.items.add(ItemInner.asSection());
+                fDp = AndroidUtilities.dp(56.0f) + 0.0f + AndroidUtilities.dp(150.0f) + AndroidUtilities.dp(32.0f);
+                this.sectionCell.setText(LocaleController.getString(C2807R.string.StoryPrivacyAlertSelectContactsSubtitle));
+                updateSectionCell(z);
+                this.containsHeader = true;
+            } else if (i6 == 5) {
+                this.headerView.setText(LocaleController.getString(C2807R.string.StoryPrivacyAlertAsMessageTitle));
+                this.headerView.setCloseImageVisible(StoryPrivacyBottomSheet.this.startedFromSendAsMessage);
+                this.headerView.backDrawable.setRotation(0.0f, false);
+                this.items.add(ItemInner.asPad());
+                this.items.add(ItemInner.asHeader());
+                this.searchPosition = this.items.size();
+                this.items.add(ItemInner.asSearchField());
+                this.items.add(ItemInner.asSection());
+                fDp = AndroidUtilities.dp(56.0f) + 0.0f + AndroidUtilities.dp(150.0f) + AndroidUtilities.dp(32.0f);
+                this.sectionCell.setText(LocaleController.getString(C2807R.string.StoryPrivacyAlertAsMessageSubtitle));
+                updateSectionCell(z);
+                this.containsHeader = true;
+            } else if (i6 == 6) {
+                this.headerView.setText(LocaleController.getString(C2807R.string.StoryPrivacyAlertBlocklistTitle));
+                this.headerView.setCloseImageVisible(true);
+                this.headerView.backDrawable.setRotation(0.0f, false);
+                this.items.add(ItemInner.asPad());
+                this.items.add(ItemInner.asHeader());
+                this.searchPosition = this.items.size();
+                this.items.add(ItemInner.asSearchField());
+                this.items.add(ItemInner.asSection());
+                fDp = AndroidUtilities.dp(56.0f) + 0.0f + AndroidUtilities.dp(150.0f) + AndroidUtilities.dp(32.0f);
+                this.sectionCell.setText(LocaleController.getString(C2807R.string.StoryPrivacyAlertBlocklistSubtitle));
+                updateSectionCell(z);
+                this.containsHeader = true;
+            } else if (i6 == 4) {
+                this.headerView.setText(LocaleController.getString(C2807R.string.StoryPrivacyAlertExcludeFromEveryoneTitle));
+                this.headerView.setCloseImageVisible(true);
+                this.headerView.backDrawable.setRotation(0.0f, false);
+                this.items.add(ItemInner.asPad());
+                this.items.add(ItemInner.asHeader());
+                this.searchPosition = this.items.size();
+                this.items.add(ItemInner.asSearchField());
+                this.items.add(ItemInner.asSection());
+                fDp = AndroidUtilities.dp(56.0f) + 0.0f + AndroidUtilities.dp(150.0f) + AndroidUtilities.dp(32.0f);
+                this.sectionCell.setText(LocaleController.getString(C2807R.string.StoryPrivacyAlertExcludeFromEveryoneSubtitle));
+                updateSectionCell(z);
+                this.containsHeader = true;
+            }
+            boolean zIsEmpty22 = TextUtils.isEmpty(this.query);
+            if (this.pageType != 0) {
+            }
+            if (this.layoutManager.getReverseLayout()) {
+            }
+            if (z2) {
+            }
+            this.contentView.invalidate();
+            fDp = 0.0f;
+            boolean zIsEmpty222 = TextUtils.isEmpty(this.query);
+            if (this.pageType != 0) {
+            }
+            if (this.layoutManager.getReverseLayout()) {
+            }
+            if (z2) {
+            }
+            this.contentView.invalidate();
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public /* synthetic */ void lambda$updateItems$21() {
+            StoryPrivacyBottomSheet.this.activePage = 6;
+            StoryPrivacyBottomSheet.this.viewPager.scrollToPosition(1);
+        }
+
+        private boolean match(TLObject tLObject, String str) {
+            if (TextUtils.isEmpty(str)) {
+                return true;
+            }
+            if (tLObject instanceof TLRPC.User) {
+                TLRPC.User user = (TLRPC.User) tLObject;
+                String lowerCase = AndroidUtilities.translitSafe(UserObject.getUserName(user)).toLowerCase();
+                if (!lowerCase.startsWith(str)) {
+                    if (!lowerCase.contains(" " + str)) {
+                        String lowerCase2 = AndroidUtilities.translitSafe(UserObject.getPublicUsername(user)).toLowerCase();
+                        if (!lowerCase2.startsWith(str)) {
+                            if (!lowerCase2.contains(" " + str)) {
+                                ArrayList<TLRPC.TL_username> arrayList = user.usernames;
+                                if (arrayList != null) {
+                                    for (int i = 0; i < arrayList.size(); i++) {
+                                        TLRPC.TL_username tL_username = arrayList.get(i);
+                                        if (tL_username.active && AndroidUtilities.translitSafe(tL_username.username).toLowerCase().startsWith(str)) {
+                                            return true;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                return true;
+            }
+            if (tLObject instanceof TLRPC.Chat) {
+                TLRPC.Chat chat = (TLRPC.Chat) tLObject;
+                String lowerCase3 = AndroidUtilities.translitSafe(chat.title).toLowerCase();
+                if (!lowerCase3.startsWith(str)) {
+                    if (!lowerCase3.contains(" " + str)) {
+                        String lowerCase4 = AndroidUtilities.translitSafe(ChatObject.getPublicUsername(chat)).toLowerCase();
+                        if (!lowerCase4.startsWith(str)) {
+                            if (!lowerCase4.contains(" " + str)) {
+                                ArrayList<TLRPC.TL_username> arrayList2 = chat.usernames;
+                                if (arrayList2 != null) {
+                                    for (int i2 = 0; i2 < arrayList2.size(); i2++) {
+                                        TLRPC.TL_username tL_username2 = arrayList2.get(i2);
+                                        if (tL_username2.active && AndroidUtilities.translitSafe(tL_username2.username).toLowerCase().startsWith(str)) {
+                                            return true;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                return true;
+            }
+            return false;
+        }
+
+        public void onSearch(String str) {
+            if (str != null && str.isEmpty()) {
+                str = null;
+            }
+            this.query = str;
+            updateItems(false);
+        }
+
+        public void updateTops() {
+            updateSearchFieldTop();
+            updateHeaderTop();
+        }
+
+        private float getSearchFieldTop() {
+            float f = -Math.max(0, Math.min(AndroidUtilities.dp(150.0f), this.searchField.resultContainerHeight) - AndroidUtilities.dp(150.0f));
+            for (int i = 0; i < this.listView.getChildCount(); i++) {
+                View childAt = this.listView.getChildAt(i);
+                if ((childAt.getTag() instanceof Integer) && ((Integer) childAt.getTag()).intValue() == 34) {
+                    return Math.max(f, childAt.getY());
+                }
+            }
+            return f;
+        }
+
+        private void updateSearchFieldTop() {
+            float searchFieldTop = getSearchFieldTop();
+            if (this.scrolling || this.keyboardMoving || getTranslationX() != 0.0f) {
+                this.searchTranslationAnimating = false;
+                ValueAnimator valueAnimator = this.searchFieldAnimator;
+                if (valueAnimator != null) {
+                    valueAnimator.cancel();
+                    this.searchFieldAnimator = null;
+                }
+                this.searchField.setTranslationY(searchFieldTop);
+                return;
+            }
+            if (!this.searchTranslationAnimating || Math.abs(this.searchTranslationAnimatingTo - searchFieldTop) > 1.0f) {
+                this.searchTranslationAnimating = true;
+                ValueAnimator valueAnimator2 = this.searchFieldAnimator;
+                if (valueAnimator2 != null) {
+                    valueAnimator2.cancel();
+                    this.searchFieldAnimator = null;
+                }
+                float translationY = this.searchField.getTranslationY();
+                this.searchTranslationAnimatingTo = searchFieldTop;
+                ValueAnimator valueAnimatorOfFloat = ValueAnimator.ofFloat(translationY, searchFieldTop);
+                this.searchFieldAnimator = valueAnimatorOfFloat;
+                valueAnimatorOfFloat.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet$Page$$ExternalSyntheticLambda14
+                    @Override // android.animation.ValueAnimator.AnimatorUpdateListener
+                    public final void onAnimationUpdate(ValueAnimator valueAnimator3) {
+                        this.f$0.lambda$updateSearchFieldTop$22(valueAnimator3);
+                    }
+                });
+                this.searchFieldAnimator.addListener(new AnimatorListenerAdapter() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet.Page.4
+                    @Override // android.animation.AnimatorListenerAdapter, android.animation.Animator.AnimatorListener
+                    public void onAnimationEnd(Animator animator) {
+                        Page.this.searchTranslationAnimating = false;
+                    }
+                });
+                this.searchFieldAnimator.setInterpolator(new LinearInterpolator());
+                this.searchFieldAnimator.setDuration(180L);
+                this.searchFieldAnimator.start();
+            }
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public /* synthetic */ void lambda$updateSearchFieldTop$22(ValueAnimator valueAnimator) {
+            this.searchField.setTranslationY(((Float) valueAnimator.getAnimatedValue()).floatValue());
+        }
+
+        private void updateHeaderTop() {
+            boolean z = this.containsHeader;
+            HeaderCell headerCell = this.headerView;
+            if (!z) {
+                headerCell.setVisibility(8);
+                return;
+            }
+            boolean z2 = false;
+            headerCell.setVisibility(0);
+            float paddingTop = -this.headerView.getHeight();
+            int i = 0;
+            while (true) {
+                if (i >= this.listView.getChildCount()) {
+                    z2 = true;
+                    break;
+                }
+                View childAt = this.listView.getChildAt(i);
+                if ((childAt.getTag() instanceof Integer) && ((Integer) childAt.getTag()).intValue() == 35) {
+                    paddingTop = this.contentView.getPaddingTop() + childAt.getY();
+                    break;
+                }
+                i++;
+            }
+            if (this.isActionBar != z2) {
+                this.isActionBar = z2;
+                this.headerView.backDrawable.setRotation((z2 || this.pageType != 0) ? 0.0f : 1.0f, true);
+            }
+            this.headerView.setTranslationY(Math.max(AndroidUtilities.statusBarHeight, paddingTop));
+        }
+
+        private long getDialogId() {
+            StoryPrivacyBottomSheet storyPrivacyBottomSheet = StoryPrivacyBottomSheet.this;
+            TLRPC.InputPeer inputPeer = storyPrivacyBottomSheet.selectedPeer;
+            if (inputPeer == null) {
+                return UserConfig.getInstance(((BottomSheet) storyPrivacyBottomSheet).currentAccount).getClientUserId();
+            }
+            return DialogObject.getPeerDialogId(inputPeer);
+        }
+
+        public void updateButton(boolean z) {
+            int i = this.pageType;
+            if (i == 0) {
+                this.button.setShowZero(false);
+                this.button.setEnabled(true);
+                this.button.setCount(0, z);
+                if (StoryPrivacyBottomSheet.this.liveSettings || StoryPrivacyBottomSheet.this.isEdit) {
+                    this.button.setText(LocaleController.getString(C2807R.string.StoryPrivacyButtonSave), z);
+                } else {
+                    int i2 = StoryPrivacyBottomSheet.this.storiesCount;
+                    ButtonWithCounterView buttonWithCounterView = this.button;
+                    if (i2 == 1) {
+                        buttonWithCounterView.setText(LocaleController.getString(StoryPrivacyBottomSheet.this.isLive ? C2807R.string.StoryLivePrivacyButtonPost : C2807R.string.StoryPrivacyButtonPost), z);
+                    } else {
+                        buttonWithCounterView.setText(LocaleController.formatPluralStringComma("StoryPrivacyButtonPostMultiple", StoryPrivacyBottomSheet.this.storiesCount), z);
+                    }
+                }
+                this.button2.setVisibility(StoryPrivacyBottomSheet.this.sendAsMessageEnabled ? 0 : 8);
+                return;
+            }
+            if (i == 1) {
+                this.button.setShowZero(false);
+                this.button.setEnabled(true);
+                this.button.setText(LocaleController.getString(C2807R.string.StoryPrivacyButtonSaveCloseFriends), z);
+                this.button.setCount(this.selectedUsers.size(), z);
+                this.button2.setVisibility(8);
+                return;
+            }
+            if (i == 3) {
+                StoryPrivacyBottomSheet storyPrivacyBottomSheet = StoryPrivacyBottomSheet.this;
+                int size = storyPrivacyBottomSheet.mergeUsers(this.selectedUsers, this.selectedUsersByGroup).size();
+                storyPrivacyBottomSheet.selectedContactsCount = size;
+                this.button.setText(LocaleController.getString(C2807R.string.StoryPrivacyButtonSave), z);
+                this.button.setShowZero(false);
+                this.buttonContainer.hide(size <= 0, z);
+                this.button.setCount(size, z);
+                this.button.setEnabled(size > 0);
+                this.button2.setVisibility(8);
+                return;
+            }
+            if (i == 2) {
+                this.button.setShowZero(false);
+                this.button.setEnabled(true);
+                boolean zIsEmpty = this.selectedUsers.isEmpty();
+                ButtonWithCounterView buttonWithCounterView2 = this.button;
+                if (zIsEmpty) {
+                    buttonWithCounterView2.setText(LocaleController.getString(C2807R.string.StoryPrivacyButtonSave), z);
+                    this.button.setCount(0, z);
+                } else {
+                    buttonWithCounterView2.setText(LocaleController.getString(C2807R.string.StoryPrivacyButtonExcludeContacts), z);
+                    this.button.setCount(this.selectedUsers.size(), z);
+                }
+                this.button2.setVisibility(8);
+                return;
+            }
+            if (i == 5) {
+                this.button.setShowZero(true);
+                this.button.setEnabled(true ^ this.selectedUsers.isEmpty());
+                this.button.setCount(this.selectedUsers.size(), z);
+                this.button2.setVisibility(8);
+                return;
+            }
+            if (i != 6) {
+                if (i == 4) {
+                    StoryPrivacyBottomSheet storyPrivacyBottomSheet2 = StoryPrivacyBottomSheet.this;
+                    int size2 = storyPrivacyBottomSheet2.mergeUsers(storyPrivacyBottomSheet2.excludedEveryone, StoryPrivacyBottomSheet.this.excludedEveryoneByGroup).size();
+                    storyPrivacyBottomSheet2.excludedEveryoneCount = size2;
+                    this.button.setText(LocaleController.getString(C2807R.string.StoryPrivacyButtonSave), z);
+                    this.button.setShowZero(false);
+                    this.buttonContainer.hide(false, z);
+                    this.button.setCount(size2, z);
+                    this.button.setEnabled(true);
+                    this.button2.setVisibility(8);
+                    return;
+                }
+                return;
+            }
+            this.button.setShowZero(false);
+            this.button.setEnabled(true);
+            this.button.setText(LocaleController.getString(C2807R.string.StoryPrivacyButtonSaveCloseFriends), z);
+            StoriesController storiesController = MessagesController.getInstance(((BottomSheet) StoryPrivacyBottomSheet.this).currentAccount).getStoriesController();
+            if (storiesController.blocklistFull) {
+                this.button.setCount(this.selectedUsers.size(), z);
+            } else {
+                storiesController.getBlocklistCount();
+                for (int i3 = 0; i3 < this.changelog.size(); i3++) {
+                    long jKeyAt = this.changelog.keyAt(i3);
+                    this.changelog.valueAt(i3).booleanValue();
+                    storiesController.blocklist.contains(Long.valueOf(jKeyAt));
+                }
+            }
+            this.button2.setVisibility(8);
+        }
+
+        private void updateSectionCell(boolean z) {
+            if (this.sectionCell == null) {
+                return;
+            }
+            if (StoryPrivacyBottomSheet.this.mergeUsers(this.selectedUsers, this.selectedUsersByGroup).size() > 0) {
+                this.sectionCell.setRightText(LocaleController.getString(C2807R.string.UsersDeselectAll), true, new View.OnClickListener() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet$Page$$ExternalSyntheticLambda20
+                    @Override // android.view.View.OnClickListener
+                    public final void onClick(View view) {
+                        this.f$0.lambda$updateSectionCell$23(view);
+                    }
+                });
+                return;
+            }
+            GraySectionCell graySectionCell = this.sectionCell;
+            if (z) {
+                graySectionCell.setRightText(null);
+            } else {
+                graySectionCell.setRightText((CharSequence) null, (View.OnClickListener) null);
+            }
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public /* synthetic */ void lambda$updateSectionCell$23(View view) {
+            ArrayList<Long> arrayList = this.selectedUsers;
+            int size = arrayList.size();
+            int i = 0;
+            while (i < size) {
+                Long l = arrayList.get(i);
+                i++;
+                this.changelog.put(l.longValue(), Boolean.FALSE);
+            }
+            for (ArrayList<Long> arrayList2 : this.selectedUsersByGroup.values()) {
+                int size2 = arrayList2.size();
+                int i2 = 0;
+                while (i2 < size2) {
+                    Long l2 = arrayList2.get(i2);
+                    i2++;
+                    this.changelog.put(l2.longValue(), Boolean.FALSE);
+                }
+            }
+            this.selectedUsers.clear();
+            this.selectedUsersByGroup.clear();
+            StoryPrivacyBottomSheet.this.messageUsers.clear();
+            this.searchField.spansContainer.removeAllSpans(true);
+            updateCheckboxes(true);
+            updateButton(true);
+        }
+
+        public void updateCheckboxes(boolean z) {
+            int childAdapterPosition;
+            int i = this.pageType;
+            if (i == 4) {
+                StoryPrivacyBottomSheet.this.excludedEveryone.clear();
+                StoryPrivacyBottomSheet.this.excludedEveryoneByGroup.clear();
+                StoryPrivacyBottomSheet.this.excludedEveryone.addAll(this.selectedUsers);
+                StoryPrivacyBottomSheet.this.excludedEveryoneByGroup.putAll(this.selectedUsersByGroup);
+            } else if (i == 2) {
+                StoryPrivacyBottomSheet.this.excludedContacts.clear();
+                StoryPrivacyBottomSheet.this.excludedContacts.addAll(this.selectedUsers);
+            } else if (i == 3) {
+                StoryPrivacyBottomSheet.this.selectedContacts.clear();
+                StoryPrivacyBottomSheet.this.selectedContactsByGroup.clear();
+                StoryPrivacyBottomSheet.this.selectedContacts.addAll(this.selectedUsers);
+                StoryPrivacyBottomSheet.this.selectedContactsByGroup.putAll(this.selectedUsersByGroup);
+            } else if (i == 0) {
+                StoryPrivacyBottomSheet.this.messageUsers.clear();
+                StoryPrivacyBottomSheet.this.messageUsers.addAll(this.selectedUsers);
+            }
+            if (this.pageType == 3 && (StoryPrivacyBottomSheet.this.selectedType != 3 || (this.selectedUsers.isEmpty() && this.selectedUsersByGroup.isEmpty()))) {
+                if (!this.selectedUsers.isEmpty() || !this.selectedUsersByGroup.isEmpty()) {
+                    this.lastSelectedType = StoryPrivacyBottomSheet.this.selectedType;
+                    StoryPrivacyBottomSheet.this.selectedType = 3;
+                } else {
+                    int i2 = this.lastSelectedType;
+                    if (i2 != -1) {
+                        StoryPrivacyBottomSheet.this.selectedType = i2;
+                    }
+                }
+            }
+            HashSet hashSetMergeUsers = StoryPrivacyBottomSheet.this.mergeUsers(this.selectedUsers, this.selectedUsersByGroup);
+            int i3 = 0;
+            while (true) {
+                if (i3 >= this.items.size()) {
+                    break;
+                }
+                ItemInner itemInner = this.items.get(i3);
+                if (itemInner != null) {
+                    if (itemInner.type > 0) {
+                        itemInner.checked = StoryPrivacyBottomSheet.this.selectedType == itemInner.type;
+                        itemInner.halfChecked = false;
+                    } else {
+                        TLRPC.User user = itemInner.user;
+                        if (user != null) {
+                            boolean zContains = this.selectedUsers.contains(Long.valueOf(user.id));
+                            itemInner.checked = zContains;
+                            itemInner.halfChecked = !zContains && hashSetMergeUsers.contains(Long.valueOf(itemInner.user.id));
+                        } else {
+                            TLRPC.Chat chat = itemInner.chat;
+                            if (chat != null) {
+                                itemInner.checked = this.selectedUsersByGroup.containsKey(Long.valueOf(chat.id));
+                                itemInner.halfChecked = false;
+                            }
+                        }
+                    }
+                }
+                i3++;
+            }
+            for (int i4 = 0; i4 < this.listView.getChildCount(); i4++) {
+                View childAt = this.listView.getChildAt(i4);
+                if ((childAt instanceof UserCell) && (childAdapterPosition = this.listView.getChildAdapterPosition(childAt)) >= 0 && childAdapterPosition < this.items.size()) {
+                    ItemInner itemInner2 = this.items.get(childAdapterPosition);
+                    UserCell userCell = (UserCell) childAt;
+                    userCell.setChecked(itemInner2.checked || itemInner2.halfChecked, z);
+                    TLRPC.Chat chat2 = itemInner2.chat;
+                    if (chat2 != null) {
+                        userCell.setCheckboxAlpha(StoryPrivacyBottomSheet.this.getParticipantsCount(chat2) > 200 ? 0.3f : 1.0f, z);
+                    } else {
+                        if (itemInner2.halfChecked && !itemInner2.checked) {
+                            f = 0.5f;
+                        }
+                        userCell.setCheckboxAlpha(f, z);
+                    }
+                }
+            }
+            updateSectionCell(z);
+        }
+
+        public void scrollToTopSmoothly() {
+            LinearSmoothScrollerCustom linearSmoothScrollerCustom = new LinearSmoothScrollerCustom(getContext(), 2, 0.7f);
+            linearSmoothScrollerCustom.setTargetPosition(1);
+            linearSmoothScrollerCustom.setOffset(-AndroidUtilities.dp(56.0f));
+            this.layoutManager.startSmoothScroll(linearSmoothScrollerCustom);
+        }
+
+        public void scrollToTop() {
+            if (this.pageType != 0) {
+                this.listView.scrollToPosition(0);
+            }
+        }
+
+        public int getTypeOn(MotionEvent motionEvent) {
+            View viewFindChildViewUnder;
+            int childAdapterPosition;
+            if (this.pageType == 0 && motionEvent != null && (viewFindChildViewUnder = this.listView.findChildViewUnder(motionEvent.getX(), motionEvent.getY() - this.contentView.getPaddingTop())) != null && (childAdapterPosition = this.listView.getChildAdapterPosition(viewFindChildViewUnder)) >= 0 && childAdapterPosition < this.items.size()) {
+                ItemInner itemInner = this.items.get(childAdapterPosition);
+                if (itemInner.viewType == 3 && !itemInner.sendAs && (!LocaleController.isRTL ? motionEvent.getX() > AndroidUtilities.dp(100.0f) : motionEvent.getX() < getWidth() - AndroidUtilities.dp(100.0f))) {
+                    return itemInner.type;
+                }
+            }
+            return -1;
+        }
+
+        public boolean atTop() {
+            return !this.listView.canScrollVertically(-1);
+        }
+
+        public boolean atBottom() {
+            return !this.listView.canScrollVertically(1);
+        }
+
+        @Override // android.widget.FrameLayout, android.view.View
+        public void onMeasure(int i, int i2) {
+            if (((BottomSheet) StoryPrivacyBottomSheet.this).keyboardHeight > 0) {
+                this.keyboardHeight = ((BottomSheet) StoryPrivacyBottomSheet.this).keyboardHeight;
+            }
+            super.onMeasure(i, i2);
+            this.contentView.setPadding(0, AndroidUtilities.statusBarHeight + (this.pageType == 0 ? 0 : AndroidUtilities.dp(56.0f)), 0, 0);
+            if (this.wasKeyboardVisible != ((BottomSheet) StoryPrivacyBottomSheet.this).keyboardVisible) {
+                float searchFieldTop = getSearchFieldTop();
+                if (((BottomSheet) StoryPrivacyBottomSheet.this).keyboardVisible && searchFieldTop + Math.min(AndroidUtilities.dp(150.0f), this.searchField.resultContainerHeight) > this.listView.getPaddingTop()) {
+                    scrollToTopSmoothly();
+                }
+                int i3 = this.pageType;
+                ButtonContainer buttonContainer = this.buttonContainer;
+                if (i3 == 0) {
+                    buttonContainer.setTranslationY(((BottomSheet) StoryPrivacyBottomSheet.this).keyboardVisible ? this.keyboardHeight : 0.0f);
+                    this.underKeyboardView.setTranslationY(((BottomSheet) StoryPrivacyBottomSheet.this).keyboardVisible ? this.keyboardHeight : 0.0f);
+                } else {
+                    buttonContainer.translateY(((BottomSheet) StoryPrivacyBottomSheet.this).keyboardVisible ? this.keyboardHeight : -r2, 0.0f);
+                    this.underKeyboardView.setTranslationY(((BottomSheet) StoryPrivacyBottomSheet.this).keyboardVisible ? this.keyboardHeight : -r2);
+                    this.keyboardMoving = true;
+                    this.underKeyboardView.animate().translationY(0.0f).setDuration(250L).setInterpolator(AdjustPanLayoutHelper.keyboardInterpolator).withEndAction(new Runnable() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet$Page$$ExternalSyntheticLambda0
+                        @Override // java.lang.Runnable
+                        public final void run() {
+                            this.f$0.lambda$onMeasure$24();
+                        }
+                    }).start();
+                }
+                this.wasKeyboardVisible = ((BottomSheet) StoryPrivacyBottomSheet.this).keyboardVisible;
+            }
+            this.listView.setPadding(0, 0, 0, this.buttonContainer.getMeasuredHeight());
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public /* synthetic */ void lambda$onMeasure$24() {
+            this.keyboardMoving = false;
+        }
+
+        @Override // android.widget.FrameLayout, android.view.ViewGroup, android.view.View
+        public void onLayout(boolean z, int i, int i2, int i3, int i4) {
+            super.onLayout(z, i, i2, i3, i4);
+        }
+
+        @Override // android.view.View.OnClickListener
+        public void onClick(View view) {
+            if (this.searchField.allSpans.contains(view)) {
+                GroupCreateSpan groupCreateSpan = (GroupCreateSpan) view;
+                boolean zIsDeleting = groupCreateSpan.isDeleting();
+                SearchUsersCell searchUsersCell = this.searchField;
+                if (zIsDeleting) {
+                    searchUsersCell.currentDeletingSpan = null;
+                    this.searchField.spansContainer.removeSpan(groupCreateSpan);
+                    long uid = groupCreateSpan.getUid();
+                    Iterator<Map.Entry<Long, ArrayList<Long>>> it = this.selectedUsersByGroup.entrySet().iterator();
+                    while (it.hasNext()) {
+                        Map.Entry<Long, ArrayList<Long>> next = it.next();
+                        if (next.getValue().contains(Long.valueOf(uid))) {
+                            it.remove();
+                            this.selectedUsers.addAll(next.getValue());
+                            this.selectedUsers.remove(Long.valueOf(uid));
+                        }
+                    }
+                    this.selectedUsers.remove(Long.valueOf(uid));
+                    updateCheckboxes(true);
+                    updateButton(true);
+                    return;
+                }
+                if (searchUsersCell.currentDeletingSpan != null) {
+                    this.searchField.currentDeletingSpan.cancelDeleteAnimation();
+                    this.searchField.currentDeletingSpan = null;
+                }
+                this.searchField.currentDeletingSpan = groupCreateSpan;
+                groupCreateSpan.startDeleteAnimation();
+            }
+        }
+
+        @Override // android.view.ViewGroup, android.view.View
+        public void onAttachedToWindow() {
+            super.onAttachedToWindow();
+            NotificationCenter.getInstance(((BottomSheet) StoryPrivacyBottomSheet.this).currentAccount).addObserver(this, NotificationCenter.chatInfoDidLoad);
+        }
+
+        @Override // android.view.ViewGroup, android.view.View
+        public void onDetachedFromWindow() {
+            super.onDetachedFromWindow();
+            NotificationCenter.getInstance(((BottomSheet) StoryPrivacyBottomSheet.this).currentAccount).removeObserver(this, NotificationCenter.chatInfoDidLoad);
+        }
+
+        public class PadView extends View {
+            public PadView(Context context) {
+                super(context);
+            }
+        }
+
+        public class Adapter extends AdapterWithDiffUtils {
+            private Context context;
+            private RecyclerListView listView;
+            private Runnable onBack;
+            private Theme.ResourcesProvider resourcesProvider;
+            public boolean reversedLayout;
+            private SearchUsersCell searchField;
+
+            public Adapter(Context context, Theme.ResourcesProvider resourcesProvider, SearchUsersCell searchUsersCell, Runnable runnable) {
+                this.context = context;
+                this.resourcesProvider = resourcesProvider;
+                this.searchField = searchUsersCell;
+                this.onBack = runnable;
+            }
+
+            @Override // org.telegram.ui.Components.RecyclerListView.SelectionAdapter
+            public boolean isEnabled(RecyclerView.ViewHolder viewHolder) {
+                return (viewHolder.getItemViewType() == 3 && StoryPrivacyBottomSheet.this.canChangePeer) || viewHolder.getItemViewType() == 7 || viewHolder.getItemViewType() == 9 || viewHolder.getItemViewType() == 10;
+            }
+
+            @Override // androidx.recyclerview.widget.RecyclerView.Adapter
+            public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup viewGroup, int i) {
+                TextCell textCell;
+                View slideIntChooseView;
+                View headerCell2;
+                if (i == -1) {
+                    slideIntChooseView = Page.this.new PadView(this.context);
+                } else if (i == 0) {
+                    View view = new View(this.context);
+                    view.setTag(35);
+                    slideIntChooseView = view;
+                } else if (i == 1) {
+                    View view2 = new View(this.context);
+                    view2.setTag(34);
+                    slideIntChooseView = view2;
+                } else if (i == 3) {
+                    slideIntChooseView = new UserCell(this.context, this.resourcesProvider);
+                } else {
+                    if (i == 4) {
+                        headerCell2 = new HeaderCell2(this.context, this.resourcesProvider, true);
+                    } else if (i == 11) {
+                        slideIntChooseView = new HeaderCell2(this.context, this.resourcesProvider, false);
+                    } else if (i == 8) {
+                        org.telegram.ui.Cells.HeaderCell headerCell = new org.telegram.ui.Cells.HeaderCell(this.context, this.resourcesProvider);
+                        headerCell.setBackgroundColor(Theme.getColor(Theme.key_dialogBackground, this.resourcesProvider));
+                        slideIntChooseView = headerCell;
+                    } else if (i == 5) {
+                        StickerEmptyView stickerEmptyView = new StickerEmptyView(this.context, null, 1, this.resourcesProvider);
+                        stickerEmptyView.title.setText(LocaleController.getString(C2807R.string.NoResult));
+                        stickerEmptyView.subtitle.setText(LocaleController.getString(C2807R.string.SearchEmptyViewFilteredSubtitle2));
+                        stickerEmptyView.linearLayout.setTranslationY(AndroidUtilities.dp(24.0f));
+                        headerCell2 = stickerEmptyView;
+                    } else if (i == 6) {
+                        TextInfoPrivacyCell textInfoPrivacyCell = new TextInfoPrivacyCell(this.context, this.resourcesProvider);
+                        textInfoPrivacyCell.setBackgroundColor(-15921907);
+                        slideIntChooseView = textInfoPrivacyCell;
+                    } else {
+                        if (i == 7) {
+                            textCell = new TextCell(this.context, 23, true, true, this.resourcesProvider);
+                        } else if (i == 9) {
+                            textCell = new TextCell(this.context, 23, true, false, this.resourcesProvider);
+                        } else if (i == 10) {
+                            slideIntChooseView = new SlideIntChooseView(this.context, this.resourcesProvider);
+                        } else {
+                            slideIntChooseView = new View(this.context) { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet.Page.Adapter.1
+                                @Override // android.view.View
+                                public void onMeasure(int i2, int i3) {
+                                    super.onMeasure(i2, View.MeasureSpec.makeMeasureSpec(AndroidUtilities.dp(32.0f), TLObject.FLAG_30));
+                                }
+                            };
+                        }
+                        slideIntChooseView = textCell;
+                    }
+                    slideIntChooseView = headerCell2;
+                }
+                return new RecyclerListView.Holder(slideIntChooseView);
+            }
+
+            @Override // androidx.recyclerview.widget.RecyclerView.Adapter
+            public void onBindViewHolder(RecyclerView.ViewHolder viewHolder, int i) {
+                int i2;
+                ArrayList arrayList;
+                ItemInner itemInner;
+                int iMax;
+                int i3;
+                if (Page.this.items == null || i < 0 || i >= Page.this.items.size()) {
+                    return;
+                }
+                ItemInner itemInner2 = (ItemInner) Page.this.items.get(i);
+                int itemViewType = viewHolder.getItemViewType();
+                boolean z = true;
+                if (this.reversedLayout) {
+                    if (i > 0) {
+                        arrayList = Page.this.items;
+                        i2 = i - 1;
+                        itemInner = (ItemInner) arrayList.get(i2);
+                    }
+                    itemInner = null;
+                } else {
+                    i2 = i + 1;
+                    if (i2 < Page.this.items.size()) {
+                        arrayList = Page.this.items;
+                        itemInner = (ItemInner) arrayList.get(i2);
+                    }
+                    itemInner = null;
+                }
+                boolean z2 = itemInner != null && ((i3 = itemInner.viewType) == itemViewType || (i3 == 9 && itemInner.id == 1));
+                if (itemViewType == 3) {
+                    UserCell userCell = (UserCell) viewHolder.itemView;
+                    boolean z3 = itemInner2.sendAs;
+                    userCell.setIsSendAs(z3, !z3);
+                    int i4 = itemInner2.type;
+                    float f = 1.0f;
+                    if (i4 > 0) {
+                        userCell.setType(i4, itemInner2.typeCount, itemInner2.user);
+                        userCell.setCheckboxAlpha(1.0f, false);
+                    } else {
+                        TLRPC.User user = itemInner2.user;
+                        if (user != null) {
+                            userCell.setUser(user);
+                            if (itemInner2.halfChecked && !itemInner2.checked) {
+                                f = 0.5f;
+                            }
+                            userCell.setCheckboxAlpha(f, false);
+                        } else {
+                            TLRPC.Chat chat = itemInner2.chat;
+                            if (chat != null) {
+                                userCell.setChat(chat, StoryPrivacyBottomSheet.this.getParticipantsCount(chat));
+                            }
+                        }
+                    }
+                    if (!itemInner2.checked && !itemInner2.halfChecked) {
+                        z = false;
+                    }
+                    userCell.setChecked(z, false);
+                    userCell.setDivider(z2);
+                    userCell.setRedCheckbox(itemInner2.red);
+                    userCell.drawArrow = StoryPrivacyBottomSheet.this.canChangePeer;
+                    return;
+                }
+                if (itemViewType == 2) {
+                    return;
+                }
+                if (itemViewType == 0) {
+                    viewHolder.itemView.setLayoutParams(new RecyclerView.LayoutParams(-1, AndroidUtilities.dp(56.0f)));
+                    return;
+                }
+                if (itemViewType == -1) {
+                    if (itemInner2.subtractHeight > 0) {
+                        RecyclerListView recyclerListView = this.listView;
+                        iMax = Math.max(((recyclerListView == null || recyclerListView.getMeasuredHeight() <= 0) ? AndroidUtilities.displaySize.y : this.listView.getMeasuredHeight() + Page.this.keyboardHeight) - itemInner2.subtractHeight, AndroidUtilities.dp(120.0f));
+                        viewHolder.itemView.setTag(33);
+                    } else {
+                        iMax = itemInner2.padHeight;
+                        if (iMax >= 0) {
+                            viewHolder.itemView.setTag(null);
+                        } else {
+                            iMax = (int) (AndroidUtilities.displaySize.y * 0.3f);
+                            viewHolder.itemView.setTag(33);
+                        }
+                    }
+                    viewHolder.itemView.setLayoutParams(new RecyclerView.LayoutParams(-1, iMax));
+                    return;
+                }
+                if (itemViewType == 1) {
+                    viewHolder.itemView.setLayoutParams(new RecyclerView.LayoutParams(-1, Math.min(AndroidUtilities.dp(150.0f), this.searchField.resultContainerHeight)));
+                    return;
+                }
+                if (itemViewType == 4) {
+                    ((HeaderCell2) viewHolder.itemView).setText(itemInner2.text, itemInner2.text2);
+                    return;
+                }
+                if (itemViewType == 11) {
+                    ((HeaderCell2) viewHolder.itemView).setText(itemInner2.text, null);
+                    return;
+                }
+                if (itemViewType == 5) {
+                    try {
+                        ((StickerEmptyView) viewHolder.itemView).stickerView.getImageReceiver().startAnimation();
+                        return;
+                    } catch (Exception unused) {
+                        return;
+                    }
+                }
+                if (itemViewType == 6) {
+                    TextInfoPrivacyCell textInfoPrivacyCell = (TextInfoPrivacyCell) viewHolder.itemView;
+                    if (itemInner2.text == null) {
+                        textInfoPrivacyCell.setFixedSize(12);
+                        textInfoPrivacyCell.setText(null);
+                        return;
+                    } else {
+                        textInfoPrivacyCell.setFixedSize(0);
+                        textInfoPrivacyCell.setText(itemInner2.text);
+                        return;
+                    }
+                }
+                if (itemViewType == 7) {
+                    int i5 = itemInner2.resId;
+                    if (i5 == 0) {
+                        ((TextCell) viewHolder.itemView).setTextAndCheck(itemInner2.text, StoryPrivacyBottomSheet.this.allowScreenshots, z2);
+                        return;
+                    } else if (i5 == 1) {
+                        ((TextCell) viewHolder.itemView).setTextAndCheck(itemInner2.text, StoryPrivacyBottomSheet.this.keepOnMyPage, z2);
+                        return;
+                    } else {
+                        if (i5 == 2) {
+                            ((TextCell) viewHolder.itemView).setTextAndCheck(itemInner2.text, StoryPrivacyBottomSheet.this.allowComments, z2);
+                            return;
+                        }
+                        return;
+                    }
+                }
+                if (itemViewType == 9) {
+                    Drawable drawable = itemInner2.drawable;
+                    View view = viewHolder.itemView;
+                    if (drawable != null) {
+                        ((TextCell) view).setTextAndValueDrawable(itemInner2.text, drawable, z2);
+                        return;
+                    } else {
+                        ((TextCell) view).setTextAndValue(itemInner2.text, itemInner2.text2, z2);
+                        return;
+                    }
+                }
+                if (itemViewType == 8) {
+                    ((org.telegram.ui.Cells.HeaderCell) viewHolder.itemView).setText(itemInner2.text);
+                } else if (itemViewType == 10) {
+                    int i6 = (int) MessagesController.getInstance(((BottomSheet) StoryPrivacyBottomSheet.this).currentAccount).starsPaidMessageAmountMax;
+                    ((SlideIntChooseView) viewHolder.itemView).set(Utilities.clamp(StoryPrivacyBottomSheet.this.commentsPrice, i6, 0), SlideIntChooseView.Options.make(0, SlideIntChooseView.cut(new int[]{0, 1, 10, 50, 100, 200, 250, MediaError.DetailedErrorCode.MANIFEST_UNKNOWN, MediaError.DetailedErrorCode.SEGMENT_UNKNOWN, 1000, 2500, 5000, 7500, 9000, 10000}, i6), 20, (Utilities.Callback2Return<Integer, Integer, CharSequence>) new Utilities.Callback2Return() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet$Page$Adapter$$ExternalSyntheticLambda0
+                        @Override // org.telegram.messenger.Utilities.Callback2Return
+                        public final Object run(Object obj, Object obj2) {
+                            return StoryPrivacyBottomSheet.Page.Adapter.$r8$lambda$UIS_Jkk_zlzxU3kJNwsMLu39uAs((Integer) obj, (Integer) obj2);
+                        }
+                    }), new Utilities.Callback() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet$Page$Adapter$$ExternalSyntheticLambda1
+                        @Override // org.telegram.messenger.Utilities.Callback
+                        public final void run(Object obj) {
+                            this.f$0.lambda$onBindViewHolder$1((Integer) obj);
+                        }
+                    });
+                }
+            }
+
+            public static /* synthetic */ CharSequence $r8$lambda$UIS_Jkk_zlzxU3kJNwsMLu39uAs(Integer num, Integer num2) {
+                if (num.intValue() == 0) {
+                    return num2.intValue() == 0 ? LocaleController.getString(C2807R.string.LiveStoryPricePerCommentFree) : LocaleController.formatPluralStringComma("Stars", num2.intValue());
+                }
+                return _UrlKt.FRAGMENT_ENCODE_SET + num2;
+            }
+
+            /* JADX INFO: Access modifiers changed from: private */
+            public /* synthetic */ void lambda$onBindViewHolder$1(Integer num) {
+                StoryPrivacyBottomSheet.this.commentsPrice = num.intValue();
+            }
+
+            @Override // androidx.recyclerview.widget.RecyclerView.Adapter
+            public int getItemViewType(int i) {
+                if (Page.this.items == null || i < 0 || i >= Page.this.items.size()) {
+                    return -1;
+                }
+                return ((ItemInner) Page.this.items.get(i)).viewType;
+            }
+
+            @Override // androidx.recyclerview.widget.RecyclerView.Adapter
+            public int getItemCount() {
+                if (Page.this.items == null) {
+                    return 0;
+                }
+                return Page.this.items.size();
+            }
+        }
+    }
+
+    public StoryPrivacyBottomSheet(final Context context, int i, Theme.ResourcesProvider resourcesProvider) {
+        super(context, true, resourcesProvider);
+        this.excludedEveryone = new ArrayList<>();
+        this.excludedEveryoneByGroup = new HashMap<>();
+        this.excludedEveryoneCount = 0;
+        this.excludedContacts = new ArrayList<>();
+        this.selectedContacts = new ArrayList<>();
+        this.selectedContactsByGroup = new HashMap<>();
+        this.selectedContactsCount = 0;
+        this.selectedAlbums = new HashSet<>();
+        this.allowComments = true;
+        this.allowScreenshots = true;
+        this.keepOnMyPage = false;
+        this.allowCover = true;
+        this.canChangePeer = true;
+        this.isRtmpStream = false;
+        this.commentsPrice = 0;
+        this.storiesCount = 1;
+        this.messageUsers = new ArrayList<>();
+        this.activePage = 1;
+        this.selectedType = 4;
+        this.sendAsMessageEnabled = false;
+        this.smallChatsParticipantsCount = new HashMap<>();
+        this.shiftDp = -6;
+        this.storyPeriod = 86400;
+        this.backgroundPaint = new Paint(1);
+        this.applyWhenDismiss = false;
+        this.allowSmallChats = true;
+        this.isEdit = false;
+        this.storyPeriod = i;
+        pullSaved();
+        init(context);
+        this.viewPager.setAdapter(new ViewPagerFixed.Adapter() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet.1
+            @Override // org.telegram.ui.Components.ViewPagerFixed.Adapter
+            public int getItemCount() {
+                return 2;
+            }
+
+            @Override // org.telegram.ui.Components.ViewPagerFixed.Adapter
+            public View createView(int i2) {
+                return StoryPrivacyBottomSheet.this.new Page(context);
+            }
+
+            @Override // org.telegram.ui.Components.ViewPagerFixed.Adapter
+            public int getItemViewType(int i2) {
+                if (i2 == 0) {
+                    return 0;
+                }
+                return StoryPrivacyBottomSheet.this.activePage;
+            }
+
+            @Override // org.telegram.ui.Components.ViewPagerFixed.Adapter
+            public void bindView(View view, int i2, int i3) {
+                ((Page) view).bind(i3);
+            }
+        });
+        final MessagesStorage messagesStorage = MessagesStorage.getInstance(this.currentAccount);
+        messagesStorage.getStorageQueue().postRunnable(new Runnable() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet$$ExternalSyntheticLambda0
+            @Override // java.lang.Runnable
+            public final void run() {
+                this.f$0.lambda$new$1(messagesStorage);
+            }
+        });
+        MessagesController.getInstance(this.currentAccount).getStoriesController().loadBlocklist(false);
+        MessagesController.getInstance(this.currentAccount).getStoriesController().loadSendAs();
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public /* synthetic */ void lambda$new$1(MessagesStorage messagesStorage) {
+        final HashMap<Long, Integer> smallGroupsParticipantsCount = messagesStorage.getSmallGroupsParticipantsCount();
+        if (smallGroupsParticipantsCount == null || smallGroupsParticipantsCount.isEmpty()) {
+            return;
+        }
+        AndroidUtilities.runOnUIThread(new Runnable() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet$$ExternalSyntheticLambda1
+            @Override // java.lang.Runnable
+            public final void run() {
+                this.f$0.lambda$new$0(smallGroupsParticipantsCount);
+            }
+        });
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public /* synthetic */ void lambda$new$0(HashMap map) {
+        if (this.smallChatsParticipantsCount == null) {
+            this.smallChatsParticipantsCount = new HashMap<>();
+        }
+        this.smallChatsParticipantsCount.putAll(map);
+    }
+
+    private void init(Context context) {
+        Bulletin.addDelegate(this.container, new Bulletin.Delegate() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet.2
+            @Override // org.telegram.ui.Components.Bulletin.Delegate
+            public int getTopOffset(int i) {
+                return AndroidUtilities.statusBarHeight;
+            }
+        });
+        NotificationCenter.getInstance(this.currentAccount).addObserver(this, NotificationCenter.contactsDidLoad);
+        NotificationCenter.getInstance(this.currentAccount).addObserver(this, NotificationCenter.storiesBlocklistUpdate);
+        NotificationCenter.getInstance(this.currentAccount).addObserver(this, NotificationCenter.storiesSendAsUpdate);
+        Paint paint = this.backgroundPaint;
+        int i = Theme.key_dialogBackground;
+        paint.setColor(Theme.getColor(i, this.resourcesProvider));
+        fixNavigationBar(Theme.getColor(i, this.resourcesProvider));
+        this.containerView = new ContainerView(context);
+        ViewPagerFixed viewPagerFixed = new ViewPagerFixed(context) { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet.3
+            @Override // org.telegram.ui.Components.ViewPagerFixed
+            public void onTabAnimationUpdate(boolean z) {
+                ((BottomSheet) StoryPrivacyBottomSheet.this).containerView.invalidate();
+            }
+
+            @Override // org.telegram.ui.Components.ViewPagerFixed
+            public boolean canScroll(MotionEvent motionEvent) {
+                View currentView = StoryPrivacyBottomSheet.this.viewPager.getCurrentView();
+                if (!(currentView instanceof Page)) {
+                    return true;
+                }
+                if (getCurrentPosition() > 0) {
+                    StoryPrivacyBottomSheet.this.closeKeyboard();
+                    return true;
+                }
+                Page page = (Page) currentView;
+                int typeOn = page.getTypeOn(motionEvent);
+                if (typeOn != -1) {
+                    StoryPrivacyBottomSheet.this.activePage = typeOn;
+                    if (typeOn == 3) {
+                        if (!StoryPrivacyBottomSheet.this.selectedContacts.isEmpty() && !StoryPrivacyBottomSheet.this.selectedContactsByGroup.isEmpty()) {
+                            StoryPrivacyBottomSheet.this.selectedType = typeOn;
+                        }
+                    } else {
+                        StoryPrivacyBottomSheet storyPrivacyBottomSheet = StoryPrivacyBottomSheet.this;
+                        if (typeOn == 4) {
+                            if (!storyPrivacyBottomSheet.excludedEveryone.isEmpty() && !StoryPrivacyBottomSheet.this.excludedEveryoneByGroup.isEmpty()) {
+                                StoryPrivacyBottomSheet.this.selectedType = typeOn;
+                            }
+                        } else {
+                            storyPrivacyBottomSheet.selectedType = typeOn;
+                        }
+                    }
+                    page.updateCheckboxes(true);
+                    page.updateButton(true);
+                }
+                if (typeOn != -1) {
+                    StoryPrivacyBottomSheet.this.closeKeyboard();
+                }
+                return typeOn != -1;
+            }
+
+            @Override // org.telegram.ui.Components.ViewPagerFixed
+            public void onItemSelected(View view, View view2, int i2, int i3) {
+                if (((BottomSheet) StoryPrivacyBottomSheet.this).keyboardVisible) {
+                    StoryPrivacyBottomSheet.this.closeKeyboard();
+                }
+            }
+        };
+        this.viewPager = viewPagerFixed;
+        int i2 = this.backgroundPaddingLeft;
+        viewPagerFixed.setPadding(i2, 0, i2, 0);
+        this.containerView.addView(this.viewPager, LayoutHelper.createFrame(-1, -1, 119));
+    }
+
+    @Override // org.telegram.ui.ActionBar.BottomSheet
+    public void dismissInternal() {
+        NotificationCenter.getInstance(this.currentAccount).removeObserver(this, NotificationCenter.contactsDidLoad);
+        NotificationCenter.getInstance(this.currentAccount).removeObserver(this, NotificationCenter.storiesBlocklistUpdate);
+        NotificationCenter.getInstance(this.currentAccount).removeObserver(this, NotificationCenter.storiesSendAsUpdate);
+        super.dismissInternal();
+    }
+
+    private StoryPrivacyBottomSheet(final int i, final Context context, Theme.ResourcesProvider resourcesProvider) {
+        super(context, true, resourcesProvider);
+        this.excludedEveryone = new ArrayList<>();
+        this.excludedEveryoneByGroup = new HashMap<>();
+        this.excludedEveryoneCount = 0;
+        this.excludedContacts = new ArrayList<>();
+        this.selectedContacts = new ArrayList<>();
+        this.selectedContactsByGroup = new HashMap<>();
+        this.selectedContactsCount = 0;
+        this.selectedAlbums = new HashSet<>();
+        this.allowComments = true;
+        this.allowScreenshots = true;
+        this.keepOnMyPage = false;
+        this.allowCover = true;
+        this.canChangePeer = true;
+        this.isRtmpStream = false;
+        this.commentsPrice = 0;
+        this.storiesCount = 1;
+        this.messageUsers = new ArrayList<>();
+        this.activePage = 1;
+        this.selectedType = 4;
+        this.sendAsMessageEnabled = false;
+        this.smallChatsParticipantsCount = new HashMap<>();
+        this.shiftDp = -6;
+        this.storyPeriod = 86400;
+        this.backgroundPaint = new Paint(1);
+        this.applyWhenDismiss = false;
+        this.allowSmallChats = true;
+        this.isEdit = false;
+        init(context);
+        this.viewPager.setAdapter(new ViewPagerFixed.Adapter() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet.4
+            @Override // org.telegram.ui.Components.ViewPagerFixed.Adapter
+            public int getItemCount() {
+                return 1;
+            }
+
+            @Override // org.telegram.ui.Components.ViewPagerFixed.Adapter
+            public View createView(int i2) {
+                return StoryPrivacyBottomSheet.this.new Page(context);
+            }
+
+            @Override // org.telegram.ui.Components.ViewPagerFixed.Adapter
+            public int getItemViewType(int i2) {
+                return i;
+            }
+
+            @Override // org.telegram.ui.Components.ViewPagerFixed.Adapter
+            public void bindView(View view, int i2, int i3) {
+                ((Page) view).bind(i3);
+            }
+        });
+    }
+
+    public void closeKeyboard() {
+        for (View view : this.viewPager.getViewPages()) {
+            if (view instanceof Page) {
+                Page page = (Page) view;
+                if (page.searchField != null) {
+                    AndroidUtilities.hideKeyboard(page.searchField.editText);
+                }
+            }
+        }
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public void done(StoryPrivacy storyPrivacy, Runnable runnable) {
+        done(storyPrivacy, runnable, false);
+    }
+
+    private void done(final StoryPrivacy storyPrivacy, final Runnable runnable, boolean z) {
+        ArrayList arrayList = new ArrayList();
+        if (this.warnUsers != null && storyPrivacy != null) {
+            MessagesController messagesController = MessagesController.getInstance(this.currentAccount);
+            for (int i = 0; i < this.warnUsers.size(); i++) {
+                String str = this.warnUsers.get(i);
+                TLObject userOrChat = messagesController.getUserOrChat(str);
+                if (userOrChat instanceof TLRPC.User) {
+                    TLRPC.User user = (TLRPC.User) userOrChat;
+                    TLRPC.User user2 = messagesController.getUser(Long.valueOf(user.id));
+                    if (user2 != null) {
+                        user = user2;
+                    }
+                    if (!user.bot && !storyPrivacy.containsUser(user)) {
+                        arrayList.add(str);
+                    }
+                }
+            }
+        }
+        if (!arrayList.isEmpty() && !z) {
+            SpannableStringBuilder spannableStringBuilder = new SpannableStringBuilder();
+            for (int i2 = 0; i2 < Math.min(2, arrayList.size()); i2++) {
+                if (i2 > 0) {
+                    spannableStringBuilder.append((CharSequence) ", ");
+                }
+                SpannableString spannableString = new SpannableString("@" + ((String) arrayList.get(i2)));
+                spannableString.setSpan(new TypefaceSpan(AndroidUtilities.bold()), 0, spannableString.length(), 33);
+                spannableStringBuilder.append((CharSequence) spannableString);
+            }
+            new AlertDialog.Builder(getContext(), this.resourcesProvider).setTitle(LocaleController.getString(C2807R.string.StoryRestrictions)).setMessage(AndroidUtilities.replaceCharSequence("%s", LocaleController.getString(C2807R.string.StoryRestrictionsInfo), spannableStringBuilder)).setPositiveButton(LocaleController.getString(C2807R.string.Proceed), new AlertDialog.OnButtonClickListener() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet$$ExternalSyntheticLambda2
+                @Override // org.telegram.ui.ActionBar.AlertDialog.OnButtonClickListener
+                public final void onClick(AlertDialog alertDialog, int i3) {
+                    this.f$0.lambda$done$2(storyPrivacy, runnable, alertDialog, i3);
+                }
+            }).setNegativeButton(LocaleController.getString(C2807R.string.Cancel), null).show();
+            return;
+        }
+        View view = this.viewPager.getViewPages()[0];
+        final ButtonWithCounterView buttonWithCounterView = view instanceof Page ? ((Page) view).button : null;
+        if (runnable != null && buttonWithCounterView != null) {
+            buttonWithCounterView.setLoading(true);
+        }
+        DoneCallback doneCallback = this.onDone;
+        if (doneCallback == null) {
+            if (runnable != null) {
+                runnable.run();
+                return;
+            }
+            return;
+        }
+        doneCallback.done(storyPrivacy, this.allowComments, this.allowScreenshots, this.keepOnMyPage, this.isRtmpStream, this.selectedPeer, this.commentsPrice, runnable != null ? new Runnable() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet$$ExternalSyntheticLambda3
+            @Override // java.lang.Runnable
+            public final void run() {
+                StoryPrivacyBottomSheet.m22036$r8$lambda$e3bbDBvodcFRakBqslpoVJPZvA(buttonWithCounterView, runnable);
+            }
+        } : null, new Runnable() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet$$ExternalSyntheticLambda4
+            @Override // java.lang.Runnable
+            public final void run() {
+                StoryPrivacyBottomSheet.$r8$lambda$zzb6aiHvxhSXXSbTPKrYLHlWclE(buttonWithCounterView);
+            }
+        });
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public /* synthetic */ void lambda$done$2(StoryPrivacy storyPrivacy, Runnable runnable, AlertDialog alertDialog, int i) {
+        done(storyPrivacy, runnable, true);
+    }
+
+    /* JADX INFO: renamed from: $r8$lambda$e3bbDBvodcFRakBqslpoVJPZ-vA, reason: not valid java name */
+    public static /* synthetic */ void m22036$r8$lambda$e3bbDBvodcFRakBqslpoVJPZvA(ButtonWithCounterView buttonWithCounterView, Runnable runnable) {
+        if (buttonWithCounterView != null) {
+            buttonWithCounterView.setLoading(false);
+        }
+        if (runnable != null) {
+            runnable.run();
+        }
+    }
+
+    public static /* synthetic */ void $r8$lambda$zzb6aiHvxhSXXSbTPKrYLHlWclE(ButtonWithCounterView buttonWithCounterView) {
+        if (buttonWithCounterView != null) {
+            buttonWithCounterView.setLoading(false);
+        }
+    }
+
+    @Override // org.telegram.ui.ActionBar.BottomSheet, android.app.Dialog, android.content.DialogInterface, org.telegram.ui.ActionBar.BaseFragment.AttachedSheet
+    /* JADX INFO: renamed from: dismiss */
+    public void lambda$new$0() {
+        StoryPrivacy storyPrivacy;
+        StoryPrivacy storyPrivacy2;
+        if (this.onDismiss != null) {
+            int i = this.selectedType;
+            if (i == 3) {
+                storyPrivacy2 = new StoryPrivacy(this.selectedType, this.currentAccount, (ArrayList<Long>) new ArrayList(mergeUsers(this.selectedContacts, this.selectedContactsByGroup)));
+                storyPrivacy2.selectedUserIds.clear();
+                storyPrivacy2.selectedUserIds.addAll(this.selectedContacts);
+                storyPrivacy2.selectedUserIdsByGroup.clear();
+                storyPrivacy2.selectedUserIdsByGroup.putAll(this.selectedContactsByGroup);
+            } else if (i == 4) {
+                storyPrivacy2 = new StoryPrivacy(this.selectedType, this.currentAccount, (ArrayList<Long>) new ArrayList(mergeUsers(this.excludedEveryone, this.excludedEveryoneByGroup)));
+                storyPrivacy2.selectedUserIds.clear();
+                storyPrivacy2.selectedUserIds.addAll(this.excludedEveryone);
+                storyPrivacy2.selectedUserIdsByGroup.clear();
+                storyPrivacy2.selectedUserIdsByGroup.putAll(this.excludedEveryoneByGroup);
+            } else {
+                int i2 = this.currentAccount;
+                if (i == 2) {
+                    storyPrivacy = new StoryPrivacy(i, i2, this.excludedContacts);
+                } else {
+                    storyPrivacy = new StoryPrivacy(i, i2, (ArrayList<Long>) null);
+                }
+                storyPrivacy2 = storyPrivacy;
+            }
+            this.onDismiss.run(storyPrivacy2);
+            this.onDismiss = null;
+        }
+        Bulletin.removeDelegate(this.container);
+        save();
+        super.lambda$new$0();
+    }
+
+    public class ContainerView extends FrameLayout {
+        private final AnimatedFloat isActionBar;
+        private final Path path;
+        private float top;
+
+        public ContainerView(Context context) {
+            super(context);
+            this.isActionBar = new AnimatedFloat(this, 250L, CubicBezierInterpolator.EASE_OUT_QUINT);
+            this.path = new Path();
+        }
+
+        @Override // android.view.ViewGroup, android.view.View
+        public void dispatchDraw(Canvas canvas) {
+            View[] viewPages = StoryPrivacyBottomSheet.this.viewPager.getViewPages();
+            this.top = 0.0f;
+            for (View view : viewPages) {
+                if (view != null) {
+                    Page page = (Page) view;
+                    this.top += page.top() * Utilities.clamp(1.0f - Math.abs(page.getTranslationX() / page.getMeasuredWidth()), 1.0f, 0.0f);
+                    if (((BottomSheet) StoryPrivacyBottomSheet.this).keyboardVisible) {
+                        int i = page.pageType;
+                    }
+                    if (page.getVisibility() == 0) {
+                        page.updateTops();
+                    }
+                }
+            }
+            float f = this.isActionBar.set(this.top <= ((float) AndroidUtilities.statusBarHeight) ? 1.0f : 0.0f);
+            this.top = Math.max(AndroidUtilities.statusBarHeight, this.top) - (AndroidUtilities.statusBarHeight * f);
+            RectF rectF = AndroidUtilities.rectTmp;
+            rectF.set(((BottomSheet) StoryPrivacyBottomSheet.this).backgroundPaddingLeft, this.top, getWidth() - ((BottomSheet) StoryPrivacyBottomSheet.this).backgroundPaddingLeft, getHeight() + AndroidUtilities.dp(8.0f));
+            float fLerp = AndroidUtilities.lerp(AndroidUtilities.dp(14.0f), 0, f);
+            canvas.drawRoundRect(rectF, fLerp, fLerp, StoryPrivacyBottomSheet.this.backgroundPaint);
+            canvas.save();
+            this.path.rewind();
+            this.path.addRoundRect(rectF, fLerp, fLerp, Path.Direction.CW);
+            canvas.clipPath(this.path);
+            super.dispatchDraw(canvas);
+            canvas.restore();
+        }
+
+        @Override // android.view.ViewGroup, android.view.View
+        public boolean dispatchTouchEvent(MotionEvent motionEvent) {
+            if (motionEvent.getAction() == 0 && motionEvent.getY() < this.top) {
+                StoryPrivacyBottomSheet.this.lambda$new$0();
+                return true;
+            }
+            return super.dispatchTouchEvent(motionEvent);
+        }
+
+        @Override // android.widget.FrameLayout, android.view.View
+        public void onMeasure(int i, int i2) {
+            super.onMeasure(View.MeasureSpec.makeMeasureSpec(View.MeasureSpec.getSize(i), TLObject.FLAG_30), View.MeasureSpec.makeMeasureSpec(View.MeasureSpec.getSize(i2), TLObject.FLAG_30));
+        }
+    }
+
+    @Override // org.telegram.ui.ActionBar.BottomSheet, android.app.Dialog
+    /* JADX INFO: renamed from: onBackPressed */
+    public void lambda$openCrafting$9() {
+        if (this.viewPager.getCurrentPosition() > 0) {
+            closeKeyboard();
+            this.viewPager.scrollToPosition(r1.getCurrentPosition() - 1);
+            return;
+        }
+        super.lambda$openCrafting$9();
+    }
+
+    @Override // org.telegram.ui.ActionBar.BottomSheet
+    public boolean canDismissWithSwipe() {
+        View currentView = this.viewPager.getCurrentView();
+        if (currentView instanceof Page) {
+            return ((Page) currentView).wasAtTop;
+        }
+        return true;
+    }
+
+    public StoryPrivacyBottomSheet whenDismiss(Utilities.Callback<StoryPrivacy> callback) {
+        this.onDismiss = callback;
+        return this;
+    }
+
+    public StoryPrivacyBottomSheet whenSelectedRules(DoneCallback doneCallback, boolean z) {
+        this.onDone = doneCallback;
+        this.applyWhenDismiss = z;
+        return this;
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public StoryPrivacyBottomSheet whenSelectedShare(Utilities.Callback<ArrayList<Long>> callback) {
+        this.onDone2 = callback;
+        return this;
+    }
+
+    public StoryPrivacyBottomSheet whenSelectedPeer(Utilities.Callback<TLRPC.InputPeer> callback) {
+        this.onSelectedPeer = callback;
+        return this;
+    }
+
+    public StoryPrivacyBottomSheet whenSelectedAlbums(Utilities.Callback<HashSet<Integer>> callback) {
+        this.onSelectedAlbums = callback;
+        return this;
+    }
+
+    public StoryPrivacyBottomSheet allowCover(boolean z) {
+        this.allowCover = z;
+        ViewPagerFixed viewPagerFixed = this.viewPager;
+        if (viewPagerFixed != null) {
+            for (View view : viewPagerFixed.getViewPages()) {
+                if (view instanceof Page) {
+                    ((Page) view).updateButton(false);
+                }
+            }
+        }
+        return this;
+    }
+
+    public StoryPrivacyBottomSheet setCount(int i) {
+        this.storiesCount = i;
+        ViewPagerFixed viewPagerFixed = this.viewPager;
+        if (viewPagerFixed != null) {
+            for (View view : viewPagerFixed.getViewPages()) {
+                if (view instanceof Page) {
+                    ((Page) view).updateButton(false);
+                }
+            }
+        }
+        return this;
+    }
+
+    public StoryPrivacyBottomSheet enableSharing(boolean z) {
+        this.sendAsMessageEnabled = z;
+        ViewPagerFixed viewPagerFixed = this.viewPager;
+        if (viewPagerFixed != null) {
+            for (View view : viewPagerFixed.getViewPages()) {
+                if (view instanceof Page) {
+                    ((Page) view).updateButton(false);
+                }
+            }
+        }
+        return this;
+    }
+
+    public StoryPrivacyBottomSheet isEdit(boolean z) {
+        this.isEdit = z;
+        ViewPagerFixed viewPagerFixed = this.viewPager;
+        if (viewPagerFixed != null) {
+            for (View view : viewPagerFixed.getViewPages()) {
+                if (view instanceof Page) {
+                    Page page = (Page) view;
+                    page.updateItems(false);
+                    page.updateButton(false);
+                }
+            }
+        }
+        return this;
+    }
+
+    public StoryPrivacyBottomSheet setWarnUsers(ArrayList<String> arrayList) {
+        this.warnUsers = arrayList;
+        return this;
+    }
+
+    public StoryPrivacyBottomSheet setPeer(TLRPC.InputPeer inputPeer) {
+        this.selectedPeer = inputPeer;
+        this.selectedAlbums.clear();
+        View[] viewPages = this.viewPager.getViewPages();
+        View view = viewPages[0];
+        if (view instanceof Page) {
+            ((Page) view).bind(((Page) view).pageType);
+        }
+        View view2 = viewPages[1];
+        if (view2 instanceof Page) {
+            ((Page) view2).bind(((Page) view2).pageType);
+        }
+        return this;
+    }
+
+    public StoryPrivacyBottomSheet set(boolean z, boolean z2, boolean z3, int i) {
+        this.allowComments = z;
+        this.allowScreenshots = z2;
+        this.keepOnMyPage = z3;
+        this.commentsPrice = i;
+        View[] viewPages = this.viewPager.getViewPages();
+        View view = viewPages[0];
+        if (view instanceof Page) {
+            ((Page) view).bind(((Page) view).pageType);
+        }
+        View view2 = viewPages[1];
+        if (view2 instanceof Page) {
+            ((Page) view2).bind(((Page) view2).pageType);
+        }
+        return this;
+    }
+
+    public StoryPrivacyBottomSheet setLive(boolean z) {
+        this.isLive = z;
+        View[] viewPages = this.viewPager.getViewPages();
+        View view = viewPages[0];
+        if (view instanceof Page) {
+            ((Page) view).bind(((Page) view).pageType);
+        }
+        View view2 = viewPages[1];
+        if (view2 instanceof Page) {
+            ((Page) view2).bind(((Page) view2).pageType);
+        }
+        return this;
+    }
+
+    public StoryPrivacyBottomSheet setLiveSettings(boolean z) {
+        this.liveSettings = z;
+        View[] viewPages = this.viewPager.getViewPages();
+        View view = viewPages[0];
+        if (view instanceof Page) {
+            ((Page) view).bind(((Page) view).pageType);
+        }
+        View view2 = viewPages[1];
+        if (view2 instanceof Page) {
+            ((Page) view2).bind(((Page) view2).pageType);
+        }
+        return this;
+    }
+
+    public StoryPrivacyBottomSheet setValue(StoryPrivacy storyPrivacy) {
+        if (storyPrivacy != null) {
+            int i = storyPrivacy.type;
+            this.selectedType = i;
+            if (i == 2) {
+                this.excludedContacts.clear();
+                this.excludedContacts.addAll(storyPrivacy.selectedUserIds);
+            } else if (i == 3) {
+                this.selectedContacts.clear();
+                this.selectedContacts.addAll(storyPrivacy.selectedUserIds);
+                this.selectedContactsByGroup.clear();
+                this.selectedContactsByGroup.putAll(storyPrivacy.selectedUserIdsByGroup);
+                this.selectedContactsCount = mergeUsers(this.selectedContacts, this.selectedContactsByGroup).size();
+            } else if (i == 4) {
+                this.excludedEveryone.clear();
+                this.excludedEveryone.addAll(storyPrivacy.selectedUserIds);
+                this.excludedEveryoneByGroup.clear();
+                this.excludedEveryoneByGroup.putAll(storyPrivacy.selectedUserIdsByGroup);
+                this.excludedEveryoneCount = mergeUsers(this.excludedEveryone, this.excludedEveryoneByGroup).size();
+            }
+            if (storyPrivacy.isShare()) {
+                this.startedFromSendAsMessage = true;
+                this.activePage = 5;
+                this.messageUsers.clear();
+                this.messageUsers.addAll(storyPrivacy.sendToUsers);
+                this.viewPager.setPosition(1);
+            }
+            View[] viewPages = this.viewPager.getViewPages();
+            View view = viewPages[0];
+            if (view instanceof Page) {
+                ((Page) view).bind(((Page) view).pageType);
+            }
+            View view2 = viewPages[1];
+            if (view2 instanceof Page) {
+                ((Page) view2).bind(((Page) view2).pageType);
+            }
+        }
+        return this;
+    }
+
+    public static class ItemInner extends AdapterWithDiffUtils.Item {
+        public TLRPC.Chat chat;
+        public boolean checked;
+        public Drawable drawable;
+        public boolean halfChecked;
+        public int id;
+        public int padHeight;
+        public boolean red;
+        public int resId;
+        public boolean sendAs;
+        public int subtractHeight;
+        public CharSequence text;
+        public CharSequence text2;
+        public int type;
+        public int typeCount;
+        public TLRPC.User user;
+
+        private ItemInner(int i, boolean z) {
+            super(i, z);
+            this.padHeight = -1;
+        }
+
+        public static ItemInner asPad() {
+            return asPad(-1);
+        }
+
+        public static ItemInner asPad(int i) {
+            ItemInner itemInner = new ItemInner(-1, false);
+            itemInner.subtractHeight = i;
+            return itemInner;
+        }
+
+        public static ItemInner asHeader() {
+            return new ItemInner(0, false);
+        }
+
+        public static ItemInner asHeader2(CharSequence charSequence, CharSequence charSequence2) {
+            ItemInner itemInner = new ItemInner(4, false);
+            itemInner.text = charSequence;
+            itemInner.text2 = charSequence2;
+            return itemInner;
+        }
+
+        public static ItemInner asHeader3(CharSequence charSequence) {
+            ItemInner itemInner = new ItemInner(11, false);
+            itemInner.text = charSequence;
+            return itemInner;
+        }
+
+        public static ItemInner asHeaderCell(CharSequence charSequence) {
+            ItemInner itemInner = new ItemInner(8, false);
+            itemInner.text = charSequence;
+            return itemInner;
+        }
+
+        public static ItemInner asSearchField() {
+            return new ItemInner(1, false);
+        }
+
+        public static ItemInner asSection() {
+            return new ItemInner(2, false);
+        }
+
+        public static ItemInner asUser(TLRPC.User user, boolean z, boolean z2) {
+            ItemInner itemInner = new ItemInner(3, true);
+            itemInner.user = user;
+            itemInner.checked = z;
+            itemInner.halfChecked = z2;
+            return itemInner;
+        }
+
+        public static ItemInner asChat(TLRPC.Chat chat, boolean z) {
+            ItemInner itemInner = new ItemInner(3, true);
+            itemInner.chat = chat;
+            itemInner.checked = z;
+            return itemInner;
+        }
+
+        public static ItemInner asType(int i, boolean z, int i2) {
+            ItemInner itemInner = new ItemInner(3, false);
+            itemInner.type = i;
+            itemInner.checked = z;
+            itemInner.typeCount = i2;
+            return itemInner;
+        }
+
+        public static ItemInner asShadow(CharSequence charSequence) {
+            ItemInner itemInner = new ItemInner(6, false);
+            itemInner.text = charSequence;
+            return itemInner;
+        }
+
+        public static ItemInner asCheck(CharSequence charSequence, int i, boolean z) {
+            ItemInner itemInner = new ItemInner(7, false);
+            itemInner.resId = i;
+            itemInner.text = charSequence;
+            itemInner.checked = z;
+            return itemInner;
+        }
+
+        public static ItemInner asButton(int i, CharSequence charSequence, CharSequence charSequence2) {
+            ItemInner itemInner = new ItemInner(9, false);
+            itemInner.text = charSequence;
+            itemInner.text2 = charSequence2;
+            itemInner.id = i;
+            return itemInner;
+        }
+
+        public static ItemInner asButton(int i, CharSequence charSequence, Drawable drawable) {
+            ItemInner itemInner = new ItemInner(9, false);
+            itemInner.text = charSequence;
+            itemInner.drawable = drawable;
+            itemInner.id = i;
+            return itemInner;
+        }
+
+        public static ItemInner asSlider(int i) {
+            ItemInner itemInner = new ItemInner(10, false);
+            itemInner.id = i;
+            return itemInner;
+        }
+
+        public static ItemInner asNoUsers() {
+            return new ItemInner(5, false);
+        }
+
+        public static ItemInner asPadding(int i) {
+            ItemInner itemInner = new ItemInner(-1, false);
+            itemInner.padHeight = i;
+            return itemInner;
+        }
+
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj != null && getClass() == obj.getClass()) {
+                ItemInner itemInner = (ItemInner) obj;
+                int i = this.viewType;
+                if (i != itemInner.viewType) {
+                    return false;
+                }
+                if (i == -1 && (this.subtractHeight != itemInner.subtractHeight || this.padHeight != itemInner.padHeight)) {
+                    return false;
+                }
+                if (i == 3 && (this.user != itemInner.user || this.chat != itemInner.chat || this.type != itemInner.type || this.typeCount != itemInner.typeCount || this.checked != itemInner.checked || this.red != itemInner.red || this.sendAs != itemInner.sendAs)) {
+                    return false;
+                }
+                if (i == 0 && this.resId != itemInner.resId) {
+                    return false;
+                }
+                if (i == 2 && !TextUtils.equals(this.text, itemInner.text)) {
+                    return false;
+                }
+                if (this.viewType == 8 && !TextUtils.equals(this.text, itemInner.text)) {
+                    return false;
+                }
+                int i2 = this.viewType;
+                if ((i2 != 4 && i2 != 11) || (TextUtils.equals(this.text, itemInner.text) && TextUtils.equals(this.text2, itemInner.text2))) {
+                    if (this.viewType == 6 && (!TextUtils.equals(this.text, itemInner.text) || this.resId != itemInner.resId)) {
+                        return false;
+                    }
+                    if (this.viewType == 7 && (this.resId != itemInner.resId || !TextUtils.equals(this.text, itemInner.text) || this.checked != itemInner.checked)) {
+                        return false;
+                    }
+                    if (this.viewType != 9 || (this.id == itemInner.id && this.drawable == itemInner.drawable && TextUtils.equals(this.text, itemInner.text) && TextUtils.equals(this.text2, itemInner.text2))) {
+                        return this.viewType != 10 || this.id == itemInner.id;
+                    }
+                    return false;
+                }
+            }
+            return false;
+        }
+
+        public ItemInner red(boolean z) {
+            this.red = z;
+            return this;
+        }
+
+        public ItemInner asSendAs() {
+            this.sendAs = true;
+            return this;
+        }
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public ArrayList<TLObject> getContacts() {
+        TLRPC.User user;
+        ArrayList<TLObject> arrayList = new ArrayList<>();
+        ArrayList<TLRPC.TL_contact> arrayList2 = ContactsController.getInstance(this.currentAccount).contacts;
+        if (arrayList2 == null || arrayList2.isEmpty()) {
+            ContactsController.getInstance(this.currentAccount).loadContacts(false, 0L);
+        }
+        MessagesController messagesController = MessagesController.getInstance(this.currentAccount);
+        if (arrayList2 != null) {
+            for (int i = 0; i < arrayList2.size(); i++) {
+                TLRPC.TL_contact tL_contact = arrayList2.get(i);
+                if (tL_contact != null && (user = messagesController.getUser(Long.valueOf(tL_contact.user_id))) != null && !UserObject.isUserSelf(user) && !user.bot && user.id != 777000) {
+                    arrayList.add(user);
+                }
+            }
+        }
+        return arrayList;
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public ArrayList<TLObject> getCloseFriends() {
+        ArrayList<TLObject> contacts = getContacts();
+        int i = 0;
+        while (i < contacts.size()) {
+            TLObject tLObject = contacts.get(i);
+            if ((tLObject instanceof TLRPC.User) && !((TLRPC.User) tLObject).close_friend) {
+                contacts.remove(i);
+                i--;
+            }
+            i++;
+        }
+        return contacts;
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public ArrayList<TLObject> getUsers(boolean z, boolean z2) {
+        TLRPC.User user;
+        TLRPC.Chat chat;
+        MessagesController messagesController = MessagesController.getInstance(this.currentAccount);
+        HashMap map = new HashMap();
+        ArrayList<TLObject> arrayList = new ArrayList<>();
+        ArrayList<TLRPC.Dialog> allDialogs = messagesController.getAllDialogs();
+        ConcurrentHashMap<Long, TLRPC.TL_contact> concurrentHashMap = ContactsController.getInstance(this.currentAccount).contactsDict;
+        if (concurrentHashMap == null || concurrentHashMap.isEmpty()) {
+            if (!this.loadedContacts) {
+                ContactsController.getInstance(this.currentAccount).loadContacts(false, 0L);
+            }
+            this.loadedContacts = true;
+        }
+        for (int i = 0; i < allDialogs.size(); i++) {
+            TLRPC.Dialog dialog = allDialogs.get(i);
+            if (DialogObject.isUserDialog(dialog.id)) {
+                TLRPC.User user2 = messagesController.getUser(Long.valueOf(dialog.id));
+                if (user2 != null && !user2.bot && user2.id != 777000 && !UserObject.isUserSelf(user2) && !user2.deleted && (!z || (concurrentHashMap != null && concurrentHashMap.get(Long.valueOf(user2.id)) != null))) {
+                    map.put(Long.valueOf(user2.id), Boolean.TRUE);
+                    arrayList.add(user2);
+                }
+            } else if (z2 && DialogObject.isChatDialog(dialog.id) && (chat = messagesController.getChat(Long.valueOf(-dialog.id))) != null && !ChatObject.isChannelAndNotMegaGroup(chat)) {
+                map.put(Long.valueOf(-chat.id), Boolean.TRUE);
+                arrayList.add(chat);
+            }
+        }
+        if (concurrentHashMap != null) {
+            Iterator<Map.Entry<Long, TLRPC.TL_contact>> it = concurrentHashMap.entrySet().iterator();
+            while (it.hasNext()) {
+                Long key = it.next().getKey();
+                key.longValue();
+                if (!map.containsKey(key) && (user = messagesController.getUser(key)) != null && !user.bot && user.id != 777000 && !UserObject.isUserSelf(user)) {
+                    arrayList.add(user);
+                    map.put(Long.valueOf(user.id), Boolean.TRUE);
+                }
+            }
+        }
+        return arrayList;
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public int getParticipantsCount(TLRPC.Chat chat) {
+        Integer num;
+        int i;
+        TLRPC.ChatFull chatFull = MessagesController.getInstance(this.currentAccount).getChatFull(chat.id);
+        if (chatFull != null && (i = chatFull.participants_count) > 0) {
+            return i;
+        }
+        HashMap<Long, Integer> map = this.smallChatsParticipantsCount;
+        if (map != null && (num = map.get(Long.valueOf(chat.id))) != null) {
+            return num.intValue();
+        }
+        return chat.participants_count;
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public ArrayList<TLObject> getChats() {
+        TLRPC.Chat chat;
+        ArrayList<TLObject> arrayList = new ArrayList<>();
+        MessagesController messagesController = MessagesController.getInstance(this.currentAccount);
+        ArrayList<TLRPC.Dialog> allDialogs = messagesController.getAllDialogs();
+        for (int i = 0; i < allDialogs.size(); i++) {
+            TLRPC.Dialog dialog = allDialogs.get(i);
+            if (messagesController.canAddToForward(dialog)) {
+                boolean zIsUserDialog = DialogObject.isUserDialog(dialog.id);
+                long j = dialog.id;
+                if (zIsUserDialog) {
+                    TLRPC.User user = messagesController.getUser(Long.valueOf(j));
+                    if (user != null && !user.bot && user.id != 777000 && !UserObject.isUserSelf(user)) {
+                        arrayList.add(user);
+                    }
+                } else if (DialogObject.isChatDialog(j) && (chat = messagesController.getChat(Long.valueOf(-dialog.id))) != null && !ChatObject.isForum(chat)) {
+                    arrayList.add(chat);
+                }
+            }
+        }
+        return arrayList;
+    }
+
+    public static class UserCell extends FrameLayout {
+        private Paint arrowPaint;
+        private Path arrowPath;
+        private final AvatarDrawable avatarDrawable;
+        public final CheckBox2 checkBox;
+        public long dialogId;
+        private final Paint dividerPaint;
+        private boolean drawArrow;
+        private final BackupImageView imageView;
+        private boolean[] isOnline;
+        private boolean needCheck;
+        private boolean needDivider;
+        public final RadioButton radioButton;
+        private final Theme.ResourcesProvider resourcesProvider;
+        private boolean sendAs;
+        private final SimpleTextView subtitleTextView;
+        private final SimpleTextView titleTextView;
+
+        public UserCell(Context context, Theme.ResourcesProvider resourcesProvider) {
+            super(context);
+            AvatarDrawable avatarDrawable = new AvatarDrawable();
+            this.avatarDrawable = avatarDrawable;
+            this.dividerPaint = new Paint(1);
+            this.sendAs = false;
+            this.needCheck = true;
+            this.drawArrow = true;
+            this.isOnline = new boolean[1];
+            this.resourcesProvider = resourcesProvider;
+            avatarDrawable.setRoundRadius(ExteraConfig.getAvatarCorners(40.0f));
+            BackupImageView backupImageView = new BackupImageView(context);
+            this.imageView = backupImageView;
+            backupImageView.setRoundRadius(ExteraConfig.getAvatarCorners(40.0f));
+            addView(backupImageView);
+            SimpleTextView simpleTextView = new SimpleTextView(context);
+            this.titleTextView = simpleTextView;
+            simpleTextView.setTypeface(AndroidUtilities.bold());
+            simpleTextView.setTextSize(16);
+            int i = Theme.key_dialogTextBlack;
+            simpleTextView.setTextColor(Theme.getColor(i, resourcesProvider));
+            simpleTextView.setGravity(LocaleController.isRTL ? 5 : 3);
+            NotificationCenter.listenEmojiLoading(simpleTextView);
+            addView(simpleTextView);
+            SimpleTextView simpleTextView2 = new SimpleTextView(context);
+            this.subtitleTextView = simpleTextView2;
+            simpleTextView2.setTextSize(14);
+            simpleTextView2.setTextColor(Theme.getColor(i, resourcesProvider));
+            simpleTextView2.setGravity(LocaleController.isRTL ? 5 : 3);
+            NotificationCenter.listenEmojiLoading(simpleTextView2);
+            addView(simpleTextView2);
+            CheckBox2 checkBox2 = new CheckBox2(context, 21, resourcesProvider);
+            this.checkBox = checkBox2;
+            int i2 = Theme.key_dialogRoundCheckBox;
+            int i3 = Theme.key_checkboxDisabled;
+            checkBox2.setColor(i2, i3, Theme.key_dialogRoundCheckBoxCheck);
+            checkBox2.setDrawUnchecked(true);
+            checkBox2.setDrawBackgroundAsArc(10);
+            addView(checkBox2);
+            checkBox2.setChecked(false, false);
+            checkBox2.setVisibility(8);
+            RadioButton radioButton = new RadioButton(context);
+            this.radioButton = radioButton;
+            radioButton.setSize(AndroidUtilities.dp(20.0f));
+            radioButton.setColor(Theme.getColor(i3, resourcesProvider), Theme.getColor(Theme.key_dialogRadioBackgroundChecked, resourcesProvider));
+            addView(radioButton);
+            radioButton.setVisibility(8);
+            updateLayouts();
+        }
+
+        private void updateLayouts() {
+            float f;
+            float f2;
+            float f3;
+            BackupImageView backupImageView = this.imageView;
+            int i = (LocaleController.isRTL ? 5 : 3) | 16;
+            boolean z = this.needCheck;
+            backupImageView.setLayoutParams(LayoutHelper.createFrame(40, 40.0f, i, z ? 53.0f : 16.0f, 0.0f, z ? 53.0f : 16.0f, 0.0f));
+            SimpleTextView simpleTextView = this.titleTextView;
+            boolean z2 = LocaleController.isRTL;
+            int i2 = (z2 ? 5 : 3) | 16;
+            float f4 = 20.0f;
+            if (z2) {
+                f = 20.0f;
+            } else {
+                f = this.needCheck ? 105 : 68;
+            }
+            if (z2) {
+                f2 = this.needCheck ? 105 : 68;
+            } else {
+                f2 = 20.0f;
+            }
+            simpleTextView.setLayoutParams(LayoutHelper.createFrame(-1, -2.0f, i2, f, 0.0f, f2, 0.0f));
+            SimpleTextView simpleTextView2 = this.subtitleTextView;
+            boolean z3 = LocaleController.isRTL;
+            int i3 = (z3 ? 5 : 3) | 16;
+            if (z3) {
+                f3 = 20.0f;
+            } else {
+                f3 = this.needCheck ? 105 : 68;
+            }
+            if (z3) {
+                f4 = this.needCheck ? 105 : 68;
+            }
+            simpleTextView2.setLayoutParams(LayoutHelper.createFrame(-1, -2.0f, i3, f3, 0.0f, f4, 0.0f));
+            this.checkBox.setLayoutParams(LayoutHelper.createFrame(24, 24.0f, (LocaleController.isRTL ? 5 : 3) | 16, 13.0f, 0.0f, 14.0f, 0.0f));
+            this.radioButton.setLayoutParams(LayoutHelper.createFrame(22, 22.0f, (LocaleController.isRTL ? 5 : 3) | 16, 14.0f, 0.0f, 15.0f, 0.0f));
+        }
+
+        public void setIsSendAs(boolean z, boolean z2) {
+            this.sendAs = z;
+            if (z2 != this.needCheck) {
+                this.needCheck = z2;
+                updateLayouts();
+            }
+            if (!this.needCheck) {
+                this.radioButton.setVisibility(8);
+                this.checkBox.setVisibility(8);
+            }
+            setWillNotDraw(!this.needDivider && (this.needCheck || !this.sendAs));
+        }
+
+        public void setRedCheckbox(boolean z) {
+            this.checkBox.setColor(z ? Theme.key_color_red : Theme.key_dialogRoundCheckBox, Theme.key_checkboxDisabled, Theme.key_dialogRoundCheckBoxCheck);
+        }
+
+        public void setChecked(boolean z, boolean z2) {
+            if (this.checkBox.getVisibility() == 0) {
+                this.checkBox.setChecked(z, z2);
+            }
+            if (this.radioButton.getVisibility() == 0) {
+                this.radioButton.setChecked(z, z2);
+            }
+        }
+
+        public void setCheckboxAlpha(float f, boolean z) {
+            CheckBox2 checkBox2 = this.checkBox;
+            if (!z) {
+                checkBox2.animate().cancel();
+                this.checkBox.setAlpha(f);
+                this.radioButton.animate().cancel();
+                this.radioButton.setAlpha(f);
+                return;
+            }
+            if (Math.abs(checkBox2.getAlpha() - f) > 0.1d) {
+                this.checkBox.animate().cancel();
+                this.checkBox.animate().alpha(f).start();
+            }
+            if (Math.abs(this.radioButton.getAlpha() - f) > 0.1d) {
+                this.radioButton.animate().cancel();
+                this.radioButton.animate().alpha(f).start();
+            }
+        }
+
+        public void set(Object obj) {
+            if (obj instanceof TLRPC.User) {
+                this.titleTextView.setTypeface(AndroidUtilities.bold());
+                this.titleTextView.setTranslationX(0.0f);
+                setUser((TLRPC.User) obj);
+            } else if (obj instanceof TLRPC.Chat) {
+                this.titleTextView.setTypeface(AndroidUtilities.bold());
+                this.titleTextView.setTranslationX(0.0f);
+                setChat((TLRPC.Chat) obj, 0);
+            } else if (obj instanceof String) {
+                this.titleTextView.setTypeface(null);
+                this.titleTextView.setTranslationX((-AndroidUtilities.dp(52.0f)) * (LocaleController.isRTL ? -1 : 1));
+                this.titleTextView.setText((String) obj);
+            }
+        }
+
+        public void setUser(TLRPC.User user) {
+            this.dialogId = user == null ? 0L : user.id;
+            this.avatarDrawable.setInfo(user);
+            this.imageView.setRoundRadius(ExteraConfig.getAvatarCorners(40.0f));
+            this.imageView.setForUserOrChat(user, this.avatarDrawable);
+            this.titleTextView.setText(Emoji.replaceEmoji(UserObject.getUserName(user), this.titleTextView.getPaint().getFontMetricsInt(), false));
+            boolean[] zArr = this.isOnline;
+            zArr[0] = false;
+            if (this.sendAs) {
+                setSubtitle(LocaleController.getString(C2807R.string.VoipGroupPersonalAccount));
+                this.subtitleTextView.setTextColor(Theme.getColor(Theme.key_dialogTextGray3, this.resourcesProvider));
+            } else {
+                setSubtitle(LocaleController.formatUserStatus(UserConfig.selectedAccount, user, zArr));
+                this.subtitleTextView.setTextColor(Theme.getColor(this.isOnline[0] ? Theme.key_dialogTextBlue2 : Theme.key_dialogTextGray3, this.resourcesProvider));
+            }
+            this.checkBox.setVisibility(this.needCheck ? 0 : 8);
+            this.checkBox.setAlpha(1.0f);
+            this.radioButton.setVisibility(8);
+        }
+
+        public void setChat(TLRPC.Chat chat, int i) {
+            String lowerCase;
+            this.dialogId = chat == null ? 0L : -chat.id;
+            this.avatarDrawable.setInfo(chat);
+            this.imageView.setRoundRadius(ExteraConfig.getAvatarCorners(40.0f, false, ChatObject.isForum(chat)));
+            this.imageView.setForUserOrChat(chat, this.avatarDrawable);
+            this.titleTextView.setText(Emoji.replaceEmoji(chat.title, this.titleTextView.getPaint().getFontMetricsInt(), false));
+            this.isOnline[0] = false;
+            if (this.sendAs) {
+                if (i <= 0) {
+                    i = chat.participants_count;
+                }
+                boolean zIsChannelAndNotMegaGroup = ChatObject.isChannelAndNotMegaGroup(chat);
+                if (i >= 1) {
+                    lowerCase = LocaleController.formatPluralString(zIsChannelAndNotMegaGroup ? "Subscribers" : "Members", i, new Object[0]);
+                } else {
+                    lowerCase = LocaleController.getString(zIsChannelAndNotMegaGroup ? C2807R.string.DiscussChannel : C2807R.string.AccDescrGroup);
+                }
+            } else if (!ChatObject.isChannel(chat) || chat.megagroup) {
+                if (i >= 1) {
+                    lowerCase = LocaleController.formatPluralStringComma("Members", i - 1);
+                } else if (chat.has_geo) {
+                    lowerCase = LocaleController.getString(C2807R.string.MegaLocation);
+                } else if (!ChatObject.isPublic(chat)) {
+                    lowerCase = LocaleController.getString(C2807R.string.MegaPrivate).toLowerCase();
+                } else {
+                    lowerCase = LocaleController.getString(C2807R.string.MegaPublic).toLowerCase();
+                }
+            } else if (i >= 1) {
+                lowerCase = LocaleController.formatPluralStringComma("Subscribers", i - 1);
+            } else if (!ChatObject.isPublic(chat)) {
+                lowerCase = LocaleController.getString(C2807R.string.ChannelPrivate).toLowerCase();
+            } else {
+                lowerCase = LocaleController.getString(C2807R.string.ChannelPublic).toLowerCase();
+            }
+            setSubtitle(lowerCase);
+            this.subtitleTextView.setTextColor(Theme.getColor(this.isOnline[0] ? Theme.key_dialogTextBlue2 : Theme.key_dialogTextGray3, this.resourcesProvider));
+            this.checkBox.setVisibility(this.needCheck ? 0 : 8);
+            this.radioButton.setVisibility(8);
+            setCheckboxAlpha(i > 200 ? 0.3f : 1.0f, false);
+        }
+
+        private CharSequence withArrow(CharSequence charSequence) {
+            SpannableString spannableString = new SpannableString(">");
+            Drawable drawable = getContext().getResources().getDrawable(C2807R.drawable.attach_arrow_right);
+            ColoredImageSpan coloredImageSpan = new ColoredImageSpan(drawable, 2);
+            drawable.setBounds(0, AndroidUtilities.dp(1.0f), AndroidUtilities.dp(11.0f), AndroidUtilities.dp(12.0f));
+            spannableString.setSpan(coloredImageSpan, 0, spannableString.length(), 33);
+            SpannableStringBuilder spannableStringBuilder = new SpannableStringBuilder();
+            spannableStringBuilder.append(charSequence).append((CharSequence) " ").append((CharSequence) spannableString);
+            return spannableStringBuilder;
+        }
+
+        public void setType(int i, int i2, TLRPC.User user) {
+            if (i == 4) {
+                this.titleTextView.setText(LocaleController.getString(C2807R.string.StoryPrivacyOptionEveryone));
+                if (i2 == 1 && user != null) {
+                    setSubtitle(withArrow(Emoji.replaceEmoji(LocaleController.formatString(C2807R.string.StoryPrivacyOptionExcludePerson, UserObject.getUserName(user)), this.subtitleTextView.getPaint().getFontMetricsInt(), false)));
+                } else if (i2 > 0) {
+                    setSubtitle(withArrow(LocaleController.formatPluralString("StoryPrivacyOptionExcludePeople", i2, new Object[0])));
+                } else {
+                    setSubtitle(withArrow(LocaleController.getString(C2807R.string.StoryPrivacyOptionContactsDetail)));
+                }
+                this.subtitleTextView.setTextColor(Theme.getColor(Theme.key_dialogTextBlue2, this.resourcesProvider));
+                this.avatarDrawable.setAvatarType(7);
+                this.avatarDrawable.setColor(-15292942, -15630089);
+            } else if (i == 2) {
+                this.titleTextView.setText(LocaleController.getString(C2807R.string.StoryPrivacyOptionContacts));
+                if (i2 == 1 && user != null) {
+                    setSubtitle(withArrow(Emoji.replaceEmoji(LocaleController.formatString(C2807R.string.StoryPrivacyOptionExcludePerson, UserObject.getUserName(user)), this.subtitleTextView.getPaint().getFontMetricsInt(), false)));
+                } else if (i2 > 0) {
+                    setSubtitle(withArrow(LocaleController.formatPluralString("StoryPrivacyOptionExcludePeople", i2, new Object[0])));
+                } else {
+                    setSubtitle(withArrow(LocaleController.getString(C2807R.string.StoryPrivacyOptionContactsDetail)));
+                }
+                this.subtitleTextView.setTextColor(Theme.getColor(Theme.key_dialogTextBlue2, this.resourcesProvider));
+                this.avatarDrawable.setAvatarType(4);
+                this.avatarDrawable.setColor(-3905294, -6923014);
+            } else if (i == 1) {
+                this.titleTextView.setText(LocaleController.getString(C2807R.string.StoryPrivacyOptionCloseFriends));
+                if (i2 == 1 && user != null) {
+                    setSubtitle(withArrow(Emoji.replaceEmoji(UserObject.getUserName(user), this.subtitleTextView.getPaint().getFontMetricsInt(), false)));
+                } else if (i2 > 0) {
+                    setSubtitle(withArrow(LocaleController.formatPluralString("StoryPrivacyOptionPeople", i2, new Object[0])));
+                } else {
+                    setSubtitle(withArrow(LocaleController.getString(C2807R.string.StoryPrivacyOptionCloseFriendsDetail)));
+                }
+                this.subtitleTextView.setTextColor(Theme.getColor(Theme.key_dialogTextBlue2, this.resourcesProvider));
+                this.avatarDrawable.setAvatarType(15);
+                this.avatarDrawable.setColor(-7808710, -13781445);
+            } else if (i == 3) {
+                this.titleTextView.setText(LocaleController.getString(C2807R.string.StoryPrivacyOptionSelectedContacts));
+                if (i2 == 1 && user != null) {
+                    setSubtitle(withArrow(Emoji.replaceEmoji(UserObject.getUserName(user), this.subtitleTextView.getPaint().getFontMetricsInt(), false)));
+                } else if (i2 > 0) {
+                    setSubtitle(withArrow(LocaleController.formatPluralString("StoryPrivacyOptionPeople", i2, new Object[0])));
+                } else {
+                    setSubtitle(withArrow(LocaleController.getString(C2807R.string.StoryPrivacyOptionSelectedContactsDetail)));
+                }
+                this.subtitleTextView.setTextColor(Theme.getColor(Theme.key_dialogTextBlue2, this.resourcesProvider));
+                this.avatarDrawable.setAvatarType(6);
+                this.avatarDrawable.setColor(-18621, -618956);
+            }
+            this.checkBox.setVisibility(8);
+            this.radioButton.setVisibility(this.needCheck ? 0 : 8);
+            this.imageView.setImageDrawable(this.avatarDrawable);
+            this.imageView.setRoundRadius(ExteraConfig.getAvatarCorners(40.0f));
+        }
+
+        private void setSubtitle(CharSequence charSequence) {
+            SimpleTextView simpleTextView = this.titleTextView;
+            if (charSequence == null) {
+                simpleTextView.setTranslationY(0.0f);
+                this.subtitleTextView.setVisibility(8);
+            } else {
+                simpleTextView.setTranslationY(AndroidUtilities.dp(-9.0f));
+                this.subtitleTextView.setTranslationY(AndroidUtilities.dp(12.0f));
+                this.subtitleTextView.setText(charSequence);
+                this.subtitleTextView.setVisibility(0);
+            }
+        }
+
+        public void setDivider(boolean z) {
+            this.needDivider = z;
+            setWillNotDraw(!z && (this.needCheck || !this.sendAs));
+        }
+
+        @Override // android.widget.FrameLayout, android.view.View
+        public void onMeasure(int i, int i2) {
+            super.onMeasure(View.MeasureSpec.makeMeasureSpec(View.MeasureSpec.getSize(i), TLObject.FLAG_30), View.MeasureSpec.makeMeasureSpec(AndroidUtilities.dp((!this.sendAs || this.needCheck) ? 56.0f : 62.0f), TLObject.FLAG_30));
+            if (this.needCheck || !this.sendAs) {
+                return;
+            }
+            Path path = this.arrowPath;
+            if (path == null) {
+                this.arrowPath = new Path();
+            } else {
+                path.rewind();
+            }
+            float fDp = LocaleController.isRTL ? AndroidUtilities.dp(31.0f) : getMeasuredWidth() - AndroidUtilities.dp(31.0f);
+            float measuredHeight = getMeasuredHeight() / 2.0f;
+            float f = LocaleController.isRTL ? -1.0f : 1.0f;
+            this.arrowPath.moveTo(fDp, measuredHeight - AndroidUtilities.dp(6.0f));
+            this.arrowPath.lineTo((f * AndroidUtilities.dp(6.0f)) + fDp, measuredHeight);
+            this.arrowPath.lineTo(fDp, measuredHeight + AndroidUtilities.dp(6.0f));
+            if (this.arrowPaint == null) {
+                Paint paint = new Paint(1);
+                this.arrowPaint = paint;
+                paint.setStyle(Paint.Style.STROKE);
+                this.arrowPaint.setStrokeCap(Paint.Cap.ROUND);
+            }
+            this.arrowPaint.setStrokeWidth(AndroidUtilities.dpf2(1.86f));
+            this.arrowPaint.setColor(Theme.multAlpha(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText, this.resourcesProvider), 0.3f));
+        }
+
+        @Override // android.view.View
+        public void onDraw(Canvas canvas) {
+            Canvas canvas2;
+            Paint paint;
+            super.onDraw(canvas);
+            if (this.needDivider) {
+                this.dividerPaint.setColor(Theme.getColor(Theme.key_divider, this.resourcesProvider));
+                if (LocaleController.isRTL) {
+                    canvas2 = canvas;
+                    canvas2.drawRect(0.0f, getHeight() - 1, getWidth() - AndroidUtilities.dp(105.0f), getHeight(), this.dividerPaint);
+                } else {
+                    canvas2 = canvas;
+                    canvas2.drawRect(AndroidUtilities.dp(105.0f), getHeight() - 1, getWidth(), getHeight(), this.dividerPaint);
+                }
+            } else {
+                canvas2 = canvas;
+            }
+            Path path = this.arrowPath;
+            if (path == null || (paint = this.arrowPaint) == null || this.needCheck || !this.sendAs || !this.drawArrow) {
+                return;
+            }
+            canvas2.drawPath(path, paint);
+        }
+
+        @Override // android.view.View
+        public void onInitializeAccessibilityNodeInfo(AccessibilityNodeInfo accessibilityNodeInfo) {
+            super.onInitializeAccessibilityNodeInfo(accessibilityNodeInfo);
+            try {
+                CheckBox2 checkBox2 = this.checkBox;
+                boolean z = false;
+                boolean z2 = checkBox2 != null && checkBox2.getVisibility() == 0;
+                RadioButton radioButton = this.radioButton;
+                if (radioButton != null && radioButton.getVisibility() == 0) {
+                    z = true;
+                }
+                if (z2 || z) {
+                    accessibilityNodeInfo.setCheckable(true);
+                    accessibilityNodeInfo.setChecked(z2 ? this.checkBox.isChecked() : this.radioButton.isChecked());
+                    accessibilityNodeInfo.setClassName(z2 ? "android.widget.CheckBox" : "android.widget.RadioButton");
+                }
+            } catch (Exception unused) {
+            }
+        }
+    }
+
+    public static class HeaderCell2 extends LinearLayout {
+        private final Theme.ResourcesProvider resourcesProvider;
+        private final TextView subtitleTextView;
+        private final TextView titleTextView;
+
+        public HeaderCell2(Context context, Theme.ResourcesProvider resourcesProvider, boolean z) {
+            super(context);
+            setOrientation(1);
+            this.resourcesProvider = resourcesProvider;
+            TextView textView = new TextView(context);
+            this.titleTextView = textView;
+            textView.setTextColor(Theme.getColor(Theme.key_dialogTextBlack, resourcesProvider));
+            textView.setTextSize(1, 20.0f);
+            textView.setTypeface(AndroidUtilities.bold());
+            addView(textView, LayoutHelper.createLinear(-1, -2, 55, 27, 16, 27, z ? 4 : 13));
+            TextView textView2 = new TextView(context);
+            this.subtitleTextView = textView2;
+            textView2.setTextColor(Theme.getColor(Theme.key_dialogTextGray2, resourcesProvider));
+            textView2.setTextSize(1, 14.0f);
+            if (z) {
+                addView(textView2, LayoutHelper.createLinear(-1, -2, 55, 27, 0, 27, 13));
+            }
+        }
+
+        public void setText(CharSequence charSequence, CharSequence charSequence2) {
+            this.titleTextView.setText(charSequence);
+            this.subtitleTextView.setText(charSequence2);
+        }
+    }
+
+    public static class HeaderCell extends FrameLayout {
+        public BackDrawable backDrawable;
+        private ImageView closeView;
+        private final Paint dividerPaint;
+        private Runnable onCloseClickListener;
+        private final Theme.ResourcesProvider resourcesProvider;
+        private TextView textView;
+
+        public HeaderCell(Context context, Theme.ResourcesProvider resourcesProvider) {
+            super(context);
+            this.dividerPaint = new Paint(1);
+            this.resourcesProvider = resourcesProvider;
+            TextView textView = new TextView(context);
+            this.textView = textView;
+            textView.setTypeface(AndroidUtilities.bold());
+            this.textView.setTextSize(1, 20.0f);
+            this.textView.setGravity(LocaleController.isRTL ? 5 : 3);
+            this.textView.setTextColor(Theme.getColor(Theme.key_dialogTextBlack, resourcesProvider));
+            TextView textView2 = this.textView;
+            boolean z = LocaleController.isRTL;
+            addView(textView2, LayoutHelper.createFrame(-1, -2.0f, 23, z ? 16.0f : 53.0f, 0.0f, z ? 53.0f : 16.0f, 0.0f));
+            ImageView imageView = new ImageView(context);
+            this.closeView = imageView;
+            BackDrawable backDrawable = new BackDrawable(false);
+            this.backDrawable = backDrawable;
+            imageView.setImageDrawable(backDrawable);
+            this.backDrawable.setColor(-1);
+            this.backDrawable.setRotatedColor(-1);
+            this.backDrawable.setAnimationTime(220.0f);
+            addView(this.closeView, LayoutHelper.createFrame(24, 24.0f, (LocaleController.isRTL ? 5 : 3) | 16, 16.0f, 0.0f, 16.0f, 0.0f));
+            this.closeView.setOnClickListener(new View.OnClickListener() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet$HeaderCell$$ExternalSyntheticLambda0
+                @Override // android.view.View.OnClickListener
+                public final void onClick(View view) {
+                    this.f$0.lambda$new$0(view);
+                }
+            });
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public /* synthetic */ void lambda$new$0(View view) {
+            Runnable runnable = this.onCloseClickListener;
+            if (runnable != null) {
+                runnable.run();
+            }
+        }
+
+        @Override // android.view.ViewGroup, android.view.View
+        public void dispatchDraw(Canvas canvas) {
+            super.dispatchDraw(canvas);
+            this.dividerPaint.setColor(Theme.getColor(Theme.key_divider, this.resourcesProvider));
+            canvas.drawRect(0.0f, getHeight() - AndroidUtilities.getShadowHeight(), getWidth(), getHeight(), this.dividerPaint);
+        }
+
+        public void setText(CharSequence charSequence) {
+            this.textView.setText(charSequence);
+        }
+
+        public void setCloseImageVisible(boolean z) {
+            this.closeView.setVisibility(z ? 0 : 8);
+            TextView textView = this.textView;
+            boolean z2 = LocaleController.isRTL;
+            textView.setLayoutParams(LayoutHelper.createFrame(-1, -2.0f, 23, (z2 || !z) ? 22.0f : 53.0f, 0.0f, (z2 && z) ? 53.0f : 22.0f, 0.0f));
+        }
+
+        public void setOnCloseClickListener(Runnable runnable) {
+            this.onCloseClickListener = runnable;
+        }
+
+        @Override // android.widget.FrameLayout, android.view.View
+        public void onMeasure(int i, int i2) {
+            super.onMeasure(View.MeasureSpec.makeMeasureSpec(View.MeasureSpec.getSize(i), TLObject.FLAG_30), View.MeasureSpec.makeMeasureSpec(AndroidUtilities.dp(56.0f), TLObject.FLAG_30));
+        }
+    }
+
+    public static class SearchUsersCell extends ScrollView {
+        public ArrayList<GroupCreateSpan> allSpans;
+        private final LinearGradient bottomGradient;
+        private final AnimatedFloat bottomGradientAlpha;
+        private final Matrix bottomGradientMatrix;
+        private final Paint bottomGradientPaint;
+        public float containerHeight;
+        private GroupCreateSpan currentDeletingSpan;
+        private EditTextBoldCursor editText;
+        private int fieldY;
+        private int hintTextWidth;
+        private boolean ignoreScrollEvent;
+        private boolean ignoreTextChange;
+        private Utilities.Callback<String> onSearchTextChange;
+        private int prevResultContainerHeight;
+        private final Theme.ResourcesProvider resourcesProvider;
+        public int resultContainerHeight;
+        private boolean scroll;
+        public SpansContainer spansContainer;
+        private final LinearGradient topGradient;
+        private final AnimatedFloat topGradientAlpha;
+        private final Matrix topGradientMatrix;
+        private final Paint topGradientPaint;
+        private Runnable updateHeight;
+
+        public SearchUsersCell(Context context, Theme.ResourcesProvider resourcesProvider, Runnable runnable) {
+            super(context);
+            this.allSpans = new ArrayList<>();
+            CubicBezierInterpolator cubicBezierInterpolator = CubicBezierInterpolator.EASE_OUT_QUINT;
+            this.topGradientAlpha = new AnimatedFloat(this, 0L, 300L, cubicBezierInterpolator);
+            Shader.TileMode tileMode = Shader.TileMode.CLAMP;
+            LinearGradient linearGradient = new LinearGradient(0.0f, 0.0f, 0.0f, AndroidUtilities.dp(8.0f), new int[]{-16777216, 0}, new float[]{0.0f, 1.0f}, tileMode);
+            this.topGradient = linearGradient;
+            Paint paint = new Paint(1);
+            this.topGradientPaint = paint;
+            this.topGradientMatrix = new Matrix();
+            this.bottomGradientAlpha = new AnimatedFloat(this, 0L, 300L, cubicBezierInterpolator);
+            LinearGradient linearGradient2 = new LinearGradient(0.0f, 0.0f, 0.0f, AndroidUtilities.dp(8.0f), new int[]{0, -16777216}, new float[]{0.0f, 1.0f}, tileMode);
+            this.bottomGradient = linearGradient2;
+            Paint paint2 = new Paint(1);
+            this.bottomGradientPaint = paint2;
+            this.bottomGradientMatrix = new Matrix();
+            paint.setShader(linearGradient);
+            PorterDuff.Mode mode = PorterDuff.Mode.DST_OUT;
+            paint.setXfermode(new PorterDuffXfermode(mode));
+            paint2.setShader(linearGradient2);
+            paint2.setXfermode(new PorterDuffXfermode(mode));
+            this.resourcesProvider = resourcesProvider;
+            this.updateHeight = runnable;
+            setVerticalScrollBarEnabled(false);
+            AndroidUtilities.setScrollViewEdgeEffectColor(this, Theme.getColor(Theme.key_windowBackgroundWhite));
+            SpansContainer spansContainer = new SpansContainer(context);
+            this.spansContainer = spansContainer;
+            addView(spansContainer, LayoutHelper.createFrame(-1, -2.0f));
+            EditTextBoldCursor editTextBoldCursor = new EditTextBoldCursor(context) { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet.SearchUsersCell.1
+                @Override // org.telegram.ui.Components.EditTextBoldCursor, com.exteragram.messenger.components.ReceiveContentEditText, android.widget.TextView, android.view.View
+                public boolean onTouchEvent(MotionEvent motionEvent) {
+                    if (SearchUsersCell.this.currentDeletingSpan != null) {
+                        SearchUsersCell.this.currentDeletingSpan.cancelDeleteAnimation();
+                        SearchUsersCell.this.currentDeletingSpan = null;
+                    }
+                    if (motionEvent.getAction() == 0 && !AndroidUtilities.showKeyboard(this)) {
+                        SearchUsersCell.this.fullScroll(130);
+                        clearFocus();
+                        requestFocus();
+                    }
+                    return super.onTouchEvent(motionEvent);
+                }
+            };
+            this.editText = editTextBoldCursor;
+            if (Build.VERSION.SDK_INT >= 25) {
+                editTextBoldCursor.setRevealOnFocusHint(false);
+            }
+            this.editText.setTextSize(1, 16.0f);
+            this.editText.setHintColor(Theme.getColor(Theme.key_groupcreate_hintText, resourcesProvider));
+            this.editText.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText, resourcesProvider));
+            EditTextBoldCursor editTextBoldCursor2 = this.editText;
+            int i = Theme.key_groupcreate_cursor;
+            editTextBoldCursor2.setCursorColor(Theme.getColor(i, resourcesProvider));
+            this.editText.setHandlesColor(Theme.getColor(i, resourcesProvider));
+            this.editText.setCursorWidth(1.5f);
+            EditTextBoldCursor editTextBoldCursor3 = this.editText;
+            editTextBoldCursor3.setInputType(editTextBoldCursor3.getInputType() | 176);
+            this.editText.setSingleLine(true);
+            this.editText.setBackgroundDrawable(null);
+            this.editText.setVerticalScrollBarEnabled(false);
+            this.editText.setHorizontalScrollBarEnabled(false);
+            this.editText.setTextIsSelectable(false);
+            this.editText.setPadding(0, 0, 0, 0);
+            this.editText.setImeOptions(268435462);
+            this.editText.setGravity((LocaleController.isRTL ? 5 : 3) | 16);
+            this.spansContainer.addView(this.editText);
+            this.editText.setHintText(LocaleController.getString(C2807R.string.Search));
+            this.hintTextWidth = (int) this.editText.getPaint().measureText(LocaleController.getString(C2807R.string.Search));
+            this.editText.addTextChangedListener(new TextWatcher() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet.SearchUsersCell.2
+                @Override // android.text.TextWatcher
+                public void beforeTextChanged(CharSequence charSequence, int i2, int i3, int i4) {
+                }
+
+                @Override // android.text.TextWatcher
+                public void onTextChanged(CharSequence charSequence, int i2, int i3, int i4) {
+                }
+
+                @Override // android.text.TextWatcher
+                public void afterTextChanged(Editable editable) {
+                    if (SearchUsersCell.this.ignoreTextChange || SearchUsersCell.this.onSearchTextChange == null || editable == null) {
+                        return;
+                    }
+                    SearchUsersCell.this.onSearchTextChange.run(editable.toString());
+                }
+            });
+        }
+
+        @Override // android.widget.ScrollView, android.view.ViewGroup, android.view.View
+        public boolean dispatchKeyEvent(KeyEvent keyEvent) {
+            return super.dispatchKeyEvent(keyEvent);
+        }
+
+        @Override // android.view.ViewGroup, android.view.View
+        public void dispatchDraw(Canvas canvas) {
+            float scrollY = getScrollY();
+            canvas.saveLayerAlpha(0.0f, scrollY, getWidth(), getHeight() + r0, 255, 31);
+            super.dispatchDraw(canvas);
+            canvas.save();
+            float f = this.topGradientAlpha.set(canScrollVertically(-1));
+            this.topGradientMatrix.reset();
+            this.topGradientMatrix.postTranslate(0.0f, scrollY);
+            this.topGradient.setLocalMatrix(this.topGradientMatrix);
+            this.topGradientPaint.setAlpha((int) (f * 255.0f));
+            canvas.drawRect(0.0f, scrollY, getWidth(), AndroidUtilities.dp(8.0f) + r0, this.topGradientPaint);
+            float f2 = this.bottomGradientAlpha.set(canScrollVertically(1));
+            this.bottomGradientMatrix.reset();
+            this.bottomGradientMatrix.postTranslate(0.0f, (getHeight() + r0) - AndroidUtilities.dp(8.0f));
+            this.bottomGradient.setLocalMatrix(this.bottomGradientMatrix);
+            this.bottomGradientPaint.setAlpha((int) (f2 * 255.0f));
+            canvas.drawRect(0.0f, (getHeight() + r0) - AndroidUtilities.dp(8.0f), getWidth(), r0 + getHeight(), this.bottomGradientPaint);
+            canvas.restore();
+            canvas.restore();
+        }
+
+        public void setText(CharSequence charSequence) {
+            this.ignoreTextChange = true;
+            this.editText.setText(charSequence);
+            this.ignoreTextChange = false;
+        }
+
+        public void setOnSearchTextChange(Utilities.Callback<String> callback) {
+            this.onSearchTextChange = callback;
+        }
+
+        @Override // android.widget.ScrollView, android.view.ViewGroup, android.view.ViewParent
+        public boolean requestChildRectangleOnScreen(View view, Rect rect, boolean z) {
+            if (this.ignoreScrollEvent) {
+                this.ignoreScrollEvent = false;
+                return false;
+            }
+            rect.offset(view.getLeft() - view.getScrollX(), view.getTop() - view.getScrollY());
+            rect.top += this.fieldY + AndroidUtilities.dp(20.0f);
+            rect.bottom += this.fieldY + AndroidUtilities.dp(50.0f);
+            return super.requestChildRectangleOnScreen(view, rect, z);
+        }
+
+        @Override // android.widget.ScrollView, android.widget.FrameLayout, android.view.View
+        public void onMeasure(int i, int i2) {
+            super.onMeasure(View.MeasureSpec.makeMeasureSpec(View.MeasureSpec.getSize(i), TLObject.FLAG_30), View.MeasureSpec.makeMeasureSpec(AndroidUtilities.dp(150.0f), Integer.MIN_VALUE));
+        }
+
+        public void setContainerHeight(float f) {
+            this.containerHeight = f;
+            SpansContainer spansContainer = this.spansContainer;
+            if (spansContainer != null) {
+                spansContainer.requestLayout();
+            }
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public Animator getContainerHeightAnimator(float f) {
+            ValueAnimator valueAnimatorOfFloat = ValueAnimator.ofFloat(this.containerHeight, f);
+            valueAnimatorOfFloat.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet$SearchUsersCell$$ExternalSyntheticLambda0
+                @Override // android.animation.ValueAnimator.AnimatorUpdateListener
+                public final void onAnimationUpdate(ValueAnimator valueAnimator) {
+                    this.f$0.lambda$getContainerHeightAnimator$0(valueAnimator);
+                }
+            });
+            return valueAnimatorOfFloat;
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public /* synthetic */ void lambda$getContainerHeightAnimator$0(ValueAnimator valueAnimator) {
+            setContainerHeight(((Float) valueAnimator.getAnimatedValue()).floatValue());
+        }
+
+        public void scrollToBottom() {
+            this.scroll = true;
+        }
+
+        public class SpansContainer extends ViewGroup {
+            private View addingSpan;
+            private ArrayList<View> animAddingSpans;
+            private ArrayList<View> animRemovingSpans;
+            private boolean animationStarted;
+            private ArrayList<Animator> animators;
+            private AnimatorSet currentAnimation;
+            private final int heightDp;
+            private final int padDp;
+            private final int padXDp;
+            private final int padYDp;
+            private final ArrayList<View> removingSpans;
+
+            public SpansContainer(Context context) {
+                super(context);
+                this.animAddingSpans = new ArrayList<>();
+                this.animRemovingSpans = new ArrayList<>();
+                this.animators = new ArrayList<>();
+                this.removingSpans = new ArrayList<>();
+                this.padDp = 7;
+                this.padYDp = 4;
+                this.padXDp = 4;
+                this.heightDp = 28;
+            }
+
+            /* JADX WARN: Removed duplicated region for block: B:32:0x00e3  */
+            @Override // android.view.View
+            /*
+                Code decompiled incorrectly, please refer to instructions dump.
+            */
+            public void onMeasure(int i, int i2) {
+                Property property;
+                Property property2;
+                int iMin;
+                int i3;
+                int childCount = getChildCount();
+                int size = View.MeasureSpec.getSize(i);
+                int iDp = size - AndroidUtilities.dp(14.0f);
+                int iDp2 = AndroidUtilities.dp(10.0f);
+                int iDp3 = AndroidUtilities.dp(10.0f);
+                int i4 = 0;
+                int measuredWidth = 0;
+                int measuredWidth2 = 0;
+                while (true) {
+                    property = View.TRANSLATION_Y;
+                    property2 = View.TRANSLATION_X;
+                    if (i4 >= childCount) {
+                        break;
+                    }
+                    View childAt = getChildAt(i4);
+                    if (childAt instanceof GroupCreateSpan) {
+                        childAt.measure(View.MeasureSpec.makeMeasureSpec(size, Integer.MIN_VALUE), View.MeasureSpec.makeMeasureSpec(AndroidUtilities.dp(28.0f), TLObject.FLAG_30));
+                        boolean zContains = this.removingSpans.contains(childAt);
+                        if (!zContains && childAt.getMeasuredWidth() + measuredWidth > iDp) {
+                            iDp2 += childAt.getMeasuredHeight() + AndroidUtilities.dp(4.0f);
+                            measuredWidth = 0;
+                        }
+                        if (childAt.getMeasuredWidth() + measuredWidth2 > iDp) {
+                            iDp3 += childAt.getMeasuredHeight() + AndroidUtilities.dp(4.0f);
+                            measuredWidth2 = 0;
+                        }
+                        int iDp4 = AndroidUtilities.dp(7.0f) + measuredWidth;
+                        if (this.animationStarted) {
+                            i3 = childCount;
+                            if (!zContains) {
+                                measuredWidth += childAt.getMeasuredWidth() + AndroidUtilities.dp(4.0f);
+                            }
+                            measuredWidth2 += childAt.getMeasuredWidth() + AndroidUtilities.dp(4.0f);
+                        } else if (zContains) {
+                            childAt.setTranslationX(AndroidUtilities.dp(7.0f) + measuredWidth2);
+                            childAt.setTranslationY(iDp3);
+                            i3 = childCount;
+                            if (!zContains) {
+                            }
+                            measuredWidth2 += childAt.getMeasuredWidth() + AndroidUtilities.dp(4.0f);
+                        } else {
+                            if (this.removingSpans.isEmpty()) {
+                                i3 = childCount;
+                                childAt.setTranslationX(iDp4);
+                                childAt.setTranslationY(iDp2);
+                            } else {
+                                float f = iDp4;
+                                if (childAt.getTranslationX() != f) {
+                                    i3 = childCount;
+                                    this.animators.add(ObjectAnimator.ofFloat(childAt, (Property<View, Float>) property2, f));
+                                } else {
+                                    i3 = childCount;
+                                }
+                                float f2 = iDp2;
+                                if (childAt.getTranslationY() != f2) {
+                                    this.animators.add(ObjectAnimator.ofFloat(childAt, (Property<View, Float>) property, f2));
+                                }
+                            }
+                            if (!zContains) {
+                            }
+                            measuredWidth2 += childAt.getMeasuredWidth() + AndroidUtilities.dp(4.0f);
+                        }
+                    } else {
+                        i3 = childCount;
+                    }
+                    i4++;
+                    childCount = i3;
+                }
+                if (AndroidUtilities.isTablet()) {
+                    iMin = AndroidUtilities.dp(394.0f) / 3;
+                } else {
+                    Point point = AndroidUtilities.displaySize;
+                    iMin = (Math.min(point.x, point.y) - AndroidUtilities.dp(136.0f)) / 3;
+                }
+                if (iDp - measuredWidth < iMin) {
+                    iDp2 += AndroidUtilities.dp(36.0f);
+                    measuredWidth = 0;
+                }
+                if (iDp - measuredWidth2 < iMin) {
+                    iDp3 += AndroidUtilities.dp(36.0f);
+                }
+                SearchUsersCell.this.editText.measure(View.MeasureSpec.makeMeasureSpec(iDp - measuredWidth, TLObject.FLAG_30), View.MeasureSpec.makeMeasureSpec(AndroidUtilities.dp(28.0f), TLObject.FLAG_30));
+                SearchUsersCell.this.editText.setHintVisible(SearchUsersCell.this.editText.getMeasuredWidth() > SearchUsersCell.this.hintTextWidth, true);
+                if (!this.animationStarted) {
+                    int iDp5 = iDp3 + AndroidUtilities.dp(38.0f);
+                    int iDp6 = measuredWidth + AndroidUtilities.dp(16.0f);
+                    SearchUsersCell.this.fieldY = iDp2;
+                    if (this.currentAnimation != null) {
+                        int iDp7 = iDp2 + AndroidUtilities.dp(38.0f);
+                        SearchUsersCell searchUsersCell = SearchUsersCell.this;
+                        searchUsersCell.resultContainerHeight = iDp7;
+                        float f3 = iDp7;
+                        if (searchUsersCell.containerHeight != f3) {
+                            this.animators.add(searchUsersCell.getContainerHeightAnimator(f3));
+                        }
+                        float f4 = iDp6;
+                        if (SearchUsersCell.this.editText.getTranslationX() != f4) {
+                            this.animators.add(ObjectAnimator.ofFloat(SearchUsersCell.this.editText, (Property<EditTextBoldCursor, Float>) property2, f4));
+                        }
+                        if (SearchUsersCell.this.editText.getTranslationY() != SearchUsersCell.this.fieldY) {
+                            this.animators.add(ObjectAnimator.ofFloat(SearchUsersCell.this.editText, (Property<EditTextBoldCursor, Float>) property, SearchUsersCell.this.fieldY));
+                        }
+                        SearchUsersCell.this.editText.setAllowDrawCursor(false);
+                        this.currentAnimation.playTogether(this.animators);
+                        this.currentAnimation.setDuration(180L);
+                        this.currentAnimation.setInterpolator(new LinearInterpolator());
+                        this.currentAnimation.start();
+                        this.animationStarted = true;
+                        if (SearchUsersCell.this.updateHeight != null) {
+                            SearchUsersCell.this.updateHeight.run();
+                        }
+                    } else {
+                        SearchUsersCell searchUsersCell2 = SearchUsersCell.this;
+                        searchUsersCell2.resultContainerHeight = iDp5;
+                        searchUsersCell2.containerHeight = iDp5;
+                        searchUsersCell2.editText.setTranslationX(iDp6);
+                        SearchUsersCell.this.editText.setTranslationY(SearchUsersCell.this.fieldY);
+                        if (SearchUsersCell.this.updateHeight != null) {
+                            SearchUsersCell.this.updateHeight.run();
+                        }
+                        if (SearchUsersCell.this.scroll) {
+                            post(new Runnable() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet$SearchUsersCell$SpansContainer$$ExternalSyntheticLambda0
+                                @Override // java.lang.Runnable
+                                public final void run() {
+                                    this.f$0.lambda$onMeasure$0();
+                                }
+                            });
+                            SearchUsersCell.this.scroll = false;
+                        }
+                    }
+                    SearchUsersCell searchUsersCell3 = SearchUsersCell.this;
+                    searchUsersCell3.prevResultContainerHeight = searchUsersCell3.resultContainerHeight;
+                } else if (this.currentAnimation != null) {
+                    if (!SearchUsersCell.this.ignoreScrollEvent && this.removingSpans.isEmpty()) {
+                        SearchUsersCell.this.editText.bringPointIntoView(SearchUsersCell.this.editText.getSelectionStart());
+                    }
+                    if (SearchUsersCell.this.scroll) {
+                        SearchUsersCell.this.fullScroll(130);
+                        SearchUsersCell.this.scroll = false;
+                    }
+                }
+                setMeasuredDimension(size, (int) SearchUsersCell.this.containerHeight);
+            }
+
+            /* JADX INFO: Access modifiers changed from: private */
+            public /* synthetic */ void lambda$onMeasure$0() {
+                SearchUsersCell.this.fullScroll(130);
+            }
+
+            @Override // android.view.ViewGroup, android.view.View
+            public void onLayout(boolean z, int i, int i2, int i3, int i4) {
+                int childCount = getChildCount();
+                for (int i5 = 0; i5 < childCount; i5++) {
+                    View childAt = getChildAt(i5);
+                    childAt.layout(0, 0, childAt.getMeasuredWidth(), childAt.getMeasuredHeight());
+                }
+            }
+
+            public void removeSpan(final GroupCreateSpan groupCreateSpan) {
+                SearchUsersCell.this.ignoreScrollEvent = true;
+                SearchUsersCell.this.allSpans.remove(groupCreateSpan);
+                groupCreateSpan.setOnClickListener(null);
+                setupEndValues();
+                this.animationStarted = false;
+                AnimatorSet animatorSet = new AnimatorSet();
+                this.currentAnimation = animatorSet;
+                animatorSet.addListener(new AnimatorListenerAdapter() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet.SearchUsersCell.SpansContainer.1
+                    @Override // android.animation.AnimatorListenerAdapter, android.animation.Animator.AnimatorListener
+                    public void onAnimationEnd(Animator animator) {
+                        SpansContainer.this.removeView(groupCreateSpan);
+                        SpansContainer.this.removingSpans.clear();
+                        SpansContainer.this.currentAnimation = null;
+                        SpansContainer.this.animationStarted = false;
+                        SearchUsersCell.this.editText.setAllowDrawCursor(true);
+                        if (SearchUsersCell.this.updateHeight != null) {
+                            SearchUsersCell.this.updateHeight.run();
+                        }
+                        if (SearchUsersCell.this.scroll) {
+                            SearchUsersCell.this.fullScroll(130);
+                            SearchUsersCell.this.scroll = false;
+                        }
+                    }
+                });
+                this.removingSpans.clear();
+                this.removingSpans.add(groupCreateSpan);
+                this.animAddingSpans.clear();
+                this.animRemovingSpans.clear();
+                this.animAddingSpans.add(groupCreateSpan);
+                this.animators.clear();
+                this.animators.add(ObjectAnimator.ofFloat(groupCreateSpan, (Property<GroupCreateSpan, Float>) View.SCALE_X, 1.0f, 0.01f));
+                this.animators.add(ObjectAnimator.ofFloat(groupCreateSpan, (Property<GroupCreateSpan, Float>) View.SCALE_Y, 1.0f, 0.01f));
+                this.animators.add(ObjectAnimator.ofFloat(groupCreateSpan, (Property<GroupCreateSpan, Float>) View.ALPHA, 1.0f, 0.0f));
+                requestLayout();
+            }
+
+            public void updateSpans(final ArrayList<GroupCreateSpan> arrayList, ArrayList<GroupCreateSpan> arrayList2, boolean z) {
+                Property property;
+                Property property2;
+                Property property3;
+                SearchUsersCell.this.ignoreScrollEvent = true;
+                SearchUsersCell.this.allSpans.removeAll(arrayList);
+                SearchUsersCell.this.allSpans.addAll(arrayList2);
+                this.removingSpans.clear();
+                this.removingSpans.addAll(arrayList);
+                for (int i = 0; i < arrayList.size(); i++) {
+                    arrayList.get(i).setOnClickListener(null);
+                }
+                setupEndValues();
+                if (z) {
+                    this.animationStarted = false;
+                    AnimatorSet animatorSet = new AnimatorSet();
+                    this.currentAnimation = animatorSet;
+                    animatorSet.addListener(new AnimatorListenerAdapter() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet.SearchUsersCell.SpansContainer.2
+                        @Override // android.animation.AnimatorListenerAdapter, android.animation.Animator.AnimatorListener
+                        public void onAnimationEnd(Animator animator) {
+                            SpansContainer spansContainer;
+                            int i2 = 0;
+                            while (true) {
+                                int size = arrayList.size();
+                                spansContainer = SpansContainer.this;
+                                if (i2 >= size) {
+                                    break;
+                                }
+                                spansContainer.removeView((View) arrayList.get(i2));
+                                i2++;
+                            }
+                            spansContainer.addingSpan = null;
+                            SpansContainer.this.removingSpans.clear();
+                            SpansContainer.this.currentAnimation = null;
+                            SpansContainer.this.animationStarted = false;
+                            SearchUsersCell.this.editText.setAllowDrawCursor(true);
+                            if (SearchUsersCell.this.updateHeight != null) {
+                                SearchUsersCell.this.updateHeight.run();
+                            }
+                            if (SearchUsersCell.this.scroll) {
+                                SearchUsersCell.this.fullScroll(130);
+                                SearchUsersCell.this.scroll = false;
+                            }
+                        }
+                    });
+                    this.animators.clear();
+                    this.animAddingSpans.clear();
+                    this.animRemovingSpans.clear();
+                    int i2 = 0;
+                    while (true) {
+                        int size = arrayList.size();
+                        property = View.ALPHA;
+                        property2 = View.SCALE_Y;
+                        property3 = View.SCALE_X;
+                        if (i2 >= size) {
+                            break;
+                        }
+                        GroupCreateSpan groupCreateSpan = arrayList.get(i2);
+                        this.animRemovingSpans.add(groupCreateSpan);
+                        this.animators.add(ObjectAnimator.ofFloat(groupCreateSpan, (Property<GroupCreateSpan, Float>) property3, 1.0f, 0.01f));
+                        this.animators.add(ObjectAnimator.ofFloat(groupCreateSpan, (Property<GroupCreateSpan, Float>) property2, 1.0f, 0.01f));
+                        this.animators.add(ObjectAnimator.ofFloat(groupCreateSpan, (Property<GroupCreateSpan, Float>) property, 1.0f, 0.0f));
+                        i2++;
+                    }
+                    for (int i3 = 0; i3 < arrayList2.size(); i3++) {
+                        GroupCreateSpan groupCreateSpan2 = arrayList2.get(i3);
+                        this.animAddingSpans.add(groupCreateSpan2);
+                        this.animators.add(ObjectAnimator.ofFloat(groupCreateSpan2, (Property<GroupCreateSpan, Float>) property3, 0.01f, 1.0f));
+                        this.animators.add(ObjectAnimator.ofFloat(groupCreateSpan2, (Property<GroupCreateSpan, Float>) property2, 0.01f, 1.0f));
+                        this.animators.add(ObjectAnimator.ofFloat(groupCreateSpan2, (Property<GroupCreateSpan, Float>) property, 0.0f, 1.0f));
+                    }
+                } else {
+                    for (int i4 = 0; i4 < arrayList.size(); i4++) {
+                        removeView(arrayList.get(i4));
+                    }
+                    this.addingSpan = null;
+                    this.removingSpans.clear();
+                    this.currentAnimation = null;
+                    this.animationStarted = false;
+                    SearchUsersCell.this.editText.setAllowDrawCursor(true);
+                }
+                for (int i5 = 0; i5 < arrayList2.size(); i5++) {
+                    addView(arrayList2.get(i5));
+                }
+                requestLayout();
+            }
+
+            public void removeAllSpans(boolean z) {
+                SearchUsersCell.this.ignoreScrollEvent = true;
+                final ArrayList arrayList = new ArrayList(SearchUsersCell.this.allSpans);
+                this.removingSpans.clear();
+                this.removingSpans.addAll(SearchUsersCell.this.allSpans);
+                SearchUsersCell.this.allSpans.clear();
+                for (int i = 0; i < arrayList.size(); i++) {
+                    ((GroupCreateSpan) arrayList.get(i)).setOnClickListener(null);
+                }
+                setupEndValues();
+                if (z) {
+                    this.animationStarted = false;
+                    AnimatorSet animatorSet = new AnimatorSet();
+                    this.currentAnimation = animatorSet;
+                    animatorSet.addListener(new AnimatorListenerAdapter() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet.SearchUsersCell.SpansContainer.3
+                        @Override // android.animation.AnimatorListenerAdapter, android.animation.Animator.AnimatorListener
+                        public void onAnimationEnd(Animator animator) {
+                            SpansContainer spansContainer;
+                            int i2 = 0;
+                            while (true) {
+                                int size = arrayList.size();
+                                spansContainer = SpansContainer.this;
+                                if (i2 >= size) {
+                                    break;
+                                }
+                                spansContainer.removeView((View) arrayList.get(i2));
+                                i2++;
+                            }
+                            spansContainer.removingSpans.clear();
+                            SpansContainer.this.currentAnimation = null;
+                            SpansContainer.this.animationStarted = false;
+                            SearchUsersCell.this.editText.setAllowDrawCursor(true);
+                            if (SearchUsersCell.this.updateHeight != null) {
+                                SearchUsersCell.this.updateHeight.run();
+                            }
+                            if (SearchUsersCell.this.scroll) {
+                                SearchUsersCell.this.fullScroll(130);
+                                SearchUsersCell.this.scroll = false;
+                            }
+                        }
+                    });
+                    this.animators.clear();
+                    this.animAddingSpans.clear();
+                    this.animRemovingSpans.clear();
+                    for (int i2 = 0; i2 < arrayList.size(); i2++) {
+                        GroupCreateSpan groupCreateSpan = (GroupCreateSpan) arrayList.get(i2);
+                        this.animAddingSpans.add(groupCreateSpan);
+                        this.animators.add(ObjectAnimator.ofFloat(groupCreateSpan, (Property<GroupCreateSpan, Float>) View.SCALE_X, 1.0f, 0.01f));
+                        this.animators.add(ObjectAnimator.ofFloat(groupCreateSpan, (Property<GroupCreateSpan, Float>) View.SCALE_Y, 1.0f, 0.01f));
+                        this.animators.add(ObjectAnimator.ofFloat(groupCreateSpan, (Property<GroupCreateSpan, Float>) View.ALPHA, 1.0f, 0.0f));
+                    }
+                } else {
+                    for (int i3 = 0; i3 < arrayList.size(); i3++) {
+                        removeView((View) arrayList.get(i3));
+                    }
+                    this.removingSpans.clear();
+                    this.currentAnimation = null;
+                    this.animationStarted = false;
+                    SearchUsersCell.this.editText.setAllowDrawCursor(true);
+                }
+                requestLayout();
+            }
+
+            private void setupEndValues() {
+                AnimatorSet animatorSet = this.currentAnimation;
+                if (animatorSet != null) {
+                    animatorSet.cancel();
+                }
+                for (int i = 0; i < this.animAddingSpans.size(); i++) {
+                    this.animAddingSpans.get(i).setScaleX(1.0f);
+                    this.animAddingSpans.get(i).setScaleY(1.0f);
+                    this.animAddingSpans.get(i).setAlpha(1.0f);
+                }
+                for (int i2 = 0; i2 < this.animRemovingSpans.size(); i2++) {
+                    this.animRemovingSpans.get(i2).setScaleX(0.0f);
+                    this.animRemovingSpans.get(i2).setScaleY(0.0f);
+                    this.animRemovingSpans.get(i2).setAlpha(0.0f);
+                }
+                this.animAddingSpans.clear();
+                this.animRemovingSpans.clear();
+            }
+        }
+    }
+
+    public static class StoryPrivacy {
+        public final ArrayList<TLRPC.InputPrivacyRule> rules;
+        public final ArrayList<TLRPC.InputUser> selectedInputUsers;
+        public final ArrayList<Long> selectedUserIds;
+        public final HashMap<Long, ArrayList<Long>> selectedUserIdsByGroup;
+        public final ArrayList<Long> sendToUsers;
+        public final int type;
+
+        public StoryPrivacy(int i, ArrayList<TLRPC.PrivacyRule> arrayList) {
+            ArrayList<TLRPC.InputPrivacyRule> arrayList2 = new ArrayList<>();
+            this.rules = arrayList2;
+            this.selectedUserIds = new ArrayList<>();
+            this.selectedUserIdsByGroup = new HashMap<>();
+            this.selectedInputUsers = new ArrayList<>();
+            this.sendToUsers = new ArrayList<>();
+            int i2 = 0;
+            if (containsRule(arrayList, TLRPC.TL_privacyValueAllowAll.class) != null) {
+                this.type = 4;
+                arrayList2.add(new TLRPC.TL_inputPrivacyValueAllowAll());
+                TLRPC.TL_privacyValueDisallowUsers tL_privacyValueDisallowUsers = (TLRPC.TL_privacyValueDisallowUsers) containsRule(arrayList, TLRPC.TL_privacyValueDisallowUsers.class);
+                if (tL_privacyValueDisallowUsers != null) {
+                    TLRPC.TL_inputPrivacyValueDisallowUsers tL_inputPrivacyValueDisallowUsers = new TLRPC.TL_inputPrivacyValueDisallowUsers();
+                    MessagesController messagesController = MessagesController.getInstance(i);
+                    while (i2 < tL_privacyValueDisallowUsers.users.size()) {
+                        Long l = tL_privacyValueDisallowUsers.users.get(i2);
+                        TLRPC.InputUser inputUser = messagesController.getInputUser(l.longValue());
+                        if (!(inputUser instanceof TLRPC.TL_inputUserEmpty)) {
+                            tL_inputPrivacyValueDisallowUsers.users.add(inputUser);
+                            this.selectedUserIds.add(l);
+                            this.selectedInputUsers.add(inputUser);
+                        }
+                        i2++;
+                    }
+                    this.rules.add(tL_inputPrivacyValueDisallowUsers);
+                    return;
+                }
+                return;
+            }
+            if (containsRule(arrayList, TLRPC.TL_privacyValueAllowCloseFriends.class) != null) {
+                this.type = 1;
+                arrayList2.add(new TLRPC.TL_inputPrivacyValueAllowCloseFriends());
+                return;
+            }
+            TLRPC.TL_privacyValueAllowUsers tL_privacyValueAllowUsers = (TLRPC.TL_privacyValueAllowUsers) containsRule(arrayList, TLRPC.TL_privacyValueAllowUsers.class);
+            if (tL_privacyValueAllowUsers != null) {
+                this.type = 3;
+                TLRPC.TL_inputPrivacyValueAllowUsers tL_inputPrivacyValueAllowUsers = new TLRPC.TL_inputPrivacyValueAllowUsers();
+                MessagesController messagesController2 = MessagesController.getInstance(i);
+                while (i2 < tL_privacyValueAllowUsers.users.size()) {
+                    Long l2 = tL_privacyValueAllowUsers.users.get(i2);
+                    TLRPC.InputUser inputUser2 = messagesController2.getInputUser(l2.longValue());
+                    if (inputUser2 != null && !(inputUser2 instanceof TLRPC.TL_inputUserEmpty)) {
+                        tL_inputPrivacyValueAllowUsers.users.add(inputUser2);
+                        this.selectedUserIds.add(l2);
+                        this.selectedInputUsers.add(inputUser2);
+                    }
+                    i2++;
+                }
+                this.rules.add(tL_inputPrivacyValueAllowUsers);
+                return;
+            }
+            if (containsRule(arrayList, TLRPC.TL_privacyValueAllowContacts.class) != null) {
+                this.type = 2;
+                arrayList2.add(new TLRPC.TL_inputPrivacyValueAllowContacts());
+                TLRPC.TL_privacyValueDisallowUsers tL_privacyValueDisallowUsers2 = (TLRPC.TL_privacyValueDisallowUsers) containsRule(arrayList, TLRPC.TL_privacyValueDisallowUsers.class);
+                if (tL_privacyValueDisallowUsers2 != null) {
+                    TLRPC.TL_inputPrivacyValueDisallowUsers tL_inputPrivacyValueDisallowUsers2 = new TLRPC.TL_inputPrivacyValueDisallowUsers();
+                    MessagesController messagesController3 = MessagesController.getInstance(i);
+                    while (i2 < tL_privacyValueDisallowUsers2.users.size()) {
+                        Long l3 = tL_privacyValueDisallowUsers2.users.get(i2);
+                        TLRPC.InputUser inputUser3 = messagesController3.getInputUser(l3.longValue());
+                        if (!(inputUser3 instanceof TLRPC.TL_inputUserEmpty)) {
+                            tL_inputPrivacyValueDisallowUsers2.users.add(inputUser3);
+                            this.selectedUserIds.add(l3);
+                            this.selectedInputUsers.add(inputUser3);
+                        }
+                        i2++;
+                    }
+                    this.rules.add(tL_inputPrivacyValueDisallowUsers2);
+                    return;
+                }
+                return;
+            }
+            this.type = 4;
+        }
+
+        private <T> T containsRule(ArrayList<TLRPC.PrivacyRule> arrayList, Class<T> cls) {
+            for (int i = 0; i < arrayList.size(); i++) {
+                T t = (T) ((TLRPC.PrivacyRule) arrayList.get(i));
+                if (cls.isInstance(t)) {
+                    return t;
+                }
+            }
+            return null;
+        }
+
+        public StoryPrivacy() {
+            ArrayList<TLRPC.InputPrivacyRule> arrayList = new ArrayList<>();
+            this.rules = arrayList;
+            this.selectedUserIds = new ArrayList<>();
+            this.selectedUserIdsByGroup = new HashMap<>();
+            this.selectedInputUsers = new ArrayList<>();
+            this.sendToUsers = new ArrayList<>();
+            this.type = 4;
+            arrayList.add(new TLRPC.TL_inputPrivacyValueAllowAll());
+        }
+
+        public StoryPrivacy(int i, int i2, ArrayList<Long> arrayList) {
+            ArrayList<TLRPC.InputPrivacyRule> arrayList2 = new ArrayList<>();
+            this.rules = arrayList2;
+            this.selectedUserIds = new ArrayList<>();
+            this.selectedUserIdsByGroup = new HashMap<>();
+            this.selectedInputUsers = new ArrayList<>();
+            ArrayList<Long> arrayList3 = new ArrayList<>();
+            this.sendToUsers = arrayList3;
+            this.type = i;
+            int i3 = 0;
+            if (i == 4) {
+                arrayList2.add(new TLRPC.TL_inputPrivacyValueAllowAll());
+                if (i2 < 0 || arrayList == null || arrayList.isEmpty()) {
+                    return;
+                }
+                TLRPC.TL_inputPrivacyValueDisallowUsers tL_inputPrivacyValueDisallowUsers = new TLRPC.TL_inputPrivacyValueDisallowUsers();
+                while (i3 < arrayList.size()) {
+                    Long l = arrayList.get(i3);
+                    long jLongValue = l.longValue();
+                    this.selectedUserIds.add(l);
+                    TLRPC.InputUser inputUser = MessagesController.getInstance(i2).getInputUser(jLongValue);
+                    if (inputUser != null && !(inputUser instanceof TLRPC.TL_inputUserEmpty)) {
+                        tL_inputPrivacyValueDisallowUsers.users.add(inputUser);
+                        this.selectedInputUsers.add(inputUser);
+                    }
+                    i3++;
+                }
+                this.rules.add(tL_inputPrivacyValueDisallowUsers);
+                return;
+            }
+            if (i == 1) {
+                arrayList2.add(new TLRPC.TL_inputPrivacyValueAllowCloseFriends());
+                return;
+            }
+            if (i == 2) {
+                arrayList2.add(new TLRPC.TL_inputPrivacyValueAllowContacts());
+                if (i2 < 0 || arrayList == null || arrayList.isEmpty()) {
+                    return;
+                }
+                TLRPC.TL_inputPrivacyValueDisallowUsers tL_inputPrivacyValueDisallowUsers2 = new TLRPC.TL_inputPrivacyValueDisallowUsers();
+                while (i3 < arrayList.size()) {
+                    Long l2 = arrayList.get(i3);
+                    long jLongValue2 = l2.longValue();
+                    this.selectedUserIds.add(l2);
+                    TLRPC.InputUser inputUser2 = MessagesController.getInstance(i2).getInputUser(jLongValue2);
+                    if (inputUser2 != null && !(inputUser2 instanceof TLRPC.TL_inputUserEmpty)) {
+                        tL_inputPrivacyValueDisallowUsers2.users.add(inputUser2);
+                        this.selectedInputUsers.add(inputUser2);
+                    }
+                    i3++;
+                }
+                this.rules.add(tL_inputPrivacyValueDisallowUsers2);
+                return;
+            }
+            if (i != 3) {
+                if (i != 5 || arrayList == null) {
+                    return;
+                }
+                arrayList3.addAll(arrayList);
+                return;
+            }
+            TLRPC.TL_inputPrivacyValueAllowUsers tL_inputPrivacyValueAllowUsers = new TLRPC.TL_inputPrivacyValueAllowUsers();
+            if (i2 >= 0 && arrayList != null && !arrayList.isEmpty()) {
+                while (i3 < arrayList.size()) {
+                    Long l3 = arrayList.get(i3);
+                    long jLongValue3 = l3.longValue();
+                    this.selectedUserIds.add(l3);
+                    TLRPC.InputUser inputUser3 = MessagesController.getInstance(i2).getInputUser(jLongValue3);
+                    if (inputUser3 != null && !(inputUser3 instanceof TLRPC.TL_inputUserEmpty)) {
+                        tL_inputPrivacyValueAllowUsers.users.add(inputUser3);
+                        this.selectedInputUsers.add(inputUser3);
+                    }
+                    i3++;
+                }
+            }
+            this.rules.add(tL_inputPrivacyValueAllowUsers);
+        }
+
+        public StoryPrivacy(int i, ArrayList<TLRPC.InputUser> arrayList, int i2) {
+            ArrayList<TLRPC.InputPrivacyRule> arrayList2 = new ArrayList<>();
+            this.rules = arrayList2;
+            this.selectedUserIds = new ArrayList<>();
+            this.selectedUserIdsByGroup = new HashMap<>();
+            this.selectedInputUsers = new ArrayList<>();
+            this.sendToUsers = new ArrayList<>();
+            this.type = i;
+            int i3 = 0;
+            if (i == 4) {
+                arrayList2.add(new TLRPC.TL_inputPrivacyValueAllowAll());
+                if (arrayList == null || arrayList.isEmpty()) {
+                    return;
+                }
+                TLRPC.TL_inputPrivacyValueDisallowUsers tL_inputPrivacyValueDisallowUsers = new TLRPC.TL_inputPrivacyValueDisallowUsers();
+                while (i3 < arrayList.size()) {
+                    TLRPC.InputUser inputUser = arrayList.get(i3);
+                    if (inputUser != null) {
+                        tL_inputPrivacyValueDisallowUsers.users.add(inputUser);
+                        this.selectedUserIds.add(Long.valueOf(inputUser.user_id));
+                        this.selectedInputUsers.add(inputUser);
+                    }
+                    i3++;
+                }
+                this.rules.add(tL_inputPrivacyValueDisallowUsers);
+                return;
+            }
+            if (i == 1) {
+                arrayList2.add(new TLRPC.TL_inputPrivacyValueAllowCloseFriends());
+                return;
+            }
+            if (i == 2) {
+                arrayList2.add(new TLRPC.TL_inputPrivacyValueAllowContacts());
+                if (arrayList == null || arrayList.isEmpty()) {
+                    return;
+                }
+                TLRPC.TL_inputPrivacyValueDisallowUsers tL_inputPrivacyValueDisallowUsers2 = new TLRPC.TL_inputPrivacyValueDisallowUsers();
+                while (i3 < arrayList.size()) {
+                    TLRPC.InputUser inputUser2 = arrayList.get(i3);
+                    if (inputUser2 != null) {
+                        tL_inputPrivacyValueDisallowUsers2.users.add(inputUser2);
+                        this.selectedUserIds.add(Long.valueOf(inputUser2.user_id));
+                        this.selectedInputUsers.add(inputUser2);
+                    }
+                    i3++;
+                }
+                this.rules.add(tL_inputPrivacyValueDisallowUsers2);
+                return;
+            }
+            if (i != 3) {
+                if (i != 5 || arrayList == null) {
+                    return;
+                }
+                while (i3 < arrayList.size()) {
+                    TLRPC.InputUser inputUser3 = arrayList.get(i3);
+                    if (inputUser3 != null) {
+                        this.sendToUsers.add(Long.valueOf(inputUser3.user_id));
+                    }
+                    i3++;
+                }
+                return;
+            }
+            TLRPC.TL_inputPrivacyValueAllowUsers tL_inputPrivacyValueAllowUsers = new TLRPC.TL_inputPrivacyValueAllowUsers();
+            if (arrayList != null && !arrayList.isEmpty()) {
+                while (i3 < arrayList.size()) {
+                    TLRPC.InputUser inputUser4 = arrayList.get(i3);
+                    if (inputUser4 != null) {
+                        tL_inputPrivacyValueAllowUsers.users.add(inputUser4);
+                        this.selectedUserIds.add(Long.valueOf(inputUser4.user_id));
+                        this.selectedInputUsers.add(inputUser4);
+                    }
+                    i3++;
+                }
+            }
+            this.rules.add(tL_inputPrivacyValueAllowUsers);
+        }
+
+        public boolean isShare() {
+            return this.type == 5;
+        }
+
+        public boolean isNone() {
+            return this.sendToUsers.isEmpty() && this.rules.isEmpty();
+        }
+
+        public boolean isCloseFriends() {
+            return this.type == 1;
+        }
+
+        public String toString() {
+            TLRPC.InputPrivacyRule inputPrivacyRule;
+            int size;
+            if (!this.sendToUsers.isEmpty()) {
+                return LocaleController.formatPluralString("StoryPrivacyRecipients", this.sendToUsers.size(), new Object[0]);
+            }
+            if (this.rules.isEmpty()) {
+                return LocaleController.getString(C2807R.string.StoryPrivacyNone);
+            }
+            TLRPC.InputPrivacyRule inputPrivacyRule2 = this.rules.get(0);
+            int i = this.type;
+            if (i == 4) {
+                inputPrivacyRule = this.rules.size() >= 2 ? this.rules.get(1) : null;
+                if ((inputPrivacyRule instanceof TLRPC.TL_inputPrivacyValueDisallowUsers) && (size = ((TLRPC.TL_inputPrivacyValueDisallowUsers) inputPrivacyRule).users.size()) > 0) {
+                    return LocaleController.formatPluralString("StoryPrivacyEveryoneExclude", size, new Object[0]);
+                }
+                return LocaleController.getString(C2807R.string.StoryPrivacyEveryone);
+            }
+            if (i == 1) {
+                return LocaleController.getString(C2807R.string.StoryPrivacyCloseFriends);
+            }
+            if (i == 3 && (inputPrivacyRule2 instanceof TLRPC.TL_inputPrivacyValueAllowUsers)) {
+                return LocaleController.formatPluralString("StoryPrivacyContacts", ((TLRPC.TL_inputPrivacyValueAllowUsers) inputPrivacyRule2).users.size(), new Object[0]);
+            }
+            if (i == 2) {
+                inputPrivacyRule = this.rules.size() >= 2 ? this.rules.get(1) : null;
+                if (inputPrivacyRule instanceof TLRPC.TL_inputPrivacyValueDisallowUsers) {
+                    int size2 = ((TLRPC.TL_inputPrivacyValueDisallowUsers) inputPrivacyRule).users.size();
+                    if (size2 > 0) {
+                        return LocaleController.formatPluralString("StoryPrivacyContactsExclude", size2, new Object[0]);
+                    }
+                    return LocaleController.getString(C2807R.string.StoryPrivacyAllContacts);
+                }
+                return LocaleController.getString(C2807R.string.StoryPrivacyAllContacts);
+            }
+            if (i == 0) {
+                if (inputPrivacyRule2 instanceof TLRPC.TL_inputPrivacyValueAllowUsers) {
+                    int size3 = ((TLRPC.TL_inputPrivacyValueAllowUsers) inputPrivacyRule2).users.size();
+                    if (size3 > 0) {
+                        return LocaleController.formatPluralString("StoryPrivacyContacts", size3, new Object[0]);
+                    }
+                    return LocaleController.getString(C2807R.string.StoryPrivacyNone);
+                }
+                return LocaleController.getString(C2807R.string.StoryPrivacyNone);
+            }
+            return LocaleController.getString(C2807R.string.StoryPrivacyNone);
+        }
+
+        public ArrayList<TLRPC.PrivacyRule> toValue() {
+            ArrayList<TLRPC.PrivacyRule> arrayList = new ArrayList<>();
+            for (int i = 0; i < this.rules.size(); i++) {
+                TLRPC.InputPrivacyRule inputPrivacyRule = this.rules.get(i);
+                if (inputPrivacyRule instanceof TLRPC.TL_inputPrivacyValueAllowAll) {
+                    arrayList.add(new TLRPC.TL_privacyValueAllowAll());
+                } else if (inputPrivacyRule instanceof TLRPC.TL_inputPrivacyValueAllowCloseFriends) {
+                    arrayList.add(new TLRPC.TL_privacyValueAllowCloseFriends());
+                } else if (inputPrivacyRule instanceof TLRPC.TL_inputPrivacyValueAllowContacts) {
+                    arrayList.add(new TLRPC.TL_privacyValueAllowContacts());
+                } else if (inputPrivacyRule instanceof TLRPC.TL_inputPrivacyValueDisallowUsers) {
+                    TLRPC.TL_inputPrivacyValueDisallowUsers tL_inputPrivacyValueDisallowUsers = (TLRPC.TL_inputPrivacyValueDisallowUsers) inputPrivacyRule;
+                    TLRPC.TL_privacyValueDisallowUsers tL_privacyValueDisallowUsers = new TLRPC.TL_privacyValueDisallowUsers();
+                    for (int i2 = 0; i2 < tL_inputPrivacyValueDisallowUsers.users.size(); i2++) {
+                        tL_privacyValueDisallowUsers.users.add(Long.valueOf(tL_inputPrivacyValueDisallowUsers.users.get(i2).user_id));
+                    }
+                    arrayList.add(tL_privacyValueDisallowUsers);
+                } else if (inputPrivacyRule instanceof TLRPC.TL_inputPrivacyValueAllowUsers) {
+                    TLRPC.TL_inputPrivacyValueAllowUsers tL_inputPrivacyValueAllowUsers = (TLRPC.TL_inputPrivacyValueAllowUsers) inputPrivacyRule;
+                    TLRPC.TL_privacyValueAllowUsers tL_privacyValueAllowUsers = new TLRPC.TL_privacyValueAllowUsers();
+                    for (int i3 = 0; i3 < tL_inputPrivacyValueAllowUsers.users.size(); i3++) {
+                        tL_privacyValueAllowUsers.users.add(Long.valueOf(tL_inputPrivacyValueAllowUsers.users.get(i3).user_id));
+                    }
+                    arrayList.add(tL_privacyValueAllowUsers);
+                }
+            }
+            return arrayList;
+        }
+
+        public static ArrayList<TLRPC.InputPrivacyRule> toInput(int i, ArrayList<TLRPC.PrivacyRule> arrayList) {
+            MessagesController messagesController = MessagesController.getInstance(i);
+            ArrayList<TLRPC.InputPrivacyRule> arrayList2 = new ArrayList<>();
+            for (int i2 = 0; i2 < arrayList.size(); i2++) {
+                TLRPC.PrivacyRule privacyRule = arrayList.get(i2);
+                if (privacyRule != null) {
+                    if (privacyRule instanceof TLRPC.TL_privacyValueAllowAll) {
+                        arrayList2.add(new TLRPC.TL_inputPrivacyValueAllowAll());
+                    } else if (privacyRule instanceof TLRPC.TL_privacyValueAllowCloseFriends) {
+                        arrayList2.add(new TLRPC.TL_inputPrivacyValueAllowCloseFriends());
+                    } else if (privacyRule instanceof TLRPC.TL_privacyValueAllowContacts) {
+                        arrayList2.add(new TLRPC.TL_inputPrivacyValueAllowContacts());
+                    } else if (privacyRule instanceof TLRPC.TL_privacyValueDisallowUsers) {
+                        TLRPC.TL_privacyValueDisallowUsers tL_privacyValueDisallowUsers = (TLRPC.TL_privacyValueDisallowUsers) privacyRule;
+                        TLRPC.TL_inputPrivacyValueDisallowUsers tL_inputPrivacyValueDisallowUsers = new TLRPC.TL_inputPrivacyValueDisallowUsers();
+                        for (int i3 = 0; i3 < tL_privacyValueDisallowUsers.users.size(); i3++) {
+                            TLRPC.InputUser inputUser = messagesController.getInputUser(tL_privacyValueDisallowUsers.users.get(i3).longValue());
+                            if (!(inputUser instanceof TLRPC.TL_inputUserEmpty)) {
+                                tL_inputPrivacyValueDisallowUsers.users.add(inputUser);
+                            }
+                        }
+                        arrayList2.add(tL_inputPrivacyValueDisallowUsers);
+                    } else if (privacyRule instanceof TLRPC.TL_privacyValueAllowUsers) {
+                        TLRPC.TL_privacyValueAllowUsers tL_privacyValueAllowUsers = (TLRPC.TL_privacyValueAllowUsers) privacyRule;
+                        TLRPC.TL_inputPrivacyValueAllowUsers tL_inputPrivacyValueAllowUsers = new TLRPC.TL_inputPrivacyValueAllowUsers();
+                        for (int i4 = 0; i4 < tL_privacyValueAllowUsers.users.size(); i4++) {
+                            TLRPC.InputUser inputUser2 = messagesController.getInputUser(tL_privacyValueAllowUsers.users.get(i4).longValue());
+                            if (!(inputUser2 instanceof TLRPC.TL_inputUserEmpty)) {
+                                tL_inputPrivacyValueAllowUsers.users.add(inputUser2);
+                            }
+                        }
+                        arrayList2.add(tL_inputPrivacyValueAllowUsers);
+                    }
+                }
+            }
+            return arrayList2;
+        }
+
+        public static ArrayList<TLRPC.PrivacyRule> toOutput(ArrayList<TLRPC.InputPrivacyRule> arrayList) {
+            ArrayList<TLRPC.PrivacyRule> arrayList2 = new ArrayList<>();
+            for (int i = 0; i < arrayList.size(); i++) {
+                TLRPC.InputPrivacyRule inputPrivacyRule = arrayList.get(i);
+                if (inputPrivacyRule != null) {
+                    if (inputPrivacyRule instanceof TLRPC.TL_inputPrivacyValueAllowAll) {
+                        arrayList2.add(new TLRPC.TL_privacyValueAllowAll());
+                    } else if (inputPrivacyRule instanceof TLRPC.TL_inputPrivacyValueAllowCloseFriends) {
+                        arrayList2.add(new TLRPC.TL_privacyValueAllowCloseFriends());
+                    } else if (inputPrivacyRule instanceof TLRPC.TL_inputPrivacyValueAllowContacts) {
+                        arrayList2.add(new TLRPC.TL_privacyValueAllowContacts());
+                    } else if (inputPrivacyRule instanceof TLRPC.TL_inputPrivacyValueDisallowUsers) {
+                        TLRPC.TL_inputPrivacyValueDisallowUsers tL_inputPrivacyValueDisallowUsers = (TLRPC.TL_inputPrivacyValueDisallowUsers) inputPrivacyRule;
+                        TLRPC.TL_privacyValueDisallowUsers tL_privacyValueDisallowUsers = new TLRPC.TL_privacyValueDisallowUsers();
+                        for (int i2 = 0; i2 < tL_inputPrivacyValueDisallowUsers.users.size(); i2++) {
+                            tL_privacyValueDisallowUsers.users.add(Long.valueOf(tL_inputPrivacyValueDisallowUsers.users.get(i2).user_id));
+                        }
+                        arrayList2.add(tL_privacyValueDisallowUsers);
+                    } else if (inputPrivacyRule instanceof TLRPC.TL_inputPrivacyValueAllowUsers) {
+                        TLRPC.TL_inputPrivacyValueAllowUsers tL_inputPrivacyValueAllowUsers = (TLRPC.TL_inputPrivacyValueAllowUsers) inputPrivacyRule;
+                        TLRPC.TL_privacyValueAllowUsers tL_privacyValueAllowUsers = new TLRPC.TL_privacyValueAllowUsers();
+                        for (int i3 = 0; i3 < tL_inputPrivacyValueAllowUsers.users.size(); i3++) {
+                            tL_privacyValueAllowUsers.users.add(Long.valueOf(tL_inputPrivacyValueAllowUsers.users.get(i3).user_id));
+                        }
+                        arrayList2.add(tL_privacyValueAllowUsers);
+                    }
+                }
+            }
+            return arrayList2;
+        }
+
+        public boolean containsUser(TLRPC.User user) {
+            if (user == null) {
+                return false;
+            }
+            int i = this.type;
+            if (i == 4) {
+                return !this.selectedUserIds.contains(Long.valueOf(user.id));
+            }
+            if (i == 2) {
+                return !this.selectedUserIds.contains(Long.valueOf(user.id)) && user.contact;
+            }
+            if (i == 1) {
+                return user.close_friend;
+            }
+            if (i == 3) {
+                if (this.selectedUserIds.contains(Long.valueOf(user.id))) {
+                    return true;
+                }
+                Iterator<ArrayList<Long>> it = this.selectedUserIdsByGroup.values().iterator();
+                while (it.hasNext()) {
+                    if (it.next().contains(Long.valueOf(user.id))) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+    }
+
+    @Override // org.telegram.messenger.NotificationCenter.NotificationCenterDelegate
+    public void didReceivedNotification(int i, int i2, Object... objArr) {
+        ViewPagerFixed viewPagerFixed = this.viewPager;
+        if (viewPagerFixed == null) {
+            return;
+        }
+        int i3 = 0;
+        if (i == NotificationCenter.contactsDidLoad) {
+            View[] viewPages = viewPagerFixed.getViewPages();
+            View view = viewPages[0];
+            if (view instanceof Page) {
+                ((Page) view).updateItems(true);
+            }
+            View view2 = viewPages[1];
+            if (view2 instanceof Page) {
+                ((Page) view2).updateItems(true);
+                return;
+            }
+            return;
+        }
+        if (i == NotificationCenter.storiesBlocklistUpdate) {
+            View[] viewPages2 = viewPagerFixed.getViewPages();
+            while (i3 < viewPages2.length) {
+                View view3 = viewPages2[i3];
+                if (view3 instanceof Page) {
+                    Page page = (Page) view3;
+                    int i4 = page.pageType;
+                    if (i4 == 6) {
+                        page.applyBlocklist(true);
+                    } else if (i4 == 0) {
+                        page.updateItems(true);
+                    }
+                }
+                i3++;
+            }
+            return;
+        }
+        if (i == NotificationCenter.storiesSendAsUpdate) {
+            View[] viewPages3 = viewPagerFixed.getViewPages();
+            while (i3 < viewPages3.length) {
+                View view4 = viewPages3[i3];
+                if (view4 instanceof Page) {
+                    Page page2 = (Page) view4;
+                    if (page2.pageType == 0) {
+                        page2.updateItems(true);
+                    }
+                }
+                i3++;
+            }
+        }
+    }
+
+    private void pullSaved() {
+        String string = MessagesController.getInstance(this.currentAccount).getMainSettings().getString("story_prv_contacts", null);
+        if (string != null) {
+            String[] strArrSplit = string.split(",");
+            this.selectedContacts.clear();
+            for (String str : strArrSplit) {
+                try {
+                    this.selectedContacts.add(Long.valueOf(Long.parseLong(str)));
+                } catch (Exception unused) {
+                }
+            }
+        }
+        String string2 = MessagesController.getInstance(this.currentAccount).getMainSettings().getString("story_prv_grpcontacts", null);
+        if (string2 != null) {
+            String[] strArrSplit2 = string2.split(";");
+            this.selectedContactsByGroup.clear();
+            for (String str2 : strArrSplit2) {
+                String[] strArrSplit3 = str2.split(",");
+                if (strArrSplit3.length > 0) {
+                    try {
+                        long j = Long.parseLong(strArrSplit3[0]);
+                        ArrayList<Long> arrayList = new ArrayList<>();
+                        for (int i = 1; i < strArrSplit3.length; i++) {
+                            arrayList.add(Long.valueOf(Long.parseLong(strArrSplit3[i])));
+                        }
+                        this.selectedContactsByGroup.put(Long.valueOf(j), arrayList);
+                    } catch (Exception unused2) {
+                    }
+                }
+            }
+        }
+        String string3 = MessagesController.getInstance(this.currentAccount).getMainSettings().getString("story_prv_everyoneexcept", null);
+        if (string3 != null) {
+            String[] strArrSplit4 = string3.split(",");
+            this.excludedEveryone.clear();
+            for (String str3 : strArrSplit4) {
+                try {
+                    this.excludedEveryone.add(Long.valueOf(Long.parseLong(str3)));
+                } catch (Exception unused3) {
+                }
+            }
+        }
+        String string4 = MessagesController.getInstance(this.currentAccount).getMainSettings().getString("story_prv_grpeveryoneexcept", null);
+        if (string4 != null) {
+            String[] strArrSplit5 = string4.split(";");
+            this.excludedEveryoneByGroup.clear();
+            for (String str4 : strArrSplit5) {
+                String[] strArrSplit6 = str4.split(",");
+                if (strArrSplit6.length > 0) {
+                    try {
+                        long j2 = Long.parseLong(strArrSplit6[0]);
+                        ArrayList<Long> arrayList2 = new ArrayList<>();
+                        for (int i2 = 1; i2 < strArrSplit6.length; i2++) {
+                            arrayList2.add(Long.valueOf(Long.parseLong(strArrSplit6[i2])));
+                        }
+                        this.excludedEveryoneByGroup.put(Long.valueOf(j2), arrayList2);
+                    } catch (Exception unused4) {
+                    }
+                }
+            }
+        }
+        String string5 = MessagesController.getInstance(this.currentAccount).getMainSettings().getString("story_prv_excluded", null);
+        if (string5 != null) {
+            String[] strArrSplit7 = string5.split(",");
+            this.excludedContacts.clear();
+            for (String str5 : strArrSplit7) {
+                try {
+                    this.excludedContacts.add(Long.valueOf(Long.parseLong(str5)));
+                } catch (Exception unused5) {
+                }
+            }
+        }
+        this.selectedContactsCount = mergeUsers(this.selectedContacts, this.selectedContactsByGroup).size();
+        this.excludedEveryoneCount = mergeUsers(this.excludedEveryone, this.excludedEveryoneByGroup).size();
+        this.allowScreenshots = !MessagesController.getInstance(this.currentAccount).getMainSettings().getBoolean("story_noforwards", false);
+        this.keepOnMyPage = MessagesController.getInstance(this.currentAccount).getMainSettings().getBoolean("story_keep", true);
+    }
+
+    private void save() {
+        StringBuilder sb = new StringBuilder();
+        for (Map.Entry<Long, ArrayList<Long>> entry : this.selectedContactsByGroup.entrySet()) {
+            if (sb.length() > 0) {
+                sb.append(";");
+            }
+            sb.append(entry.getKey());
+            sb.append(",");
+            sb.append(TextUtils.join(",", entry.getValue()));
+        }
+        StringBuilder sb2 = new StringBuilder();
+        for (Map.Entry<Long, ArrayList<Long>> entry2 : this.excludedEveryoneByGroup.entrySet()) {
+            if (sb2.length() > 0) {
+                sb2.append(";");
+            }
+            sb2.append(entry2.getKey());
+            sb2.append(",");
+            sb2.append(TextUtils.join(",", entry2.getValue()));
+        }
+        MessagesController.getInstance(this.currentAccount).getMainSettings().edit().putString("story_prv_everyoneexcept", TextUtils.join(",", this.excludedEveryone)).putString("story_prv_grpeveryoneexcept", sb2.toString()).putString("story_prv_contacts", TextUtils.join(",", this.selectedContacts)).putString("story_prv_grpcontacts", sb.toString()).putString("story_prv_excluded", TextUtils.join(",", this.excludedContacts)).putBoolean("story_noforwards", !this.allowScreenshots).putBoolean("story_keep", this.keepOnMyPage).apply();
+    }
+
+    public StoryPrivacyBottomSheet setCanChangePeer(boolean z) {
+        this.canChangePeer = z;
+        return this;
+    }
+
+    public StoryPrivacyBottomSheet setCover(Bitmap bitmap, Runnable runnable) {
+        this.coverDrawable = bitmap == null ? null : new BitmapDrawable(bitmap);
+        this.whenCoverClicked = runnable;
+        ViewPagerFixed viewPagerFixed = this.viewPager;
+        if (viewPagerFixed != null) {
+            for (View view : viewPagerFixed.getViewPages()) {
+                if (view instanceof Page) {
+                    Page page = (Page) view;
+                    page.updateItems(false);
+                    page.updateButton(false);
+                }
+            }
+        }
+        return this;
+    }
+
+    public StoryPrivacyBottomSheet setCover(Bitmap bitmap) {
+        this.coverDrawable = bitmap == null ? null : new BitmapDrawable(bitmap);
+        ViewPagerFixed viewPagerFixed = this.viewPager;
+        if (viewPagerFixed != null) {
+            for (View view : viewPagerFixed.getViewPages()) {
+                if (view instanceof Page) {
+                    Page page = (Page) view;
+                    page.updateItems(false);
+                    page.updateButton(false);
+                }
+            }
+        }
+        return this;
+    }
+
+    public static class ChoosePeerSheet extends BottomSheet implements NotificationCenter.NotificationCenterDelegate {
+        private final Adapter adapter;
+        private final int currentAccount;
+        private final TextView headerView;
+        private final boolean isLive;
+        private final RecyclerListView listView;
+        private final Utilities.Callback<TLRPC.InputPeer> onPeerSelected;
+        private List<TLRPC.InputPeer> peers;
+        private final TLRPC.InputPeer selectedPeer;
+
+        public ChoosePeerSheet(Context context, final int i, boolean z, TLRPC.InputPeer inputPeer, final Utilities.Callback<TLRPC.InputPeer> callback, final Theme.ResourcesProvider resourcesProvider) {
+            super(context, false, resourcesProvider);
+            fixNavigationBar();
+            MessagesController.getInstance(i).getStoriesController().loadSendAs();
+            this.isLive = z;
+            this.currentAccount = i;
+            this.peers = MessagesController.getInstance(i).getStoriesController().sendAs;
+            this.selectedPeer = inputPeer;
+            this.onPeerSelected = callback;
+            this.containerView = new FrameLayout(context) { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet.ChoosePeerSheet.1
+                private final Paint backgroundPaint = new Paint(1);
+                private final AnimatedFloat statusBarT = new AnimatedFloat(this, 0, 350, CubicBezierInterpolator.EASE_OUT_QUINT);
+
+                @Override // android.view.ViewGroup, android.view.View
+                public void dispatchDraw(Canvas canvas) {
+                    this.backgroundPaint.setColor(Theme.getColor(Theme.key_dialogBackground, resourcesProvider));
+                    float fMax = Math.max(0.0f, ChoosePeerSheet.this.top());
+                    float fLerp = AndroidUtilities.lerp(fMax, 0.0f, this.statusBarT.set(fMax < ((float) AndroidUtilities.statusBarHeight)));
+                    RectF rectF = AndroidUtilities.rectTmp;
+                    rectF.set(((BottomSheet) ChoosePeerSheet.this).backgroundPaddingLeft, fLerp, getWidth() - ((BottomSheet) ChoosePeerSheet.this).backgroundPaddingLeft, getHeight() + AndroidUtilities.dp(14.0f));
+                    float fDp = AndroidUtilities.dp(14.0f) * (1.0f - this.statusBarT.get());
+                    canvas.drawRoundRect(rectF, fDp, fDp, this.backgroundPaint);
+                    ChoosePeerSheet.this.headerView.setTranslationY(Math.max(AndroidUtilities.statusBarHeight + AndroidUtilities.dp(8.0f), AndroidUtilities.dp(14.0f) + fLerp));
+                    canvas.save();
+                    canvas.clipRect(((BottomSheet) ChoosePeerSheet.this).backgroundPaddingLeft, AndroidUtilities.statusBarHeight + AndroidUtilities.dp(14.0f), getWidth() - ((BottomSheet) ChoosePeerSheet.this).backgroundPaddingLeft, getHeight());
+                    super.dispatchDraw(canvas);
+                    canvas.restore();
+                }
+
+                @Override // android.view.ViewGroup, android.view.View
+                public boolean dispatchTouchEvent(MotionEvent motionEvent) {
+                    if (motionEvent.getY() < ChoosePeerSheet.this.top()) {
+                        ChoosePeerSheet.this.lambda$new$0();
+                        return true;
+                    }
+                    return super.dispatchTouchEvent(motionEvent);
+                }
+            };
+            RecyclerListView recyclerListView = new RecyclerListView(context, resourcesProvider);
+            this.listView = recyclerListView;
+            int i2 = this.backgroundPaddingLeft;
+            recyclerListView.setPadding(i2, 0, i2, 0);
+            Adapter adapter = new Adapter();
+            this.adapter = adapter;
+            recyclerListView.setAdapter(adapter);
+            recyclerListView.setLayoutManager(new LinearLayoutManager(context));
+            this.containerView.addView(recyclerListView, LayoutHelper.createFrame(-1, -1, 119));
+            recyclerListView.setOnItemClickListener(new RecyclerListView.OnItemClickListener() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet$ChoosePeerSheet$$ExternalSyntheticLambda0
+                @Override // org.telegram.ui.Components.RecyclerListView.OnItemClickListener
+                public final void onItemClick(View view, int i3) {
+                    this.f$0.lambda$new$1(callback, resourcesProvider, i, view, i3);
+                }
+            });
+            recyclerListView.setOnScrollListener(new RecyclerView.OnScrollListener() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet.ChoosePeerSheet.2
+                @Override // androidx.recyclerview.widget.RecyclerView.OnScrollListener
+                public void onScrolled(RecyclerView recyclerView, int i3, int i4) {
+                    ((BottomSheet) ChoosePeerSheet.this).containerView.invalidate();
+                }
+            });
+            TextView textView = new TextView(getContext());
+            this.headerView = textView;
+            textView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText, resourcesProvider));
+            textView.setTextSize(1, 20.0f);
+            textView.setPadding(this.backgroundPaddingLeft + AndroidUtilities.dp(22.0f), AndroidUtilities.dp(2.0f), this.backgroundPaddingLeft + AndroidUtilities.dp(22.0f), AndroidUtilities.dp(14.0f));
+            textView.setBackgroundColor(Theme.getColor(Theme.key_dialogBackground, resourcesProvider));
+            textView.setTypeface(AndroidUtilities.bold());
+            textView.setText(LocaleController.getString(z ? C2807R.string.StoryPrivacyPublishLiveAs : C2807R.string.StoryPrivacyPublishAs));
+            this.containerView.addView(textView, LayoutHelper.createFrame(-1, -2.0f));
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public /* synthetic */ void lambda$new$1(final Utilities.Callback callback, Theme.ResourcesProvider resourcesProvider, int i, View view, int i2) {
+            if (i2 <= 1) {
+                return;
+            }
+            final TLRPC.InputPeer inputPeer = this.peers.get(i2 - 2);
+            if (inputPeer.channel_id == 0 && inputPeer.chat_id == 0) {
+                callback.run(inputPeer);
+                lambda$new$0();
+            } else {
+                final AlertDialog alertDialog = new AlertDialog(getContext(), 3, resourcesProvider);
+                alertDialog.showDelayed(200L);
+                MessagesController.getInstance(i).getStoriesController().canSendStoryFor(DialogObject.getPeerDialogId(inputPeer), new Utilities.Callback() { // from class: org.telegram.ui.Stories.recorder.StoryPrivacyBottomSheet$ChoosePeerSheet$$ExternalSyntheticLambda1
+                    @Override // org.telegram.messenger.Utilities.Callback
+                    public final void run(Object obj) {
+                        StoryPrivacyBottomSheet.ChoosePeerSheet.m22089$r8$lambda$n3fTCQAITu8YC5M_ytfMu6Aojs(alertDialog, callback, inputPeer, (Boolean) obj);
+                    }
+                }, true, resourcesProvider);
+                lambda$new$0();
+            }
+        }
+
+        /* JADX INFO: renamed from: $r8$lambda$n3-fTCQAITu8YC5M_ytfMu6Aojs, reason: not valid java name */
+        public static /* synthetic */ void m22089$r8$lambda$n3fTCQAITu8YC5M_ytfMu6Aojs(AlertDialog alertDialog, Utilities.Callback callback, TLRPC.InputPeer inputPeer, Boolean bool) {
+            alertDialog.dismiss();
+            if (!bool.booleanValue() || callback == null) {
+                return;
+            }
+            callback.run(inputPeer);
+        }
+
+        @Override // android.app.Dialog, android.view.Window.Callback
+        public void onAttachedToWindow() {
+            super.onAttachedToWindow();
+            NotificationCenter.getInstance(this.currentAccount).addObserver(this, NotificationCenter.storiesSendAsUpdate);
+        }
+
+        @Override // android.app.Dialog, android.view.Window.Callback
+        public void onDetachedFromWindow() {
+            super.onDetachedFromWindow();
+            NotificationCenter.getInstance(this.currentAccount).removeObserver(this, NotificationCenter.storiesSendAsUpdate);
+        }
+
+        @Override // org.telegram.messenger.NotificationCenter.NotificationCenterDelegate
+        public void didReceivedNotification(int i, int i2, Object... objArr) {
+            if (i == NotificationCenter.storiesSendAsUpdate) {
+                this.peers = MessagesController.getInstance(this.currentAccount).getStoriesController().sendAs;
+                this.adapter.notifyDataSetChanged();
+            }
+        }
+
+        /* JADX INFO: Access modifiers changed from: private */
+        public float top() {
+            int childAdapterPosition;
+            float measuredHeight = this.containerView.getMeasuredHeight();
+            for (int i = 0; i < this.listView.getChildCount(); i++) {
+                View childAt = this.listView.getChildAt(i);
+                if (childAt != null && (childAdapterPosition = this.listView.getChildAdapterPosition(childAt)) != -1 && childAdapterPosition > 0) {
+                    measuredHeight = Math.min(AndroidUtilities.lerp(measuredHeight, childAt.getY(), childAt.getAlpha()), measuredHeight);
+                }
+            }
+            return measuredHeight;
+        }
+
+        @Override // org.telegram.ui.ActionBar.BottomSheet
+        public boolean canDismissWithSwipe() {
+            return top() > ((float) ((int) (((float) AndroidUtilities.displaySize.y) * 0.5f)));
+        }
+
+        public class Adapter extends RecyclerListView.SelectionAdapter {
+            @Override // androidx.recyclerview.widget.RecyclerView.Adapter
+            public int getItemViewType(int i) {
+                if (i == 0) {
+                    return 0;
+                }
+                return i == 1 ? 1 : 2;
+            }
+
+            private Adapter() {
+            }
+
+            @Override // org.telegram.ui.Components.RecyclerListView.SelectionAdapter
+            public boolean isEnabled(RecyclerView.ViewHolder viewHolder) {
+                return viewHolder.getItemViewType() == 2;
+            }
+
+            @Override // androidx.recyclerview.widget.RecyclerView.Adapter
+            public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup viewGroup, int i) {
+                View view;
+                int iDp;
+                if (i == 0 || i == 1) {
+                    view = new View(ChoosePeerSheet.this.getContext());
+                    if (i == 0) {
+                        iDp = (AndroidUtilities.displaySize.y + AndroidUtilities.statusBarHeight) - AndroidUtilities.dp(306.0f);
+                    } else {
+                        iDp = AndroidUtilities.dp(54.0f);
+                    }
+                    view.setLayoutParams(new RecyclerView.LayoutParams(-1, iDp));
+                } else {
+                    view = new UserCell(ChoosePeerSheet.this.getContext(), ((BottomSheet) ChoosePeerSheet.this).resourcesProvider);
+                }
+                return new RecyclerListView.Holder(view);
+            }
+
+            @Override // androidx.recyclerview.widget.RecyclerView.Adapter
+            public void onBindViewHolder(RecyclerView.ViewHolder viewHolder, int i) {
+                if (viewHolder.getItemViewType() == 2) {
+                    UserCell userCell = (UserCell) viewHolder.itemView;
+                    userCell.setIsSendAs(true, true);
+                    TLRPC.InputPeer inputPeer = (TLRPC.InputPeer) ChoosePeerSheet.this.peers.get(i - 2);
+                    if (inputPeer instanceof TLRPC.TL_inputPeerSelf) {
+                        userCell.setUser(UserConfig.getInstance(ChoosePeerSheet.this.currentAccount).getCurrentUser());
+                    } else if (inputPeer instanceof TLRPC.TL_inputPeerUser) {
+                        userCell.setUser(MessagesController.getInstance(ChoosePeerSheet.this.currentAccount).getUser(Long.valueOf(inputPeer.user_id)));
+                    } else if (inputPeer instanceof TLRPC.TL_inputPeerChat) {
+                        userCell.setChat(MessagesController.getInstance(ChoosePeerSheet.this.currentAccount).getChat(Long.valueOf(inputPeer.chat_id)), 0);
+                    } else if (inputPeer instanceof TLRPC.TL_inputPeerChannel) {
+                        userCell.setChat(MessagesController.getInstance(ChoosePeerSheet.this.currentAccount).getChat(Long.valueOf(inputPeer.channel_id)), 0);
+                    }
+                    userCell.checkBox.setVisibility(8);
+                    userCell.radioButton.setVisibility(0);
+                    userCell.setChecked((ChoosePeerSheet.this.selectedPeer == null && i == 2) || did(ChoosePeerSheet.this.selectedPeer) == did(inputPeer), false);
+                    userCell.setDivider(i != getItemCount() - 1);
+                }
+            }
+
+            private long did(TLRPC.InputPeer inputPeer) {
+                if (inputPeer instanceof TLRPC.TL_inputPeerSelf) {
+                    return UserConfig.getInstance(ChoosePeerSheet.this.currentAccount).getClientUserId();
+                }
+                return DialogObject.getPeerDialogId(inputPeer);
+            }
+
+            @Override // androidx.recyclerview.widget.RecyclerView.Adapter
+            public int getItemCount() {
+                return ChoosePeerSheet.this.peers.size() + 2;
+            }
+        }
+    }
+
+    public StoriesController getStoriesController() {
+        return MessagesController.getInstance(this.currentAccount).getStoriesController();
+    }
+}

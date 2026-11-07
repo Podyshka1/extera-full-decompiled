@@ -1,0 +1,49 @@
+package com.google.android.gms.internal.fido;
+
+import java.util.Arrays;
+
+/* JADX INFO: loaded from: classes4.dex */
+public final class zzhn extends zzhp {
+    private final String zza;
+
+    public zzhn(String str) {
+        this.zza = str;
+    }
+
+    @Override // java.lang.Comparable
+    public final /* bridge */ /* synthetic */ int compareTo(Object obj) {
+        zzhp zzhpVar = (zzhp) obj;
+        if (zzhp.zzd((byte) 96) != zzhpVar.zza()) {
+            return zzhp.zzd((byte) 96) - zzhpVar.zza();
+        }
+        String str = this.zza;
+        String str2 = ((zzhn) zzhpVar).zza;
+        if (str.length() == str2.length()) {
+            return str.compareTo(str2);
+        }
+        return str.length() - str2.length();
+    }
+
+    public final boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj != null && zzhn.class == obj.getClass()) {
+            return this.zza.equals(((zzhn) obj).zza);
+        }
+        return false;
+    }
+
+    public final int hashCode() {
+        return Arrays.hashCode(new Object[]{Integer.valueOf(zzhp.zzd((byte) 96)), this.zza});
+    }
+
+    public final String toString() {
+        return "\"" + this.zza + "\"";
+    }
+
+    @Override // com.google.android.gms.internal.fido.zzhp
+    public final int zza() {
+        return zzhp.zzd((byte) 96);
+    }
+}

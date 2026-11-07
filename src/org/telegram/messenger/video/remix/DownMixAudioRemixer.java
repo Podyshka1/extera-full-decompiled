@@ -1,0 +1,32 @@
+package org.telegram.messenger.video.remix;
+
+import java.nio.ShortBuffer;
+import kotlin.jvm.internal.ShortCompanionObject;
+
+/* JADX INFO: loaded from: classes6.dex */
+public class DownMixAudioRemixer implements AudioRemixer {
+    @Override // org.telegram.messenger.video.remix.AudioRemixer
+    public void remix(ShortBuffer shortBuffer, int i, ShortBuffer shortBuffer2, int i2) {
+        int iMin = Math.min(shortBuffer.remaining() / 2, shortBuffer2.remaining());
+        for (int i3 = 0; i3 < iMin; i3++) {
+            shortBuffer2.put(mix(shortBuffer.get(), shortBuffer.get()));
+        }
+    }
+
+    @Override // org.telegram.messenger.video.remix.AudioRemixer
+    public int getRemixedSize(int i, int i2, int i3) {
+        return i / 2;
+    }
+
+    public static short mix(short s, short s2) {
+        int i;
+        int i2 = s + ShortCompanionObject.MIN_VALUE;
+        int i3 = s2 + ShortCompanionObject.MIN_VALUE;
+        if (i2 < 32768 || i3 < 32768) {
+            i = (i2 * i3) / 32768;
+        } else {
+            i = (((i2 + i3) * 2) - ((i2 * i3) / 32768)) - 65535;
+        }
+        return (short) ((i != 65536 ? i : 65535) - 32768);
+    }
+}

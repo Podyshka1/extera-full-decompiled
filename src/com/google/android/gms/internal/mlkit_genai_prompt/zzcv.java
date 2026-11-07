@@ -1,0 +1,8 @@
+package com.google.android.gms.internal.mlkit_genai_prompt;
+
+/* JADX INFO: loaded from: classes5.dex */
+public abstract class zzcv {
+    public static final zzcw zza() {
+        return new zzcw(false);
+    }
+}

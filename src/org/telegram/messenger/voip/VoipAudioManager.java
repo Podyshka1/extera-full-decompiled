@@ -1,0 +1,157 @@
+package org.telegram.messenger.voip;
+
+import android.media.AudioDeviceInfo;
+import android.media.AudioManager;
+import android.os.Build;
+import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.ApplicationLoader;
+import org.telegram.messenger.Utilities;
+import org.webrtc.MediaStreamTrack;
+
+/* JADX INFO: loaded from: classes6.dex */
+public class VoipAudioManager {
+    private Boolean isSpeakerphoneOn;
+
+    private VoipAudioManager() {
+    }
+
+    public static final class InstanceHolder {
+        static final VoipAudioManager instance = new VoipAudioManager();
+
+        private InstanceHolder() {
+        }
+    }
+
+    public static VoipAudioManager get() {
+        return InstanceHolder.instance;
+    }
+
+    public void setSpeakerphoneOn(final boolean z) {
+        this.isSpeakerphoneOn = Boolean.valueOf(z);
+        final AudioManager audioManager = getAudioManager();
+        Utilities.globalQueue.postRunnable(new Runnable() { // from class: org.telegram.messenger.voip.VoipAudioManager$$ExternalSyntheticLambda2
+            @Override // java.lang.Runnable
+            public final void run() {
+                audioManager.setSpeakerphoneOn(z);
+            }
+        });
+    }
+
+    public boolean isSpeakerphoneOn() {
+        Boolean bool = this.isSpeakerphoneOn;
+        if (bool == null) {
+            return getAudioManager().isSpeakerphoneOn();
+        }
+        return bool.booleanValue();
+    }
+
+    public static boolean isBluetoothDevice(AudioDeviceInfo audioDeviceInfo) {
+        if (audioDeviceInfo == null) {
+            return false;
+        }
+        int type = audioDeviceInfo.getType();
+        if (type == 7) {
+            return true;
+        }
+        int i = Build.VERSION.SDK_INT;
+        if (i < 28 || type != 23) {
+            return i >= 31 && (type == 26 || type == 27);
+        }
+        return true;
+    }
+
+    public AudioDeviceInfo findBluetoothDevice() {
+        if (Build.VERSION.SDK_INT < 31) {
+            return null;
+        }
+        for (AudioDeviceInfo audioDeviceInfo : getAudioManager().getAvailableCommunicationDevices()) {
+            if (isBluetoothDevice(audioDeviceInfo)) {
+                return audioDeviceInfo;
+            }
+        }
+        return null;
+    }
+
+    public boolean isBluetoothOn() {
+        AudioManager audioManager = getAudioManager();
+        if (Build.VERSION.SDK_INT >= 31) {
+            return isBluetoothDevice(audioManager.getCommunicationDevice());
+        }
+        return audioManager.isBluetoothScoOn();
+    }
+
+    public void startBluetooth() {
+        final AudioManager audioManager = getAudioManager();
+        if (Build.VERSION.SDK_INT >= 31) {
+            final AudioDeviceInfo audioDeviceInfoFindBluetoothDevice = findBluetoothDevice();
+            if (audioDeviceInfoFindBluetoothDevice == null) {
+                return;
+            }
+            this.isSpeakerphoneOn = Boolean.FALSE;
+            Utilities.globalQueue.postRunnable(new Runnable() { // from class: org.telegram.messenger.voip.VoipAudioManager$$ExternalSyntheticLambda0
+                @Override // java.lang.Runnable
+                public final void run() {
+                    audioManager.setCommunicationDevice(audioDeviceInfoFindBluetoothDevice);
+                }
+            });
+            return;
+        }
+        audioManager.startBluetoothSco();
+    }
+
+    public void stopBluetooth() {
+        final AudioManager audioManager = getAudioManager();
+        if (Build.VERSION.SDK_INT >= 31) {
+            Utilities.globalQueue.postRunnable(new Runnable() { // from class: org.telegram.messenger.voip.VoipAudioManager$$ExternalSyntheticLambda3
+                @Override // java.lang.Runnable
+                public final void run() {
+                    VoipAudioManager.$r8$lambda$0kxcseDigyTyfcIbBV632aX8fgw(audioManager);
+                }
+            });
+        } else {
+            audioManager.stopBluetoothSco();
+        }
+    }
+
+    public static /* synthetic */ void $r8$lambda$0kxcseDigyTyfcIbBV632aX8fgw(AudioManager audioManager) {
+        if (isBluetoothDevice(audioManager.getCommunicationDevice())) {
+            audioManager.clearCommunicationDevice();
+        }
+    }
+
+    public void setBluetoothOn(boolean z) {
+        if (Build.VERSION.SDK_INT < 31) {
+            getAudioManager().setBluetoothScoOn(z);
+        } else if (z) {
+            startBluetooth();
+        } else {
+            stopBluetooth();
+        }
+    }
+
+    public void isBluetoothAndSpeakerOnAsync(final Utilities.Callback2<Boolean, Boolean> callback2) {
+        Utilities.globalQueue.postRunnable(new Runnable() { // from class: org.telegram.messenger.voip.VoipAudioManager$$ExternalSyntheticLambda1
+            @Override // java.lang.Runnable
+            public final void run() {
+                this.f$0.lambda$isBluetoothAndSpeakerOnAsync$4(callback2);
+            }
+        });
+    }
+
+    /* JADX INFO: Access modifiers changed from: private */
+    public /* synthetic */ void lambda$isBluetoothAndSpeakerOnAsync$4(final Utilities.Callback2 callback2) {
+        AudioManager audioManager = getAudioManager();
+        final boolean zIsBluetoothOn = isBluetoothOn();
+        final boolean zIsSpeakerphoneOn = audioManager.isSpeakerphoneOn();
+        AndroidUtilities.runOnUIThread(new Runnable() { // from class: org.telegram.messenger.voip.VoipAudioManager$$ExternalSyntheticLambda4
+            @Override // java.lang.Runnable
+            public final void run() {
+                callback2.run(Boolean.valueOf(zIsBluetoothOn), Boolean.valueOf(zIsSpeakerphoneOn));
+            }
+        });
+    }
+
+    private AudioManager getAudioManager() {
+        return (AudioManager) ApplicationLoader.applicationContext.getSystemService(MediaStreamTrack.AUDIO_TRACK_KIND);
+    }
+}

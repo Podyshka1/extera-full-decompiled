@@ -1,0 +1,22 @@
+package com.google.android.gms.internal.vision;
+
+import okhttp3.internal.url._UrlKt;
+
+/* JADX INFO: loaded from: classes5.dex */
+public enum zzmo {
+    INT(0),
+    LONG(0L),
+    FLOAT(Float.valueOf(0.0f)),
+    DOUBLE(Double.valueOf(0.0d)),
+    BOOLEAN(Boolean.FALSE),
+    STRING(_UrlKt.FRAGMENT_ENCODE_SET),
+    BYTE_STRING(zzht.zza),
+    ENUM(null),
+    MESSAGE(null);
+
+    private final Object zzj;
+
+    zzmo(Object obj) {
+        this.zzj = obj;
+    }
+}

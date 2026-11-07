@@ -1,0 +1,48 @@
+package androidx.media3.extractor.text;
+
+import androidx.media3.common.text.Cue;
+import androidx.media3.decoder.DecoderOutputBuffer;
+import com.google.common.base.Preconditions;
+import java.util.List;
+import kotlin.jvm.internal.LongCompanionObject;
+
+/* JADX INFO: loaded from: classes4.dex */
+public abstract class SubtitleOutputBuffer extends DecoderOutputBuffer implements Subtitle {
+    private long subsampleOffsetUs;
+    private Subtitle subtitle;
+
+    public void setContent(long j, Subtitle subtitle, long j2) {
+        this.timeUs = j;
+        this.subtitle = subtitle;
+        if (j2 != LongCompanionObject.MAX_VALUE) {
+            j = j2;
+        }
+        this.subsampleOffsetUs = j;
+    }
+
+    @Override // androidx.media3.extractor.text.Subtitle
+    public int getEventTimeCount() {
+        return ((Subtitle) Preconditions.checkNotNull(this.subtitle)).getEventTimeCount();
+    }
+
+    @Override // androidx.media3.extractor.text.Subtitle
+    public long getEventTime(int i) {
+        return ((Subtitle) Preconditions.checkNotNull(this.subtitle)).getEventTime(i) + this.subsampleOffsetUs;
+    }
+
+    @Override // androidx.media3.extractor.text.Subtitle
+    public int getNextEventTimeIndex(long j) {
+        return ((Subtitle) Preconditions.checkNotNull(this.subtitle)).getNextEventTimeIndex(j - this.subsampleOffsetUs);
+    }
+
+    @Override // androidx.media3.extractor.text.Subtitle
+    public List<Cue> getCues(long j) {
+        return ((Subtitle) Preconditions.checkNotNull(this.subtitle)).getCues(j - this.subsampleOffsetUs);
+    }
+
+    @Override // androidx.media3.decoder.DecoderOutputBuffer, androidx.media3.decoder.Buffer
+    public void clear() {
+        super.clear();
+        this.subtitle = null;
+    }
+}

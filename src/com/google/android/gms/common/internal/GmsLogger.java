@@ -1,0 +1,64 @@
+package com.google.android.gms.common.internal;
+
+import android.util.Log;
+
+/* JADX INFO: loaded from: classes4.dex */
+public final class GmsLogger {
+    private final String zza;
+    private final String zzb;
+
+    public GmsLogger(String str) {
+        this(str, null);
+    }
+
+    private final String zza(String str) {
+        String str2 = this.zzb;
+        return str2 == null ? str : str2.concat(str);
+    }
+
+    public boolean canLog(int i) {
+        return Log.isLoggable(this.zza, i);
+    }
+
+    /* JADX INFO: renamed from: d */
+    public void m324d(String str, String str2) {
+        if (canLog(3)) {
+            Log.d(str, zza(str2));
+        }
+    }
+
+    /* JADX INFO: renamed from: e */
+    public void m325e(String str, String str2) {
+        if (canLog(6)) {
+            Log.e(str, zza(str2));
+        }
+    }
+
+    /* JADX INFO: renamed from: v */
+    public void m327v(String str, String str2) {
+        if (canLog(2)) {
+            Log.v(str, zza(str2));
+        }
+    }
+
+    /* JADX INFO: renamed from: w */
+    public void m328w(String str, String str2) {
+        if (canLog(5)) {
+            Log.w(str, zza(str2));
+        }
+    }
+
+    public GmsLogger(String str, String str2) {
+        Preconditions.checkNotNull(str, "log tag cannot be null");
+        Preconditions.checkArgument(str.length() <= 23, "tag \"%s\" is longer than the %d character maximum", str, 23);
+        this.zza = str;
+        this.zzb = (str2 == null || str2.length() <= 0) ? null : str2;
+    }
+
+    /* JADX INFO: renamed from: e */
+    public void m326e(String str, String str2, Throwable th) {
+        if (canLog(6)) {
+            Log.e(str, zza(str2), th);
+        }
+    }
+}

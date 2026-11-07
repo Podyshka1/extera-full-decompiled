@@ -1,0 +1,710 @@
+package j$.nio.file;
+
+import j$.desugar.sun.nio.fs.AbstractC2248g;
+import j$.desugar.sun.nio.fs.C2249h;
+import j$.io.DesugarInputStream;
+import j$.io.InputStreamRetargetInterface;
+import j$.nio.file.attribute.BasicFileAttributeView;
+import j$.nio.file.attribute.BasicFileAttributes;
+import j$.nio.file.attribute.C2281t;
+import j$.nio.file.attribute.C2282u;
+import j$.nio.file.attribute.FileAttribute;
+import j$.nio.file.attribute.FileAttributeView;
+import j$.nio.file.attribute.FileTime;
+import j$.nio.file.attribute.InterfaceC2277p;
+import j$.nio.file.attribute.PosixFilePermission;
+import j$.nio.file.attribute.UserPrincipal;
+import j$.nio.file.spi.AbstractC2309d;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.nio.channels.Channels;
+import java.nio.channels.SeekableByteChannel;
+import java.nio.charset.Charset;
+import java.nio.charset.CharsetEncoder;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.DirectoryStream;
+import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.FileSystemException;
+import java.nio.file.NoSuchFileException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.Spliterators;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
+import okhttp3.internal.url._UrlKt;
+
+/* JADX INFO: compiled from: r8-map-id-4910828a8dc56cbd751d74065856ac3a183dfd4d6dbda867057afff82c304930 */
+/* JADX INFO: loaded from: classes2.dex */
+public final class Files {
+
+    /* JADX INFO: renamed from: a */
+    public static final Set f492a = AbstractC2248g.m544q(new Object[]{StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE});
+
+    /* JADX WARN: Multi-variable type inference failed */
+    /* JADX INFO: renamed from: a */
+    public static void m620a(InputStream inputStream, Path path, CopyOption... copyOptionArr) throws IOException {
+        Objects.requireNonNull(inputStream);
+        int length = copyOptionArr.length;
+        int i = 0;
+        boolean z = false;
+        while (i < length) {
+            CopyOption copyOption = copyOptionArr[i];
+            if (copyOption != StandardCopyOption.REPLACE_EXISTING) {
+                if (copyOption == null) {
+                    throw new NullPointerException("options contains 'null'");
+                }
+                throw new UnsupportedOperationException(copyOption + " not supported");
+            }
+            i++;
+            z = true;
+        }
+        if (z) {
+            try {
+                deleteIfExists(path);
+                e = null;
+            } catch (SecurityException e) {
+                e = e;
+            }
+        } else {
+            e = null;
+        }
+        try {
+            OutputStream outputStreamNewOutputStream = newOutputStream(path, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
+            try {
+                if (inputStream instanceof InputStreamRetargetInterface) {
+                    ((InputStreamRetargetInterface) inputStream).transferTo(outputStreamNewOutputStream);
+                } else {
+                    DesugarInputStream.transferTo(inputStream, outputStreamNewOutputStream);
+                }
+                if (outputStreamNewOutputStream != null) {
+                    outputStreamNewOutputStream.close();
+                }
+            } catch (Throwable th) {
+                if (outputStreamNewOutputStream != null) {
+                    try {
+                        outputStreamNewOutputStream.close();
+                    } catch (Throwable th2) {
+                        th.addSuppressed(th2);
+                    }
+                }
+                throw th;
+            }
+        } catch (FileAlreadyExistsException e2) {
+            if (e == null) {
+                throw e2;
+            }
+            throw e;
+        }
+    }
+
+    /* JADX INFO: renamed from: b */
+    public static AbstractC2309d m621b(Path path) {
+        return path.getFileSystem().mo564g();
+    }
+
+    public static Path copy(Path path, Path path2, CopyOption... copyOptionArr) throws IOException {
+        AbstractC2309d abstractC2309dM621b = m621b(path);
+        if (m621b(path2).equals(abstractC2309dM621b)) {
+            abstractC2309dM621b.mo571b(path, path2, copyOptionArr);
+            return path2;
+        }
+        AbstractC2248g.m534g(path, path2, copyOptionArr);
+        return path2;
+    }
+
+    public static Path createDirectories(Path path, FileAttribute<?>... fileAttributeArr) {
+        try {
+            try {
+                createDirectory(path, fileAttributeArr);
+            } catch (IOException unused) {
+                try {
+                    path = path.toAbsolutePath();
+                    e = null;
+                } catch (SecurityException e) {
+                    e = e;
+                }
+                Path parent = path.getParent();
+                while (parent != null) {
+                    try {
+                        parent.getFileSystem().mo564g().mo570a(parent, new EnumC2261a[0]);
+                        break;
+                    } catch (NoSuchFileException unused2) {
+                        parent = parent.getParent();
+                    }
+                }
+                if (parent == null) {
+                    if (e == null) {
+                        throw new FileSystemException(path.toString(), null, "Unable to determine if root directory exists");
+                    }
+                    throw e;
+                }
+                Iterator it = parent.relativize(path).iterator();
+                while (it.hasNext()) {
+                    parent = parent.resolve((Path) it.next());
+                    try {
+                        createDirectory(parent, fileAttributeArr);
+                    } catch (FileAlreadyExistsException e2) {
+                        if (!isDirectory(parent, LinkOption.NOFOLLOW_LINKS)) {
+                            throw e2;
+                        }
+                    }
+                }
+                return path;
+            }
+        } catch (FileAlreadyExistsException e3) {
+            try {
+                if (!isDirectory(path, LinkOption.NOFOLLOW_LINKS)) {
+                    throw e3;
+                }
+            } catch (FileAlreadyExistsException e4) {
+                throw e4;
+            }
+        }
+        return path;
+    }
+
+    public static Path createDirectory(Path path, FileAttribute<?>... fileAttributeArr) {
+        m621b(path).mo572c(path, fileAttributeArr);
+        return path;
+    }
+
+    public static Path createFile(Path path, FileAttribute<?>... fileAttributeArr) {
+        m621b(path).mo586q(path, f492a, fileAttributeArr).close();
+        return path;
+    }
+
+    public static Path createLink(Path path, Path path2) {
+        m621b(path).mo573d(path, path2);
+        return path;
+    }
+
+    public static Path createSymbolicLink(Path path, Path path2, FileAttribute<?>... fileAttributeArr) {
+        m621b(path).mo574e(path, path2, fileAttributeArr);
+        return path;
+    }
+
+    public static Path createTempDirectory(Path path, String str, FileAttribute<?>... fileAttributeArr) {
+        Objects.requireNonNull(path);
+        return k0.m647a(path, str, null, true, fileAttributeArr);
+    }
+
+    public static Path createTempFile(Path path, String str, String str2, FileAttribute<?>... fileAttributeArr) {
+        Objects.requireNonNull(path);
+        return k0.m647a(path, str, str2, false, fileAttributeArr);
+    }
+
+    public static void delete(Path path) {
+        m621b(path).mo575f(path);
+    }
+
+    public static boolean deleteIfExists(Path path) {
+        return m621b(path).mo576g(path);
+    }
+
+    public static boolean exists(Path path, LinkOption... linkOptionArr) {
+        if (linkOptionArr.length == 0) {
+            m621b(path);
+        }
+        try {
+            int length = linkOptionArr.length;
+            int i = 0;
+            boolean z = true;
+            while (i < length) {
+                LinkOption linkOption = linkOptionArr[i];
+                if (linkOption != LinkOption.NOFOLLOW_LINKS) {
+                    linkOption.getClass();
+                    throw new AssertionError("Should not get here");
+                }
+                i++;
+                z = false;
+            }
+            if (z) {
+                m621b(path).mo570a(path, new EnumC2261a[0]);
+            } else {
+                readAttributes(path, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
+            }
+            return true;
+        } catch (IOException unused) {
+            return false;
+        }
+    }
+
+    public static Object getAttribute(Path path, String str, LinkOption... linkOptionArr) {
+        if (str.indexOf(42) >= 0 || str.indexOf(44) >= 0) {
+            C2288b.m632a(str);
+            return null;
+        }
+        Map<String, Object> attributes = readAttributes(path, str, linkOptionArr);
+        int iIndexOf = str.indexOf(58);
+        if (iIndexOf != -1) {
+            str = iIndexOf == str.length() ? _UrlKt.FRAGMENT_ENCODE_SET : str.substring(iIndexOf + 1);
+        }
+        return attributes.get(str);
+    }
+
+    public static <V extends FileAttributeView> V getFileAttributeView(Path path, Class<V> cls, LinkOption... linkOptionArr) {
+        return (V) m621b(path).mo577h(path, cls, linkOptionArr);
+    }
+
+    public static FileStore getFileStore(Path path) {
+        return m621b(path).mo578i(path);
+    }
+
+    public static FileTime getLastModifiedTime(Path path, LinkOption... linkOptionArr) {
+        return readAttributes(path, BasicFileAttributes.class, linkOptionArr).lastModifiedTime();
+    }
+
+    public static UserPrincipal getOwner(Path path, LinkOption... linkOptionArr) {
+        InterfaceC2277p interfaceC2277p = (InterfaceC2277p) getFileAttributeView(path, InterfaceC2277p.class, linkOptionArr);
+        if (interfaceC2277p != null) {
+            return interfaceC2277p.getOwner();
+        }
+        throw new UnsupportedOperationException();
+    }
+
+    public static Set<PosixFilePermission> getPosixFilePermissions(Path path, LinkOption... linkOptionArr) {
+        return AbstractC2248g.m540m(((C2282u) readAttributes(path, C2282u.class, linkOptionArr)).f521a.permissions());
+    }
+
+    public static boolean isDirectory(Path path, LinkOption... linkOptionArr) {
+        if (linkOptionArr.length == 0) {
+            m621b(path);
+        }
+        try {
+            return readAttributes(path, BasicFileAttributes.class, linkOptionArr).isDirectory();
+        } catch (IOException unused) {
+            return false;
+        }
+    }
+
+    public static boolean isExecutable(Path path) {
+        try {
+            m621b(path).mo570a(path, EnumC2261a.EXECUTE);
+            return true;
+        } catch (IOException unused) {
+            return false;
+        }
+    }
+
+    public static boolean isHidden(Path path) {
+        return m621b(path).mo582m(path);
+    }
+
+    public static boolean isReadable(Path path) {
+        try {
+            m621b(path).mo570a(path, EnumC2261a.READ);
+            return true;
+        } catch (IOException unused) {
+            return false;
+        }
+    }
+
+    public static boolean isRegularFile(Path path, LinkOption... linkOptionArr) {
+        if (linkOptionArr.length == 0) {
+            m621b(path);
+        }
+        try {
+            return readAttributes(path, BasicFileAttributes.class, linkOptionArr).isRegularFile();
+        } catch (IOException unused) {
+            return false;
+        }
+    }
+
+    public static boolean isSameFile(Path path, Path path2) {
+        return m621b(path).mo583n(path, path2);
+    }
+
+    public static boolean isSymbolicLink(Path path) {
+        try {
+            return readAttributes(path, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS).isSymbolicLink();
+        } catch (IOException unused) {
+            return false;
+        }
+    }
+
+    public static boolean isWritable(Path path) {
+        try {
+            m621b(path).mo570a(path, EnumC2261a.WRITE);
+            return true;
+        } catch (IOException unused) {
+            return false;
+        }
+    }
+
+    public static Stream<Path> list(Path path) {
+        DirectoryStream<Path> directoryStreamNewDirectoryStream = newDirectoryStream(path);
+        try {
+            return (Stream) StreamSupport.stream(Spliterators.spliteratorUnknownSize(new C2303q(directoryStreamNewDirectoryStream.iterator()), 1), false).onClose(new RunnableC2305s(directoryStreamNewDirectoryStream));
+        } catch (Error | RuntimeException e) {
+            try {
+                directoryStreamNewDirectoryStream.close();
+            } catch (IOException e2) {
+                try {
+                    e.addSuppressed(e2);
+                } catch (Throwable unused) {
+                }
+            }
+            throw e;
+        }
+    }
+
+    public static Path move(Path path, Path path2, CopyOption... copyOptionArr) {
+        AbstractC2309d abstractC2309dM621b = m621b(path);
+        if (m621b(path2).equals(abstractC2309dM621b)) {
+            abstractC2309dM621b.mo584o(path, path2, copyOptionArr);
+            return path2;
+        }
+        int length = copyOptionArr.length;
+        CopyOption[] copyOptionArr2 = new CopyOption[length + 2];
+        for (int i = 0; i < length; i++) {
+            CopyOption copyOption = copyOptionArr[i];
+            if (copyOption == StandardCopyOption.ATOMIC_MOVE) {
+                throw new AtomicMoveNotSupportedException(null, null, "Atomic move between providers is not supported");
+            }
+            copyOptionArr2[i] = copyOption;
+        }
+        copyOptionArr2[length] = LinkOption.NOFOLLOW_LINKS;
+        copyOptionArr2[length + 1] = StandardCopyOption.COPY_ATTRIBUTES;
+        AbstractC2248g.m534g(path, path2, copyOptionArr2);
+        delete(path);
+        return path2;
+    }
+
+    public static BufferedReader newBufferedReader(Path path, Charset charset) {
+        return new BufferedReader(new InputStreamReader(newInputStream(path, new OpenOption[0]), charset.newDecoder()));
+    }
+
+    public static DirectoryStream<Path> newDirectoryStream(Path path, String str) {
+        if (str.equals("*")) {
+            return newDirectoryStream(path);
+        }
+        FileSystem fileSystem = path.getFileSystem();
+        return fileSystem.mo564g().mo587r(path, new C2249h(fileSystem.mo559b("glob:".concat(str)), 1));
+    }
+
+    public static InputStream newInputStream(Path path, OpenOption... openOptionArr) {
+        return m621b(path).mo655v(path, openOptionArr);
+    }
+
+    public static OutputStream newOutputStream(Path path, OpenOption... openOptionArr) {
+        return m621b(path).mo656w(path, openOptionArr);
+    }
+
+    public static boolean notExists(Path path, LinkOption... linkOptionArr) {
+        boolean z;
+        try {
+            int length = linkOptionArr.length;
+            z = true;
+            int i = 0;
+            while (i < length) {
+                LinkOption linkOption = linkOptionArr[i];
+                if (linkOption != LinkOption.NOFOLLOW_LINKS) {
+                    linkOption.getClass();
+                    throw new AssertionError("Should not get here");
+                }
+                i++;
+                z = false;
+            }
+        } catch (NoSuchFileException unused) {
+            return true;
+        } catch (IOException unused2) {
+        }
+        if (z) {
+            m621b(path).mo570a(path, new EnumC2261a[0]);
+            return false;
+        }
+        readAttributes(path, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
+        return false;
+    }
+
+    /* JADX WARN: Code restructure failed: missing block: B:24:0x0058, code lost:
+    
+        if (r2 != r1) goto L26;
+     */
+    /* JADX WARN: Code restructure failed: missing block: B:26:0x005b, code lost:
+    
+        r3 = java.util.Arrays.copyOf(r3, r1);
+     */
+    /* JADX WARN: Code restructure failed: missing block: B:27:0x005f, code lost:
+    
+        r0.close();
+     */
+    /* JADX WARN: Code restructure failed: missing block: B:28:0x0062, code lost:
+    
+        r8.close();
+     */
+    /* JADX WARN: Code restructure failed: missing block: B:29:0x0065, code lost:
+    
+        return r3;
+     */
+    /*
+        Code decompiled incorrectly, please refer to instructions dump.
+    */
+    public static byte[] readAllBytes(Path path) {
+        int i;
+        int i2 = 0;
+        SeekableByteChannel seekableByteChannelMo586q = m621b(path).mo586q(path, Collections.EMPTY_SET, new FileAttribute[0]);
+        try {
+            InputStream inputStreamNewInputStream = Channels.newInputStream(seekableByteChannelMo586q);
+            try {
+                long size = seekableByteChannelMo586q.size();
+                if (size > 2147483639) {
+                    throw new OutOfMemoryError("Required array size too large");
+                }
+                int iMax = (int) size;
+                byte[] bArrCopyOf = new byte[iMax];
+                while (true) {
+                    int i3 = inputStreamNewInputStream.read(bArrCopyOf, i2, iMax - i2);
+                    if (i3 <= 0) {
+                        if (i3 < 0 || (i = inputStreamNewInputStream.read()) < 0) {
+                            break;
+                        }
+                        if (iMax <= 2147483639 - iMax) {
+                            iMax = Math.max(iMax << 1, 8192);
+                        } else {
+                            if (iMax == 2147483639) {
+                                throw new OutOfMemoryError("Required array size too large");
+                            }
+                            iMax = 2147483639;
+                        }
+                        bArrCopyOf = Arrays.copyOf(bArrCopyOf, iMax);
+                        bArrCopyOf[i2] = (byte) i;
+                        i2++;
+                    } else {
+                        i2 += i3;
+                    }
+                }
+            } finally {
+            }
+        } catch (Throwable th) {
+            if (seekableByteChannelMo586q != null) {
+                try {
+                    seekableByteChannelMo586q.close();
+                } catch (Throwable th2) {
+                    th.addSuppressed(th2);
+                }
+            }
+            throw th;
+        }
+    }
+
+    public static List<String> readAllLines(Path path, Charset charset) throws IOException {
+        BufferedReader bufferedReaderNewBufferedReader = newBufferedReader(path, charset);
+        try {
+            ArrayList arrayList = new ArrayList();
+            while (true) {
+                String line = bufferedReaderNewBufferedReader.readLine();
+                if (line == null) {
+                    bufferedReaderNewBufferedReader.close();
+                    return arrayList;
+                }
+                arrayList.add(line);
+            }
+        } catch (Throwable th) {
+            if (bufferedReaderNewBufferedReader != null) {
+                try {
+                    bufferedReaderNewBufferedReader.close();
+                } catch (Throwable th2) {
+                    th.addSuppressed(th2);
+                }
+            }
+            throw th;
+        }
+    }
+
+    public static <A extends BasicFileAttributes> A readAttributes(Path path, Class<A> cls, LinkOption... linkOptionArr) {
+        return (A) m621b(path).mo590x(path, cls, linkOptionArr);
+    }
+
+    public static Path readSymbolicLink(Path path) {
+        return m621b(path).mo592z(path);
+    }
+
+    public static Path setAttribute(Path path, String str, Object obj, LinkOption... linkOptionArr) {
+        m621b(path).mo569A(path, str, obj, linkOptionArr);
+        return path;
+    }
+
+    public static Path setLastModifiedTime(Path path, FileTime fileTime) {
+        BasicFileAttributeView basicFileAttributeView = (BasicFileAttributeView) getFileAttributeView(path, BasicFileAttributeView.class, new LinkOption[0]);
+        Objects.requireNonNull(fileTime);
+        basicFileAttributeView.mo526a(fileTime, null, null);
+        return path;
+    }
+
+    public static Path setOwner(Path path, UserPrincipal userPrincipal) {
+        InterfaceC2277p interfaceC2277p = (InterfaceC2277p) getFileAttributeView(path, InterfaceC2277p.class, new LinkOption[0]);
+        if (interfaceC2277p == null) {
+            throw new UnsupportedOperationException();
+        }
+        interfaceC2277p.mo627b(userPrincipal);
+        return path;
+    }
+
+    public static Path setPosixFilePermissions(Path path, Set<PosixFilePermission> set) throws IOException {
+        C2281t c2281t = (C2281t) getFileAttributeView(path, C2281t.class, new LinkOption[0]);
+        if (c2281t == null) {
+            throw new UnsupportedOperationException();
+        }
+        c2281t.f520a.setPermissions(AbstractC2248g.m540m(set));
+        return path;
+    }
+
+    public static long size(Path path) {
+        return readAttributes(path, BasicFileAttributes.class, new LinkOption[0]).size();
+    }
+
+    public static Stream<Path> walk(Path path, FileVisitOption... fileVisitOptionArr) {
+        C2297k c2297k = new C2297k(path, fileVisitOptionArr);
+        try {
+            return ((Stream) StreamSupport.stream(Spliterators.spliteratorUnknownSize(c2297k, 1), false).onClose(new RunnableC2305s(c2297k))).map(new C2310t());
+        } catch (Error | RuntimeException e) {
+            c2297k.close();
+            throw e;
+        }
+    }
+
+    public static Path walkFileTree(Path path, Set<FileVisitOption> set, int i, FileVisitor<? super Path> fileVisitor) {
+        FileVisitResult fileVisitResultVisitFile;
+        C2302p c2302p = new C2302p(set, i);
+        try {
+            if (c2302p.f571e) {
+                throw new IllegalStateException("Closed");
+            }
+            C2300n c2300nM651c = c2302p.m651c(path, false);
+            do {
+                int[] iArr = AbstractC2304r.f575a;
+                EnumC2301o enumC2301o = c2300nM651c.f561a;
+                BasicFileAttributes basicFileAttributes = c2300nM651c.f563c;
+                IOException iOException = c2300nM651c.f564d;
+                Path path2 = c2300nM651c.f562b;
+                int i2 = iArr[enumC2301o.ordinal()];
+                if (i2 == 1) {
+                    fileVisitResultVisitFile = iOException == null ? fileVisitor.visitFile(path2, basicFileAttributes) : fileVisitor.visitFileFailed(path2, iOException);
+                } else if (i2 == 2) {
+                    fileVisitResultVisitFile = fileVisitor.preVisitDirectory(path2, basicFileAttributes);
+                    if ((fileVisitResultVisitFile == FileVisitResult.SKIP_SUBTREE || fileVisitResultVisitFile == FileVisitResult.SKIP_SIBLINGS) && !c2302p.f570d.isEmpty()) {
+                        try {
+                            ((C2299m) c2302p.f570d.pop()).f557c.close();
+                        } catch (IOException unused) {
+                        }
+                    }
+                } else {
+                    if (i2 != 3) {
+                        throw new AssertionError("Should not get here");
+                    }
+                    fileVisitResultVisitFile = fileVisitor.postVisitDirectory(path2, iOException);
+                    if (fileVisitResultVisitFile == FileVisitResult.SKIP_SIBLINGS) {
+                        fileVisitResultVisitFile = FileVisitResult.CONTINUE;
+                    }
+                }
+                Objects.requireNonNull(fileVisitResultVisitFile);
+                if (fileVisitResultVisitFile != FileVisitResult.CONTINUE) {
+                    if (fileVisitResultVisitFile == FileVisitResult.TERMINATE) {
+                        break;
+                    }
+                    if (fileVisitResultVisitFile == FileVisitResult.SKIP_SIBLINGS && !c2302p.f570d.isEmpty()) {
+                        ((C2299m) c2302p.f570d.peek()).f559e = true;
+                    }
+                    c2300nM651c = c2302p.m650b();
+                } else {
+                    c2300nM651c = c2302p.m650b();
+                }
+            } while (c2300nM651c != null);
+            c2302p.close();
+            return path;
+        } catch (Throwable th) {
+            try {
+                c2302p.close();
+            } catch (Throwable th2) {
+                th.addSuppressed(th2);
+            }
+            throw th;
+        }
+    }
+
+    public static Path write(Path path, Iterable<? extends CharSequence> iterable, Charset charset, OpenOption... openOptionArr) throws IOException {
+        Objects.requireNonNull(iterable);
+        CharsetEncoder charsetEncoderNewEncoder = charset.newEncoder();
+        OutputStream outputStreamNewOutputStream = newOutputStream(path, openOptionArr);
+        try {
+            BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(outputStreamNewOutputStream, charsetEncoderNewEncoder));
+            try {
+                Iterator<? extends CharSequence> it = iterable.iterator();
+                while (it.hasNext()) {
+                    bufferedWriter.append(it.next());
+                    bufferedWriter.newLine();
+                }
+                bufferedWriter.close();
+                if (outputStreamNewOutputStream != null) {
+                    outputStreamNewOutputStream.close();
+                }
+                return path;
+            } finally {
+            }
+        } catch (Throwable th) {
+            if (outputStreamNewOutputStream != null) {
+                try {
+                    outputStreamNewOutputStream.close();
+                } catch (Throwable th2) {
+                    th.addSuppressed(th2);
+                }
+            }
+            throw th;
+        }
+    }
+
+    public static Map<String, Object> readAttributes(Path path, String str, LinkOption... linkOptionArr) {
+        return m621b(path).mo591y(path, str, linkOptionArr);
+    }
+
+    public static Path createTempFile(String str, String str2, FileAttribute<?>... fileAttributeArr) {
+        return k0.m647a(null, str, str2, false, fileAttributeArr);
+    }
+
+    public static Path createTempDirectory(String str, FileAttribute<?>... fileAttributeArr) {
+        return k0.m647a(null, str, null, true, fileAttributeArr);
+    }
+
+    public static DirectoryStream<Path> newDirectoryStream(Path path) {
+        return m621b(path).mo587r(path, C2311u.f586a);
+    }
+
+    public static Path write(Path path, byte[] bArr, OpenOption... openOptionArr) throws IOException {
+        Objects.requireNonNull(bArr);
+        OutputStream outputStreamNewOutputStream = newOutputStream(path, openOptionArr);
+        try {
+            int length = bArr.length;
+            int i = length;
+            while (i > 0) {
+                int iMin = Math.min(i, 8192);
+                outputStreamNewOutputStream.write(bArr, length - i, iMin);
+                i -= iMin;
+            }
+            if (outputStreamNewOutputStream != null) {
+                outputStreamNewOutputStream.close();
+            }
+            return path;
+        } catch (Throwable th) {
+            if (outputStreamNewOutputStream != null) {
+                try {
+                    outputStreamNewOutputStream.close();
+                } catch (Throwable th2) {
+                    th.addSuppressed(th2);
+                }
+            }
+            throw th;
+        }
+    }
+}

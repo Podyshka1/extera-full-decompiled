@@ -1,0 +1,578 @@
+package androidx.datastore.core;
+
+import com.android.dx.io.Opcodes;
+import kotlin.LazyKt__LazyJVMKt$$ExternalSyntheticBUOutline0;
+import kotlin.Metadata;
+import kotlin.ResultKt;
+import kotlin.Unit;
+import kotlin.coroutines.Continuation;
+import kotlin.coroutines.intrinsics.IntrinsicsKt;
+import kotlin.coroutines.jvm.internal.Boxing;
+import kotlin.coroutines.jvm.internal.ContinuationImpl;
+import kotlin.coroutines.jvm.internal.DebugMetadata;
+import kotlin.coroutines.jvm.internal.SuspendLambda;
+import kotlin.jvm.functions.Function2;
+import kotlin.jvm.functions.Function3;
+import kotlin.jvm.internal.SourceDebugExtension;
+import kotlinx.coroutines.flow.Flow;
+import kotlinx.coroutines.flow.FlowCollector;
+import kotlinx.coroutines.flow.FlowKt;
+import okhttp3.internal.url._UrlKt;
+import okio.Segment$$ExternalSyntheticBUOutline1;
+
+/* JADX INFO: Add missing generic type declarations: [T] */
+/* JADX INFO: loaded from: classes.dex */
+@Metadata(d1 = {"\u0000\f\n\u0000\n\u0002\u0010\u0002\n\u0000\n\u0002\u0018\u0002\u0010\u0000\u001a\u00020\u0001\"\u0004\b\u0000\u0010\u0002*\b\u0012\u0004\u0012\u0002H\u00020\u0003H\u008a@"}, d2 = {"<anonymous>", _UrlKt.FRAGMENT_ENCODE_SET, "T", "Lkotlinx/coroutines/flow/FlowCollector;"}, m910k = 3, mv = {1, 8, 0}, xi = 48)
+@DebugMetadata(m920c = "androidx.datastore.core.DataStoreImpl$data$1", m921f = "DataStoreImpl.kt", m922i = {0, 1, 1}, m923l = {72, 74, 100}, m924m = "invokeSuspend", m925n = {"$this$flow", "$this$flow", "startState"}, m926s = {"L$0", "L$0", "L$1"})
+@SourceDebugExtension({"SMAP\nDataStoreImpl.kt\nKotlin\n*S Kotlin\n*F\n+ 1 DataStoreImpl.kt\nandroidx/datastore/core/DataStoreImpl$data$1\n+ 2 Transform.kt\nkotlinx/coroutines/flow/FlowKt__TransformKt\n+ 3 Emitters.kt\nkotlinx/coroutines/flow/FlowKt__EmittersKt\n+ 4 SafeCollector.common.kt\nkotlinx/coroutines/flow/internal/SafeCollector_commonKt\n*L\n1#1,538:1\n53#2:539\n55#2:543\n50#3:540\n55#3:542\n107#4:541\n*S KotlinDebug\n*F\n+ 1 DataStoreImpl.kt\nandroidx/datastore/core/DataStoreImpl$data$1\n*L\n108#1:539\n108#1:543\n108#1:540\n108#1:542\n108#1:541\n*E\n"})
+public final class DataStoreImpl$data$1<T> extends SuspendLambda implements Function2<FlowCollector<? super T>, Continuation<? super Unit>, Object> {
+    private /* synthetic */ Object L$0;
+    Object L$1;
+    int label;
+    final /* synthetic */ DataStoreImpl<T> this$0;
+
+    /* JADX WARN: 'super' call moved to the top of the method (can break code semantics) */
+    public DataStoreImpl$data$1(DataStoreImpl<T> dataStoreImpl, Continuation<? super DataStoreImpl$data$1> continuation) {
+        super(2, continuation);
+        this.this$0 = dataStoreImpl;
+    }
+
+    @Override // kotlin.coroutines.jvm.internal.BaseContinuationImpl
+    public final Continuation<Unit> create(Object obj, Continuation<?> continuation) {
+        DataStoreImpl$data$1 dataStoreImpl$data$1 = new DataStoreImpl$data$1(this.this$0, continuation);
+        dataStoreImpl$data$1.L$0 = obj;
+        return dataStoreImpl$data$1;
+    }
+
+    @Override // kotlin.jvm.functions.Function2
+    public final Object invoke(FlowCollector<? super T> flowCollector, Continuation<? super Unit> continuation) {
+        return ((DataStoreImpl$data$1) create(flowCollector, continuation)).invokeSuspend(Unit.INSTANCE);
+    }
+
+    /* JADX WARN: Code restructure failed: missing block: B:32:0x00b9, code lost:
+    
+        if (kotlinx.coroutines.flow.FlowKt.emitAll((kotlinx.coroutines.flow.FlowCollector) r1, r9, r8) == r0) goto L33;
+     */
+    /* JADX WARN: Multi-variable type inference failed */
+    /* JADX WARN: Type inference failed for: r1v13 */
+    /* JADX WARN: Type inference failed for: r1v14 */
+    /* JADX WARN: Type inference failed for: r1v3 */
+    /* JADX WARN: Type inference failed for: r1v4, types: [java.lang.Object, kotlinx.coroutines.flow.FlowCollector] */
+    /* JADX WARN: Type inference failed for: r1v6, types: [kotlinx.coroutines.flow.FlowCollector] */
+    /* JADX WARN: Type inference failed for: r1v8 */
+    /* JADX WARN: Type inference failed for: r3v12 */
+    /* JADX WARN: Type inference failed for: r3v15 */
+    /* JADX WARN: Type inference failed for: r3v5 */
+    @Override // kotlin.coroutines.jvm.internal.BaseContinuationImpl
+    /*
+        Code decompiled incorrectly, please refer to instructions dump.
+    */
+    public final Object invokeSuspend(Object obj) throws Throwable {
+        ?? r1;
+        State state;
+        ?? r3;
+        State state2;
+        ?? r12;
+        Object coroutine_suspended = IntrinsicsKt.getCOROUTINE_SUSPENDED();
+        int i = this.label;
+        if (i == 0) {
+            ResultKt.throwOnFailure(obj);
+            FlowCollector flowCollector = (FlowCollector) this.L$0;
+            DataStoreImpl<T> dataStoreImpl = this.this$0;
+            this.L$0 = flowCollector;
+            this.label = 1;
+            Object state3 = dataStoreImpl.readState(false, this);
+            if (state3 != coroutine_suspended) {
+                r1 = flowCollector;
+                obj = state3;
+            }
+            return coroutine_suspended;
+        }
+        if (i == 1) {
+            FlowCollector flowCollector2 = (FlowCollector) this.L$0;
+            ResultKt.throwOnFailure(obj);
+            r1 = flowCollector2;
+        } else {
+            if (i != 2) {
+                if (i == 3) {
+                    ResultKt.throwOnFailure(obj);
+                    return Unit.INSTANCE;
+                }
+                Segment$$ExternalSyntheticBUOutline1.m973m("call to 'resume' before 'invoke' with coroutine");
+                return null;
+            }
+            state2 = (State) this.L$1;
+            FlowCollector flowCollector3 = (FlowCollector) this.L$0;
+            ResultKt.throwOnFailure(obj);
+            r3 = flowCollector3;
+            state = state2;
+            r12 = r3;
+            final Flow flowDropWhile = FlowKt.dropWhile(FlowKt.takeWhile(FlowKt.onStart(((DataStoreImpl) this.this$0).inMemoryCache.getFlow(), new C04931(this.this$0, null)), new C04942(null)), new C04953(state, null));
+            Flow flowOnCompletion = FlowKt.onCompletion(new Flow<T>() { // from class: androidx.datastore.core.DataStoreImpl$data$1$invokeSuspend$$inlined$map$1
+
+                /* JADX INFO: renamed from: androidx.datastore.core.DataStoreImpl$data$1$invokeSuspend$$inlined$map$1$2 */
+                @Metadata(d1 = {"\u0000\f\n\u0002\b\u0003\n\u0002\u0010\u0002\n\u0002\b\u0003\u0010\u0006\u001a\u00020\u0003\"\u0004\b\u0000\u0010\u0000\"\u0004\b\u0001\u0010\u00012\u0006\u0010\u0002\u001a\u00028\u0000H\u008a@¢\u0006\u0004\b\u0004\u0010\u0005"}, d2 = {"T", "R", "value", _UrlKt.FRAGMENT_ENCODE_SET, "emit", "(Ljava/lang/Object;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;", "<anonymous>"}, m910k = 3, mv = {1, 8, 0})
+                @SourceDebugExtension({"SMAP\nEmitters.kt\nKotlin\n*S Kotlin\n*F\n+ 1 Emitters.kt\nkotlinx/coroutines/flow/FlowKt__EmittersKt$unsafeTransform$1$1\n+ 2 Transform.kt\nkotlinx/coroutines/flow/FlowKt__TransformKt\n+ 3 DataStoreImpl.kt\nandroidx/datastore/core/DataStoreImpl$data$1\n*L\n1#1,222:1\n54#2:223\n109#3,5:224\n*E\n"})
+                public static final class C04972<T> implements FlowCollector {
+                    final /* synthetic */ FlowCollector $this_unsafeFlow;
+
+                    /* JADX INFO: renamed from: androidx.datastore.core.DataStoreImpl$data$1$invokeSuspend$$inlined$map$1$2$1, reason: invalid class name */
+                    @Metadata(m910k = 3, mv = {1, 8, 0}, xi = 48)
+                    @DebugMetadata(m920c = "androidx.datastore.core.DataStoreImpl$data$1$invokeSuspend$$inlined$map$1$2", m921f = "DataStoreImpl.kt", m922i = {}, m923l = {Opcodes.XOR_INT_LIT8}, m924m = "emit", m925n = {}, m926s = {})
+                    @SourceDebugExtension({"SMAP\nEmitters.kt\nKotlin\n*S Kotlin\n*F\n+ 1 Emitters.kt\nkotlinx/coroutines/flow/FlowKt__EmittersKt$unsafeTransform$1$1$emit$1\n*L\n1#1,222:1\n*E\n"})
+                    public static final class AnonymousClass1 extends ContinuationImpl {
+                        int label;
+                        /* synthetic */ Object result;
+
+                        public AnonymousClass1(Continuation continuation) {
+                            super(continuation);
+                        }
+
+                        @Override // kotlin.coroutines.jvm.internal.BaseContinuationImpl
+                        public final Object invokeSuspend(Object obj) {
+                            this.result = obj;
+                            this.label |= Integer.MIN_VALUE;
+                            return C04972.this.emit(null, this);
+                        }
+                    }
+
+                    public C04972(FlowCollector flowCollector) {
+                        this.$this_unsafeFlow = flowCollector;
+                    }
+
+                    /* JADX WARN: Multi-variable type inference failed */
+                    /* JADX WARN: Removed duplicated region for block: B:7:0x0013  */
+                    @Override // kotlinx.coroutines.flow.FlowCollector
+                    /*
+                        Code decompiled incorrectly, please refer to instructions dump.
+                    */
+                    public final Object emit(Object obj, Continuation continuation) throws Throwable {
+                        AnonymousClass1 anonymousClass1;
+                        if (continuation instanceof AnonymousClass1) {
+                            anonymousClass1 = (AnonymousClass1) continuation;
+                            int i = anonymousClass1.label;
+                            if ((i & Integer.MIN_VALUE) != 0) {
+                                anonymousClass1.label = i - Integer.MIN_VALUE;
+                            } else {
+                                anonymousClass1 = new AnonymousClass1(continuation);
+                            }
+                        }
+                        Object obj2 = anonymousClass1.result;
+                        Object coroutine_suspended = IntrinsicsKt.getCOROUTINE_SUSPENDED();
+                        int i2 = anonymousClass1.label;
+                        if (i2 == 0) {
+                            ResultKt.throwOnFailure(obj2);
+                            FlowCollector flowCollector = this.$this_unsafeFlow;
+                            State state = (State) obj;
+                            if (state instanceof ReadException) {
+                                throw ((ReadException) state).getReadException();
+                            }
+                            if (state instanceof Data) {
+                                Object value = ((Data) state).getValue();
+                                anonymousClass1.label = 1;
+                                if (flowCollector.emit(value, anonymousClass1) == coroutine_suspended) {
+                                    return coroutine_suspended;
+                                }
+                            } else {
+                                if (state instanceof Final ? true : state instanceof UnInitialized) {
+                                    Segment$$ExternalSyntheticBUOutline1.m973m("This is a bug in DataStore. Please file a bug at: https://issuetracker.google.com/issues/new?component=907884&template=1466542");
+                                    return null;
+                                }
+                                LazyKt__LazyJVMKt$$ExternalSyntheticBUOutline0.m909m();
+                                return null;
+                            }
+                        } else {
+                            if (i2 != 1) {
+                                Segment$$ExternalSyntheticBUOutline1.m973m("call to 'resume' before 'invoke' with coroutine");
+                                return null;
+                            }
+                            ResultKt.throwOnFailure(obj2);
+                        }
+                        return Unit.INSTANCE;
+                    }
+                }
+
+                @Override // kotlinx.coroutines.flow.Flow
+                public Object collect(FlowCollector flowCollector4, Continuation continuation) {
+                    Object objCollect = flowDropWhile.collect(new C04972(flowCollector4), continuation);
+                    return objCollect == IntrinsicsKt.getCOROUTINE_SUSPENDED() ? objCollect : Unit.INSTANCE;
+                }
+            }, new C04965(this.this$0, null));
+            this.L$0 = null;
+            this.L$1 = null;
+            this.label = 3;
+        }
+        state = (State) obj;
+        if (state instanceof Data) {
+            Object value = ((Data) state).getValue();
+            this.L$0 = r1;
+            this.L$1 = state;
+            this.label = 2;
+            if (r1.emit(value, this) != coroutine_suspended) {
+                r3 = r1;
+                state2 = state;
+                state = state2;
+                r12 = r3;
+                final Flow flowDropWhile2 = FlowKt.dropWhile(FlowKt.takeWhile(FlowKt.onStart(((DataStoreImpl) this.this$0).inMemoryCache.getFlow(), new C04931(this.this$0, null)), new C04942(null)), new C04953(state, null));
+                Flow flowOnCompletion2 = FlowKt.onCompletion(new Flow<T>() { // from class: androidx.datastore.core.DataStoreImpl$data$1$invokeSuspend$$inlined$map$1
+
+                    /* JADX INFO: renamed from: androidx.datastore.core.DataStoreImpl$data$1$invokeSuspend$$inlined$map$1$2 */
+                    @Metadata(d1 = {"\u0000\f\n\u0002\b\u0003\n\u0002\u0010\u0002\n\u0002\b\u0003\u0010\u0006\u001a\u00020\u0003\"\u0004\b\u0000\u0010\u0000\"\u0004\b\u0001\u0010\u00012\u0006\u0010\u0002\u001a\u00028\u0000H\u008a@¢\u0006\u0004\b\u0004\u0010\u0005"}, d2 = {"T", "R", "value", _UrlKt.FRAGMENT_ENCODE_SET, "emit", "(Ljava/lang/Object;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;", "<anonymous>"}, m910k = 3, mv = {1, 8, 0})
+                    @SourceDebugExtension({"SMAP\nEmitters.kt\nKotlin\n*S Kotlin\n*F\n+ 1 Emitters.kt\nkotlinx/coroutines/flow/FlowKt__EmittersKt$unsafeTransform$1$1\n+ 2 Transform.kt\nkotlinx/coroutines/flow/FlowKt__TransformKt\n+ 3 DataStoreImpl.kt\nandroidx/datastore/core/DataStoreImpl$data$1\n*L\n1#1,222:1\n54#2:223\n109#3,5:224\n*E\n"})
+                    public static final class C04972<T> implements FlowCollector {
+                        final /* synthetic */ FlowCollector $this_unsafeFlow;
+
+                        /* JADX INFO: renamed from: androidx.datastore.core.DataStoreImpl$data$1$invokeSuspend$$inlined$map$1$2$1, reason: invalid class name */
+                        @Metadata(m910k = 3, mv = {1, 8, 0}, xi = 48)
+                        @DebugMetadata(m920c = "androidx.datastore.core.DataStoreImpl$data$1$invokeSuspend$$inlined$map$1$2", m921f = "DataStoreImpl.kt", m922i = {}, m923l = {Opcodes.XOR_INT_LIT8}, m924m = "emit", m925n = {}, m926s = {})
+                        @SourceDebugExtension({"SMAP\nEmitters.kt\nKotlin\n*S Kotlin\n*F\n+ 1 Emitters.kt\nkotlinx/coroutines/flow/FlowKt__EmittersKt$unsafeTransform$1$1$emit$1\n*L\n1#1,222:1\n*E\n"})
+                        public static final class AnonymousClass1 extends ContinuationImpl {
+                            int label;
+                            /* synthetic */ Object result;
+
+                            public AnonymousClass1(Continuation continuation) {
+                                super(continuation);
+                            }
+
+                            @Override // kotlin.coroutines.jvm.internal.BaseContinuationImpl
+                            public final Object invokeSuspend(Object obj) {
+                                this.result = obj;
+                                this.label |= Integer.MIN_VALUE;
+                                return C04972.this.emit(null, this);
+                            }
+                        }
+
+                        public C04972(FlowCollector flowCollector) {
+                            this.$this_unsafeFlow = flowCollector;
+                        }
+
+                        /* JADX WARN: Multi-variable type inference failed */
+                        /* JADX WARN: Removed duplicated region for block: B:7:0x0013  */
+                        @Override // kotlinx.coroutines.flow.FlowCollector
+                        /*
+                            Code decompiled incorrectly, please refer to instructions dump.
+                        */
+                        public final Object emit(Object obj, Continuation continuation) throws Throwable {
+                            AnonymousClass1 anonymousClass1;
+                            if (continuation instanceof AnonymousClass1) {
+                                anonymousClass1 = (AnonymousClass1) continuation;
+                                int i = anonymousClass1.label;
+                                if ((i & Integer.MIN_VALUE) != 0) {
+                                    anonymousClass1.label = i - Integer.MIN_VALUE;
+                                } else {
+                                    anonymousClass1 = new AnonymousClass1(continuation);
+                                }
+                            }
+                            Object obj2 = anonymousClass1.result;
+                            Object coroutine_suspended = IntrinsicsKt.getCOROUTINE_SUSPENDED();
+                            int i2 = anonymousClass1.label;
+                            if (i2 == 0) {
+                                ResultKt.throwOnFailure(obj2);
+                                FlowCollector flowCollector = this.$this_unsafeFlow;
+                                State state = (State) obj;
+                                if (state instanceof ReadException) {
+                                    throw ((ReadException) state).getReadException();
+                                }
+                                if (state instanceof Data) {
+                                    Object value = ((Data) state).getValue();
+                                    anonymousClass1.label = 1;
+                                    if (flowCollector.emit(value, anonymousClass1) == coroutine_suspended) {
+                                        return coroutine_suspended;
+                                    }
+                                } else {
+                                    if (state instanceof Final ? true : state instanceof UnInitialized) {
+                                        Segment$$ExternalSyntheticBUOutline1.m973m("This is a bug in DataStore. Please file a bug at: https://issuetracker.google.com/issues/new?component=907884&template=1466542");
+                                        return null;
+                                    }
+                                    LazyKt__LazyJVMKt$$ExternalSyntheticBUOutline0.m909m();
+                                    return null;
+                                }
+                            } else {
+                                if (i2 != 1) {
+                                    Segment$$ExternalSyntheticBUOutline1.m973m("call to 'resume' before 'invoke' with coroutine");
+                                    return null;
+                                }
+                                ResultKt.throwOnFailure(obj2);
+                            }
+                            return Unit.INSTANCE;
+                        }
+                    }
+
+                    @Override // kotlinx.coroutines.flow.Flow
+                    public Object collect(FlowCollector flowCollector4, Continuation continuation) {
+                        Object objCollect = flowDropWhile2.collect(new C04972(flowCollector4), continuation);
+                        return objCollect == IntrinsicsKt.getCOROUTINE_SUSPENDED() ? objCollect : Unit.INSTANCE;
+                    }
+                }, new C04965(this.this$0, null));
+                this.L$0 = null;
+                this.L$1 = null;
+                this.label = 3;
+            }
+            return coroutine_suspended;
+        }
+        if (state instanceof UnInitialized) {
+            Segment$$ExternalSyntheticBUOutline1.m973m("This is a bug in DataStore. Please file a bug at: https://issuetracker.google.com/issues/new?component=907884&template=1466542");
+            return null;
+        }
+        if (state instanceof ReadException) {
+            throw ((ReadException) state).getReadException();
+        }
+        r12 = r1;
+        if (state instanceof Final) {
+            return Unit.INSTANCE;
+        }
+        final Flow flowDropWhile22 = FlowKt.dropWhile(FlowKt.takeWhile(FlowKt.onStart(((DataStoreImpl) this.this$0).inMemoryCache.getFlow(), new C04931(this.this$0, null)), new C04942(null)), new C04953(state, null));
+        Flow flowOnCompletion22 = FlowKt.onCompletion(new Flow<T>() { // from class: androidx.datastore.core.DataStoreImpl$data$1$invokeSuspend$$inlined$map$1
+
+            /* JADX INFO: renamed from: androidx.datastore.core.DataStoreImpl$data$1$invokeSuspend$$inlined$map$1$2 */
+            @Metadata(d1 = {"\u0000\f\n\u0002\b\u0003\n\u0002\u0010\u0002\n\u0002\b\u0003\u0010\u0006\u001a\u00020\u0003\"\u0004\b\u0000\u0010\u0000\"\u0004\b\u0001\u0010\u00012\u0006\u0010\u0002\u001a\u00028\u0000H\u008a@¢\u0006\u0004\b\u0004\u0010\u0005"}, d2 = {"T", "R", "value", _UrlKt.FRAGMENT_ENCODE_SET, "emit", "(Ljava/lang/Object;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;", "<anonymous>"}, m910k = 3, mv = {1, 8, 0})
+            @SourceDebugExtension({"SMAP\nEmitters.kt\nKotlin\n*S Kotlin\n*F\n+ 1 Emitters.kt\nkotlinx/coroutines/flow/FlowKt__EmittersKt$unsafeTransform$1$1\n+ 2 Transform.kt\nkotlinx/coroutines/flow/FlowKt__TransformKt\n+ 3 DataStoreImpl.kt\nandroidx/datastore/core/DataStoreImpl$data$1\n*L\n1#1,222:1\n54#2:223\n109#3,5:224\n*E\n"})
+            public static final class C04972<T> implements FlowCollector {
+                final /* synthetic */ FlowCollector $this_unsafeFlow;
+
+                /* JADX INFO: renamed from: androidx.datastore.core.DataStoreImpl$data$1$invokeSuspend$$inlined$map$1$2$1, reason: invalid class name */
+                @Metadata(m910k = 3, mv = {1, 8, 0}, xi = 48)
+                @DebugMetadata(m920c = "androidx.datastore.core.DataStoreImpl$data$1$invokeSuspend$$inlined$map$1$2", m921f = "DataStoreImpl.kt", m922i = {}, m923l = {Opcodes.XOR_INT_LIT8}, m924m = "emit", m925n = {}, m926s = {})
+                @SourceDebugExtension({"SMAP\nEmitters.kt\nKotlin\n*S Kotlin\n*F\n+ 1 Emitters.kt\nkotlinx/coroutines/flow/FlowKt__EmittersKt$unsafeTransform$1$1$emit$1\n*L\n1#1,222:1\n*E\n"})
+                public static final class AnonymousClass1 extends ContinuationImpl {
+                    int label;
+                    /* synthetic */ Object result;
+
+                    public AnonymousClass1(Continuation continuation) {
+                        super(continuation);
+                    }
+
+                    @Override // kotlin.coroutines.jvm.internal.BaseContinuationImpl
+                    public final Object invokeSuspend(Object obj) {
+                        this.result = obj;
+                        this.label |= Integer.MIN_VALUE;
+                        return C04972.this.emit(null, this);
+                    }
+                }
+
+                public C04972(FlowCollector flowCollector) {
+                    this.$this_unsafeFlow = flowCollector;
+                }
+
+                /* JADX WARN: Multi-variable type inference failed */
+                /* JADX WARN: Removed duplicated region for block: B:7:0x0013  */
+                @Override // kotlinx.coroutines.flow.FlowCollector
+                /*
+                    Code decompiled incorrectly, please refer to instructions dump.
+                */
+                public final Object emit(Object obj, Continuation continuation) throws Throwable {
+                    AnonymousClass1 anonymousClass1;
+                    if (continuation instanceof AnonymousClass1) {
+                        anonymousClass1 = (AnonymousClass1) continuation;
+                        int i = anonymousClass1.label;
+                        if ((i & Integer.MIN_VALUE) != 0) {
+                            anonymousClass1.label = i - Integer.MIN_VALUE;
+                        } else {
+                            anonymousClass1 = new AnonymousClass1(continuation);
+                        }
+                    }
+                    Object obj2 = anonymousClass1.result;
+                    Object coroutine_suspended = IntrinsicsKt.getCOROUTINE_SUSPENDED();
+                    int i2 = anonymousClass1.label;
+                    if (i2 == 0) {
+                        ResultKt.throwOnFailure(obj2);
+                        FlowCollector flowCollector = this.$this_unsafeFlow;
+                        State state = (State) obj;
+                        if (state instanceof ReadException) {
+                            throw ((ReadException) state).getReadException();
+                        }
+                        if (state instanceof Data) {
+                            Object value = ((Data) state).getValue();
+                            anonymousClass1.label = 1;
+                            if (flowCollector.emit(value, anonymousClass1) == coroutine_suspended) {
+                                return coroutine_suspended;
+                            }
+                        } else {
+                            if (state instanceof Final ? true : state instanceof UnInitialized) {
+                                Segment$$ExternalSyntheticBUOutline1.m973m("This is a bug in DataStore. Please file a bug at: https://issuetracker.google.com/issues/new?component=907884&template=1466542");
+                                return null;
+                            }
+                            LazyKt__LazyJVMKt$$ExternalSyntheticBUOutline0.m909m();
+                            return null;
+                        }
+                    } else {
+                        if (i2 != 1) {
+                            Segment$$ExternalSyntheticBUOutline1.m973m("call to 'resume' before 'invoke' with coroutine");
+                            return null;
+                        }
+                        ResultKt.throwOnFailure(obj2);
+                    }
+                    return Unit.INSTANCE;
+                }
+            }
+
+            @Override // kotlinx.coroutines.flow.Flow
+            public Object collect(FlowCollector flowCollector4, Continuation continuation) {
+                Object objCollect = flowDropWhile22.collect(new C04972(flowCollector4), continuation);
+                return objCollect == IntrinsicsKt.getCOROUTINE_SUSPENDED() ? objCollect : Unit.INSTANCE;
+            }
+        }, new C04965(this.this$0, null));
+        this.L$0 = null;
+        this.L$1 = null;
+        this.label = 3;
+    }
+
+    /* JADX INFO: renamed from: androidx.datastore.core.DataStoreImpl$data$1$1 */
+    @Metadata(d1 = {"\u0000\u0010\n\u0000\n\u0002\u0010\u0002\n\u0000\n\u0002\u0018\u0002\n\u0002\u0018\u0002\u0010\u0000\u001a\u00020\u0001\"\u0004\b\u0000\u0010\u0002*\u000e\u0012\n\u0012\b\u0012\u0004\u0012\u0002H\u00020\u00040\u0003H\u008a@"}, d2 = {"<anonymous>", _UrlKt.FRAGMENT_ENCODE_SET, "T", "Lkotlinx/coroutines/flow/FlowCollector;", "Landroidx/datastore/core/State;"}, m910k = 3, mv = {1, 8, 0}, xi = 48)
+    @DebugMetadata(m920c = "androidx.datastore.core.DataStoreImpl$data$1$1", m921f = "DataStoreImpl.kt", m922i = {}, m923l = {102}, m924m = "invokeSuspend", m925n = {}, m926s = {})
+    public static final class C04931 extends SuspendLambda implements Function2<FlowCollector<? super State<T>>, Continuation<? super Unit>, Object> {
+        int label;
+        final /* synthetic */ DataStoreImpl<T> this$0;
+
+        /* JADX WARN: 'super' call moved to the top of the method (can break code semantics) */
+        public C04931(DataStoreImpl<T> dataStoreImpl, Continuation<? super C04931> continuation) {
+            super(2, continuation);
+            this.this$0 = dataStoreImpl;
+        }
+
+        @Override // kotlin.coroutines.jvm.internal.BaseContinuationImpl
+        public final Continuation<Unit> create(Object obj, Continuation<?> continuation) {
+            return new C04931(this.this$0, continuation);
+        }
+
+        @Override // kotlin.jvm.functions.Function2
+        public final Object invoke(FlowCollector<? super State<T>> flowCollector, Continuation<? super Unit> continuation) {
+            return ((C04931) create(flowCollector, continuation)).invokeSuspend(Unit.INSTANCE);
+        }
+
+        @Override // kotlin.coroutines.jvm.internal.BaseContinuationImpl
+        public final Object invokeSuspend(Object obj) {
+            Object coroutine_suspended = IntrinsicsKt.getCOROUTINE_SUSPENDED();
+            int i = this.label;
+            if (i == 0) {
+                ResultKt.throwOnFailure(obj);
+                DataStoreImpl<T> dataStoreImpl = this.this$0;
+                this.label = 1;
+                if (dataStoreImpl.incrementCollector(this) == coroutine_suspended) {
+                    return coroutine_suspended;
+                }
+            } else {
+                if (i != 1) {
+                    Segment$$ExternalSyntheticBUOutline1.m973m("call to 'resume' before 'invoke' with coroutine");
+                    return null;
+                }
+                ResultKt.throwOnFailure(obj);
+            }
+            return Unit.INSTANCE;
+        }
+    }
+
+    /* JADX INFO: renamed from: androidx.datastore.core.DataStoreImpl$data$1$2 */
+    @Metadata(d1 = {"\u0000\u000e\n\u0000\n\u0002\u0010\u000b\n\u0002\b\u0002\n\u0002\u0018\u0002\u0010\u0000\u001a\u00020\u0001\"\u0004\b\u0000\u0010\u00022\f\u0010\u0003\u001a\b\u0012\u0004\u0012\u0002H\u00020\u0004H\u008a@"}, d2 = {"<anonymous>", _UrlKt.FRAGMENT_ENCODE_SET, "T", "it", "Landroidx/datastore/core/State;"}, m910k = 3, mv = {1, 8, 0}, xi = 48)
+    @DebugMetadata(m920c = "androidx.datastore.core.DataStoreImpl$data$1$2", m921f = "DataStoreImpl.kt", m922i = {}, m923l = {}, m924m = "invokeSuspend", m925n = {}, m926s = {})
+    public static final class C04942 extends SuspendLambda implements Function2<State<T>, Continuation<? super Boolean>, Object> {
+        /* synthetic */ Object L$0;
+        int label;
+
+        public C04942(Continuation<? super C04942> continuation) {
+            super(2, continuation);
+        }
+
+        @Override // kotlin.coroutines.jvm.internal.BaseContinuationImpl
+        public final Continuation<Unit> create(Object obj, Continuation<?> continuation) {
+            C04942 c04942 = new C04942(continuation);
+            c04942.L$0 = obj;
+            return c04942;
+        }
+
+        @Override // kotlin.jvm.functions.Function2
+        public final Object invoke(State<T> state, Continuation<? super Boolean> continuation) {
+            return ((C04942) create(state, continuation)).invokeSuspend(Unit.INSTANCE);
+        }
+
+        @Override // kotlin.coroutines.jvm.internal.BaseContinuationImpl
+        public final Object invokeSuspend(Object obj) {
+            IntrinsicsKt.getCOROUTINE_SUSPENDED();
+            if (this.label != 0) {
+                Segment$$ExternalSyntheticBUOutline1.m973m("call to 'resume' before 'invoke' with coroutine");
+                return null;
+            }
+            ResultKt.throwOnFailure(obj);
+            return Boxing.boxBoolean(!(((State) this.L$0) instanceof Final));
+        }
+    }
+
+    /* JADX INFO: renamed from: androidx.datastore.core.DataStoreImpl$data$1$3 */
+    @Metadata(d1 = {"\u0000\u000e\n\u0000\n\u0002\u0010\u000b\n\u0002\b\u0002\n\u0002\u0018\u0002\u0010\u0000\u001a\u00020\u0001\"\u0004\b\u0000\u0010\u00022\f\u0010\u0003\u001a\b\u0012\u0004\u0012\u0002H\u00020\u0004H\u008a@"}, d2 = {"<anonymous>", _UrlKt.FRAGMENT_ENCODE_SET, "T", "it", "Landroidx/datastore/core/State;"}, m910k = 3, mv = {1, 8, 0}, xi = 48)
+    @DebugMetadata(m920c = "androidx.datastore.core.DataStoreImpl$data$1$3", m921f = "DataStoreImpl.kt", m922i = {}, m923l = {}, m924m = "invokeSuspend", m925n = {}, m926s = {})
+    public static final class C04953 extends SuspendLambda implements Function2<State<T>, Continuation<? super Boolean>, Object> {
+        final /* synthetic */ State<T> $startState;
+        /* synthetic */ Object L$0;
+        int label;
+
+        /* JADX WARN: 'super' call moved to the top of the method (can break code semantics) */
+        public C04953(State<T> state, Continuation<? super C04953> continuation) {
+            super(2, continuation);
+            this.$startState = state;
+        }
+
+        @Override // kotlin.coroutines.jvm.internal.BaseContinuationImpl
+        public final Continuation<Unit> create(Object obj, Continuation<?> continuation) {
+            C04953 c04953 = new C04953(this.$startState, continuation);
+            c04953.L$0 = obj;
+            return c04953;
+        }
+
+        @Override // kotlin.jvm.functions.Function2
+        public final Object invoke(State<T> state, Continuation<? super Boolean> continuation) {
+            return ((C04953) create(state, continuation)).invokeSuspend(Unit.INSTANCE);
+        }
+
+        @Override // kotlin.coroutines.jvm.internal.BaseContinuationImpl
+        public final Object invokeSuspend(Object obj) {
+            IntrinsicsKt.getCOROUTINE_SUSPENDED();
+            if (this.label != 0) {
+                Segment$$ExternalSyntheticBUOutline1.m973m("call to 'resume' before 'invoke' with coroutine");
+                return null;
+            }
+            ResultKt.throwOnFailure(obj);
+            State state = (State) this.L$0;
+            return Boxing.boxBoolean((state instanceof Data) && state.getVersion() <= this.$startState.getVersion());
+        }
+    }
+
+    /* JADX INFO: renamed from: androidx.datastore.core.DataStoreImpl$data$1$5 */
+    @Metadata(d1 = {"\u0000\u0012\n\u0000\n\u0002\u0010\u0002\n\u0000\n\u0002\u0018\u0002\n\u0000\n\u0002\u0010\u0003\u0010\u0000\u001a\u00020\u0001\"\u0004\b\u0000\u0010\u0002*\b\u0012\u0004\u0012\u0002H\u00020\u00032\b\u0010\u0004\u001a\u0004\u0018\u00010\u0005H\u008a@"}, d2 = {"<anonymous>", _UrlKt.FRAGMENT_ENCODE_SET, "T", "Lkotlinx/coroutines/flow/FlowCollector;", "it", _UrlKt.FRAGMENT_ENCODE_SET}, m910k = 3, mv = {1, 8, 0}, xi = 48)
+    @DebugMetadata(m920c = "androidx.datastore.core.DataStoreImpl$data$1$5", m921f = "DataStoreImpl.kt", m922i = {}, m923l = {116}, m924m = "invokeSuspend", m925n = {}, m926s = {})
+    public static final class C04965 extends SuspendLambda implements Function3<FlowCollector<? super T>, Throwable, Continuation<? super Unit>, Object> {
+        int label;
+        final /* synthetic */ DataStoreImpl<T> this$0;
+
+        /* JADX WARN: 'super' call moved to the top of the method (can break code semantics) */
+        public C04965(DataStoreImpl<T> dataStoreImpl, Continuation<? super C04965> continuation) {
+            super(3, continuation);
+            this.this$0 = dataStoreImpl;
+        }
+
+        @Override // kotlin.jvm.functions.Function3
+        public final Object invoke(FlowCollector<? super T> flowCollector, Throwable th, Continuation<? super Unit> continuation) {
+            return new C04965(this.this$0, continuation).invokeSuspend(Unit.INSTANCE);
+        }
+
+        @Override // kotlin.coroutines.jvm.internal.BaseContinuationImpl
+        public final Object invokeSuspend(Object obj) {
+            Object coroutine_suspended = IntrinsicsKt.getCOROUTINE_SUSPENDED();
+            int i = this.label;
+            if (i == 0) {
+                ResultKt.throwOnFailure(obj);
+                DataStoreImpl<T> dataStoreImpl = this.this$0;
+                this.label = 1;
+                if (dataStoreImpl.decrementCollector(this) == coroutine_suspended) {
+                    return coroutine_suspended;
+                }
+            } else {
+                if (i != 1) {
+                    Segment$$ExternalSyntheticBUOutline1.m973m("call to 'resume' before 'invoke' with coroutine");
+                    return null;
+                }
+                ResultKt.throwOnFailure(obj);
+            }
+            return Unit.INSTANCE;
+        }
+    }
+}
